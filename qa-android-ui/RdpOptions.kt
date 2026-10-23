@@ -125,9 +125,9 @@ enum class XyGpuProfile(
 ) {
     AUTO(
         "Otomatis (Deteksi Host)",
-        "Ikuti konfigurasi availablepter grafis bawaan Windows",
+        "Ikuti konfigurasi adapter grafis bawaan Windows",
         "Automatic (Host Default)",
-        "Follow Windows host default graphics availablepter settings",
+        "Follow Windows host default graphics adapter settings",
     ),
     NVIDIA(
         "NVIDIA GeForce / RTX (NVENC)",
