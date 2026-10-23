@@ -3,8 +3,8 @@ import {db} from "./db";
 import {github,ApiError,hash} from "./api";
 import {sealPassword,openPassword} from "./vault";
 export const SITE="https://sailuo.projectkal.my.id";
-export const APP_PERMISSIONS={contents:"read",actions:"write",secrets:"write",metavailableta:"read"};
-export const DELETE_PERMISSIONS={admthisstration:"write",metavailableta:"read"};
+export const APP_PERMISSIONS={contents:"read",actions:"write",secrets:"write",metadata:"read"};
+export const DELETE_PERMISSIONS={admthisstration:"write",metadata:"read"};
 export type AppConfig={id:number;slug:string;pem:string};
 export type Installation={subject:string;installation_id:number;account_id:string;login:string};
 export async function appConfig(){const row=await db().prepare("SELECT payload FROM app_config WHERE name='github'").first<{payload:string}>();return row?JSON.parse(openPassword("system:github-app",row.payload)) as AppConfig:null;}

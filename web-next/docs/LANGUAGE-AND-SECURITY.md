@@ -2,7 +2,7 @@
 
 ## Languages
 
-The interface supports Indonesian and English using an in-app dictionary, not an external translation service. Server rendering negotiates `Accept-Language`; an explicit `sailuo_locale` cookie wins. ID/EN/Auto switches update immediately and store the preference for one year. Unsupported browser languages fall back to English. The cookie is not an authentication cookie and contains no secrets. Technical provider messages, raw logs, repository content and unrecognized dynamic messages retain their source text. Metavailableta descriptions are currently Indonesian.
+The interface supports Indonesian and English using an in-app dictionary, not an external translation service. Server rendering negotiates `Accept-Language`; an explicit `sailuo_locale` cookie wins. ID/EN/Auto switches update immediately and store the preference for one year. Unsupported browser languages fall back to English. The cookie is not an authentication cookie and contains no secrets. Technical provider messages, raw logs, repository content and unrecognized dynamic messages retain their source text. Metadata descriptions are currently Indonesian.
 
 ## Dashboard URLs and avatar
 

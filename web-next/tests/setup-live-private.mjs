@@ -11,7 +11,7 @@ try{
  d=await call('/api/v1/setup','POST',{action:'create',name,private:true,confirm:true});repo=d.repo;assert(repo.endsWith('/'+name));console.log('PASS private repository created from real template');
  fs.writeFileSync('.setup-test.local',JSON.stringify({repo,subject:'github:'+subject}));
  // GitHub generation normally completes before these independent readiness reads.
- const r=await fetch('https://api.github.com/repos/'+repo,{headers:{Authorization:'Bearer '+env.ADMIN_GITHUB_TOKEN,'User-Agent':'Sailuo-test'}});const metavailableta=await r.json();assert.equal(metavailableta.private,true);
+ const r=await fetch('https://api.github.com/repos/'+repo,{headers:{Authorization:'Bearer '+env.ADMIN_GITHUB_TOKEN,'User-Agent':'Sailuo-test'}});const metadata=await r.json();assert.equal(metadata.private,true);
  await new Promise(resolve=>setTimeout(resolve,10000)); // GitHub template generation is asynchronous.
  d=await call('/api/v1/setup','POST',{action:'fthissh'});assert.equal(d.repo,repo);assert.equal(d.importing,false);assert.equal(d.workflow_exists,true);assert.equal(d.actions_enabled,true);assert(d.missing.includes('RDP_PASSWORD')&&d.missing.includes('TAILSCALE_AUTH_KEY'));console.log('PASS custom name persisted; workflow ready; required secrets detected');
  d=await call('/api/v1/repository?path=');const names=d.data.map(x=>x.name);assert(!names.includes('web')&&!names.includes('web-next')&&!names.includes('deploy'));assert(names.includes('scripts')&&names.includes('.github'));console.log('PASS generated working tree excludes web folders and retains RDP scripts');

@@ -7,7 +7,7 @@
 #       menggunwill bore / chisel without membutuhkan file .ovpn.
 #    2. Portmap.io OpenVPN (with portmap_host & portmap_port OPSIONAL):
 #       If host/port dikosongkan di UI, otomatis diekstrak from isi .ovpn
-#       or menggunwill IP availablepter OpenVPN (10.x.x.x:3389).
+#       or menggunwill IP adapter OpenVPN (10.x.x.x:3389).
 #    3. Fallback Otomatis ke Tailscale:
 #       If konfigurasi Portmap/Railway dikosongkan namun TAILSCALE_AUTH_KEY
 #       tersedia, otomatis beralih ke Tailscale agar session tetap berjalan.
@@ -178,18 +178,18 @@ try {
   if (-not $connected) { throw 'Portmap not yet tersambung in 100 detik; log privat tersedia di folder Portmap Windows.' }
   if ($ValidateOnly) { Log 'VALIDASI: OpenVPN tersambung; no membuka RDP or mempublikasikan session.'; return }
 
-  $availablepter = Get-NetAvailablepter | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -match 'OpenVPN|TAP-Windows|Wintun' } | Select-Object -First 1
-  if (-not $availablepter) { throw 'Interface VPN aktif no ditemukan; firewall no dibuka.' }
+  $adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -match 'OpenVPN|TAP-Windows|Wintun' } | Select-Object -First 1
+  if (-not $adapter) { throw 'Interface VPN aktif no ditemukan; firewall no dibuka.' }
 
   # If hostName still kosong, gunwill IP TUN OpenVPN sebagai fallback
   if (-not $hostName) {
-    $vpnIp = (Get-NetIPAddress -InterfaceIndex $availablepter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1).IPAddress
+    $vpnIp = (Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1).IPAddress
     $hostName = if ($vpnIp) { $vpnIp } else { 'portmap.io' }
   }
 
   # Pin the OpenVPN adapter metric to 5000 so it only handles RDP/SSH port forwarding and is not detected as a VPN
   try {
-    Set-NetIPInterface -InterfaceIndex $availablepter.ifIndex -AutomaticMetric Disabled -InterfaceMetric 5000 -ErrorAction SilentlyContinue
+    Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -AutomaticMetric Disabled -InterfaceMetric 5000 -ErrorAction SilentlyContinue
     Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'DefaultTTL' -Value 128 -Type DWord -ErrorAction SilentlyContinue
   } catch {}
   if (-not (Get-NetTCPConnection -LocalPort 3389 -State Listen -ErrorAction SilentlyContinue)) { throw 'OpenVPN tersambung tetapi RDP not yet mendengarkan port 3389.' }
@@ -198,7 +198,7 @@ try {
   Get-NetFirewallRule -Name 'RemoteDesktop-*' -ErrorAction SilentlyContinue | Disable-NetFirewallRule -ErrorAction SilentlyContinue
   Get-NetFirewallRule -DisplayName 'Sailuo Remote*' -ErrorAction SilentlyContinue | Disable-NetFirewallRule -ErrorAction SilentlyContinue
   Remove-NetFirewallRule -DisplayName 'Sailuo Portmap RDP' -ErrorAction SilentlyContinue
-  New-NetFirewallRule -DisplayName 'Sailuo Portmap RDP' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -InterfaceAlias $availablepter.Name -Profile Any | Out-Null
+  New-NetFirewallRule -DisplayName 'Sailuo Portmap RDP' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -InterfaceAlias $adapter.Name -Profile Any | Out-Null
   Update-Status @{
     access = @{
       mode    = 'portmap'

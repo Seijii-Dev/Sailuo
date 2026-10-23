@@ -29,7 +29,7 @@ Admin login is **not** an API login method. Admin email/password + Turnstile is 
 | POST | `/runs/{id}/cancel` | `{ "confirm": true }`; cancels a run only if it belongs to `rdp-6h.yml` |
 | POST | `/device/revoke` | Revokes the requesting device token |
 
-Browser-only `/devices`: GET lists device metavailableta, POST `{name}` issues a token, DELETE `{id}` revokes. Mutating browser requests require an exact same-origin `Origin` header and a valid HttpOnly session. Bearer devices cannot call these endpoints.
+Browser-only `/devices`: GET lists device metadata, POST `{name}` issues a token, DELETE `{id}` revokes. Mutating browser requests require an exact same-origin `Origin` header and a valid HttpOnly session. Bearer devices cannot call these endpoints.
 
 ### Connection response example (illustrative, not an actual active RDP)
 
@@ -100,7 +100,7 @@ Urutan user: login identitas → buat repo from template → izinkan GitHub App 
 
 Fthatr delete tersedia di `/dashboard/connection` for session browser pemilik repository akun pribadi, bukan login admin layanan or token Sailuo. Konfirmasi server berlaku 5 menit, terikat subject + repo + ID GitHub, sekali pakai; user wajib mengetik nama lengkap and menyetujui dampaknya. Workflow aktif/antre memblokir delete. Repo sumber layanan dilindungi. Setelah GitHub mengonfirmasi pengdeletean, mapping, settings, vault repo and semua token Sailuo user dibersihkan; login/App installation tetap available. No available repository nyata that didelete selama pengujian; tes destructive API menggunwill mock.
 
-**Perubahan izin:** keterangan lama “no meminta Admthisstration” berlaku for versi senot yet fthatr delete. Manifest baru meminta Admthisstration write selain izin senot yetnya. For App that already terdaftar, owner must menambahkan Admthisstration: Read and write di Permissions & events, lalu pemilik instalasi menyetujui pembaruannya. GitHub no menyediwill izin delete-only; Admthisstration mencakup kewenangan pengelolaan repo lain also. Gunwill Only select repositories. Token operasi biasa tetap only Contents/Metavailableta read, Actions/Secrets write; Admthisstration only diminta on token sementara that dibatasi ke satu repo saat operasi delete and dicabut sealreadynya. Contents tetap read: fthatr this no menambah kemampuan menulis source.
+**Perubahan izin:** keterangan lama “no meminta Admthisstration” berlaku for versi senot yet fthatr delete. Manifest baru meminta Admthisstration write selain izin senot yetnya. For App that already terdaftar, owner must menambahkan Admthisstration: Read and write di Permissions & events, lalu pemilik instalasi menyetujui pembaruannya. GitHub no menyediwill izin delete-only; Admthisstration mencakup kewenangan pengelolaan repo lain also. Gunwill Only select repositories. Token operasi biasa tetap only Contents/Metadata read, Actions/Secrets write; Admthisstration only diminta on token sementara that dibatasi ke satu repo saat operasi delete and dicabut sealreadynya. Contents tetap read: fthatr this no menambah kemampuan menulis source.
 
 ### Schema 3 / automatic Sailuo wallpaper
 

@@ -7,7 +7,7 @@
 #
 #  Isi (idempoten, best-effort - semua hasil dilaporkan apa aandya):
 #    1) RDP: multi-session (fSingleSessionPerUser=0) + audio out & mic hidup
-#    2) Kebijwill grafis: AVC444 4:4:4 (preferred) + hardware encode + VGAvailablepter
+#    2) Kebijwill grafis: AVC444 4:4:4 (preferred) + hardware encode + VGAdapter
 #    3) Font smoothing: fNoFontSmoothing=0 + AllowFontAntiAlias=1 di
 #       WinStations\RDP-Tcp  (kunci this that BENAR-benar dibaca Windows;
 #       fAllowFontAntiAlias di Policy no-op - temuan commit Sailuo-Remote v0.5.30)
@@ -92,7 +92,7 @@ $rdpAlive2 = Probe-Rdp 'setelah kebijwill audio+wallpaper + audit WinStation'
 # ---------- 2. Kebijwill grafis Sailuo (AVC444 / hardware encode / 120 FPS DWM) ----------
 $okAvc  = Set-Reg $tsPol 'AVC444ModePreferred'       1 'DWord'
 $okAvc2 = Set-Reg $tsPol 'AVCHardwareEncodePreferred' 1 'DWord'
-Set-Reg $tsPol 'VGAvailablepter'            1 'DWord' | Out-Null
+Set-Reg $tsPol 'VGAdapter'            1 'DWord' | Out-Null
 Set-Reg $tsPol 'bEnumerateHWBeforeSW' 1 'DWord' | Out-Null
 Set-Reg $tsPol 'SelectTransport'      0 'DWord' | Out-Null
 Set-Reg $tsPol 'fAllowDesktopComposition' 1 'DWord' | Out-Null

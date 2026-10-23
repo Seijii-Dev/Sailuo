@@ -15,7 +15,7 @@ export async function POST(req:NextRequest){return guarded(async()=>{
   await gh(c,"/actions/secrets/"+name,"PUT",{encrypted_value:githubSealedBox(publicKey.key,value),key_id:publicKey.key_id});saved.push(name);
   if(name==="RDP_PASSWORD"){
    await db().prepare("DELETE FROM credentials WHERE repo=?").bind(c.repo).run();
-   if(data.remember===true){const metavailableta=await gh<{updated_at:string}>(c,"/actions/secrets/RDP_PASSWORD");await db().prepare("INSERT INTO credentials(repo,payload,remote_updated,updated) VALUES(?,?,?,?)").bind(c.repo,sealPassword(c.repo,password),metavailableta.updated_at,Date.now()).run();}
+   if(data.remember===true){const metadata=await gh<{updated_at:string}>(c,"/actions/secrets/RDP_PASSWORD");await db().prepare("INSERT INTO credentials(repo,payload,remote_updated,updated) VALUES(?,?,?,?)").bind(c.repo,sealPassword(c.repo,password),metadata.updated_at,Date.now()).run();}
   }
  }
  return reply({ok:true,saved,password_stored:!!password&&data.remember===true});

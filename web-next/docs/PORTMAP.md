@@ -37,8 +37,8 @@ Portmap's managed custom-domain feature is advertised in its paid plan. A plain 
 
 ## 2026-10-12: default provider and DNS test
 
-Tailscale remains the default in workflow_dispatch and dashboard defaults. Owner Sailuo saved settings have been explicitly restored to Tailscale; the Portmap configuration is retained. Settings checks the Portmap secret metavailableta without reading its value. The Portmap dropdown option is disabled unless the secret exists and a valid hostname/port are present. Unknown secret-check status fails closed for Portmap without hiding Tailscale. Settings PUT independently rejects incomplete Portmap configuration; dispatch still verifies provider secrets.
+Tailscale remains the default in workflow_dispatch and dashboard defaults. Owner Sailuo saved settings have been explicitly restored to Tailscale; the Portmap configuration is retained. Settings checks the Portmap secret metadata without reading its value. The Portmap dropdown option is disabled unless the secret exists and a valid hostname/port are present. Unknown secret-check status fails closed for Portmap without hiding Tailscale. Settings PUT independently rejects incomplete Portmap configuration; dispatch still verifies provider secrets.
 
 Created only the previously unused DNS-only CNAME rdp.projectkal.my.id to kallxycrigi-41858.portmap.host, TTL 300. Both names resolved to the same address from the test resolver. Port 41858 remains necessary. Owner stored settings and the PORTMAP_HOST repository variable use this alias. This verifies DNS resolution only, not an end-to-end RDP login, provider policy, certificate identity, or latency. No session was started or stopped in this update.
 
-Validation: 23 unit tests, production API default save and invalid Portmap rejection, mobile browser gated-dropdown scenarios with metavailableta mocked. Existing GitHub App installation access remains a separate requirement.
+Validation: 23 unit tests, production API default save and invalid Portmap rejection, mobile browser gated-dropdown scenarios with metadata mocked. Existing GitHub App installation access remains a separate requirement.

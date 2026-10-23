@@ -3,7 +3,7 @@
 Updated 2026-10-12. Credit: .
 
 - Page-specific Indonesian/English numbered guides cover Home, Connection, Setup, Settings, Games, Logs, Devices and Folder. Animated highlighting respects reduced-motion preference.
-- Browser SpeechSynthesis is click-to-play only, with Stop and reavailableble error fallback. No audio is played on navigation. Voice availability/quality depends on the user's OS/browser; physical device audio has not been verified.
+- Browser SpeechSynthesis is click-to-play only, with Stop and readable error fallback. No audio is played on navigation. Voice availability/quality depends on the user's OS/browser; physical device audio has not been verified.
 - New GitHub sign-ins see a profile-publication notice and new community records default visible. Existing privacy values are never overwritten. A legacy session first seen only by heartbeat remains private. No checkbox gates counts; a button can hide/show a public profile. The explanatory paragraph under homepage statistics is removed.
 - Home live status polls every 8 seconds while visible, with overlapping fetches prevented. It is polling, not instant push streaming; GitHub latency/rate limits remain relevant.
 - Workflow session step is named ALREADY ONLINE. Logs have UTC timestamps and the online summary shows private IP, port, username and expiry. Passwords remain in GitHub Secrets/encrypted dashboard storage, never intentionally printed in public logs.
