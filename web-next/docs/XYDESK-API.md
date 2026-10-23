@@ -29,7 +29,7 @@ Admin login is **not** an API login method. Admin email/password + Turnstile is 
 | POST | `/runs/{id}/cancel` | `{ "confirm": true }`; cancels a run only if it belongs to `rdp-6h.yml` |
 | POST | `/device/revoke` | Revokes the requesting device token |
 
-Browser-only `/devices`: GET lists device metadata, POST `{name}` issues a token, DELETE `{id}` revokes. Mutating browser requests require an exact same-origin `Origin` header and a valid HttpOnly session. Bearer devices cannot call these endpoints.
+Browser-only `/devices`: GET lists device metavailableta, POST `{name}` issues a token, DELETE `{id}` revokes. Mutating browser requests require an exact same-origin `Origin` header and a valid HttpOnly session. Bearer devices cannot call these endpoints.
 
 ### Connection response example (illustrative, not an actual active RDP)
 
@@ -52,11 +52,11 @@ RDP_PASSWORD is a GitHub Actions secret and **cannot be retrieved**. Prompt for 
 ## Settings
 
 Fields mirror `.github/workflows/rdp-6h.yml`:
-`durasi_menit`, `hostname`, `rdp_user`, `akses`, `tunnel_provider`, `storage_boost`, `debloat`, `samp`, `samp_extra`, `gta_sa_url`, `win10`, `xydesk`, `ekstra`, `grafis`, `wallpaper_url`.
+`durasi_menit`, `hostname`, `rdp_user`, `access`, `tunnel_provider`, `storage_boost`, `debloat`, `samp`, `samp_extra`, `gta_sa_url`, `win10`, `xydesk`, `ekstra`, `grafis`, `wallpaper_url`.
 
 Get allowed choice values from `/settings`, do not invent input names. Default user `xyadmin`; optional `runneradmin` is accepted. Workflow job timeout is 360 minutes including setup, so a requested 360-minute session is not a guarantee of 360 minutes of usable desktop time. Settings do not alter already running jobs.
 
-Dispatch requires repository write permission, no active/queued run, and required Actions secrets (`RDP_PASSWORD`, plus Tailscale/ngrok keys when selected). Two start attempts per 5 minutes; an atomic 90-second repository lock prevents duplicate dispatch during GitHub eventual consistency. The application does not restart sessions automatically or promise protection against GitHub account enforcement. Use Actions in accordance with account policies and quotas.
+Dispatch requires repository write permission, no active/queued run, and required Actions secrets (`RDP_PASSWORD`, plus Tailscale/ngrok keys when selected). Two start attempts per 5 minutes; an atomic 90-second repository lock prevents duplicate dispatch during GitHub eventual consistency. The application does not restart sessions automatically or promise protection against GitHub account enforcement. Use Actions in accorandce with account policies and quotas.
 
 ## Errors and retry rules
 
@@ -75,7 +75,7 @@ Never automatically retry POST `/runs` after an ambiguous network error. Refresh
 
 `GET /setup` exposes selected repository readiness. When no repository/workflow exists, `/status` returns HTTP 200 with `phase: "setup_required"`, `active: false`, null run/connection, and a `setup` object. Direct the user to `https://rdpfree.projectkal.my.id/dashboard/setup`; do not start a workflow in this state.
 
-Browser-only `POST /setup` actions: `create` (`name`, `private`, `confirm:true`), `connect` (`name`), `finish`. `finish` is independently retryable while GitHub template generation propagates. The selected repo is persisted server-side and no longer assumes `/XyRDP`. Existing native tokens retain their originally granted repo; token issuance now requires a ready repository.
+Browser-only `POST /setup` actions: `create` (`name`, `private`, `confirm:true`), `connect` (`name`), `fthissh`. `fthissh` is independently retryable while GitHub template generation propagates. The selected repo is persisted server-side and no longer assumes `/XyRDP`. Existing native tokens retain their originally granted repo; token issuance now requires a ready repository.
 
 Browser-only POST `/secrets` and POST/DELETE `/credentials` do not accept bearer device tokens. Native clients never receive the dashboard's stored password copy; prompt locally for RDP_PASSWORD. Website password controls support show/hide/copy and optional encrypted storage.
 
@@ -87,20 +87,20 @@ Previously issued non-admin device tokens carrying OAuth grants are no longer ac
 
 ## Schema 2: Tailscale, media, game preparation
 
-Only `tailscale` is accepted for `akses`; `tunnel_provider` is removed. Persisted old settings migrate on read. `runner` is `github` or `self-hosted`; game preparation is rejected on hosted dispatch. New yes/no fields: `wallpaper`, `microphone`, `roblox`, `minecraft_java`, `minecraft_bedrock`. Existing `samp`, `gta_sa_url`, `samp_extra` remain. Self-hosted machine must be dedicated/disposable with labels `self-hosted`, `Windows`, `X64`, `rdpfree`.
+Only `tailscale` is accepted for `access`; `tunnel_provider` is removed. Persisted old settings migrate on read. `runner` is `github` or `self-hosted`; game preparation is rejected on hosted dispatch. New yes/no fields: `wallpaper`, `microphone`, `roblox`, `minecraft_java`, `minecraft_bedrock`. Existing `samp`, `gta_sa_url`, `samp_extra` remain. Self-hosted machine must be dedicated/disposable with labels `self-hosted`, `Windows`, `X64`, `rdpfree`.
 
 Status optionally includes `games`, `media`, `game_environment` only for the matching active, unexpired run. Connection always uses Tailscale IP + port 3389. Media reports configuration, not verified end-to-end functionality; game status reports preparation, not playability. No API for launching/stopping desktop game processes exists yet. Settings affect the next workflow run, not the active desktop.
 
 Dispatch checks workflow schema 2 and returns 409 for old source. Repository owners must update workflow, scripts and assets manually; Contents read permission is intentionally insufficient to do it silently. No password/Base64 credential artifacts or logs are produced by the new workflow.
 
 
-## Onboarding dan hapus repository (2026-10-10)
+## Onboarding and delete repository (2026-10-10)
 
-Urutan pengguna: login identitas → buat repo dari template → izinkan GitHub App mengakses repo tersebut → pilih repo → isi secrets → mulai sesi. Tombol “Repo saya sudah dibuat” hanya navigasi panduan, bukan verifikasi server. Pemilihan repo memverifikasi workflow melalui GitHub.
+Urutan user: login identitas → buat repo from template → izinkan GitHub App mengaccess repo that → pilih repo → isi secrets → start session. Tombol “Repo saya already dibuat” only navigasi guide, bukan verifikasi server. Pemilihan repo memverifikasi workflow melalui GitHub.
 
-Fitur hapus tersedia di `/dashboard/connection` untuk sesi browser pemilik repository akun pribadi, bukan login admin layanan atau token XyDesk. Konfirmasi server berlaku 5 menit, terikat subject + repo + ID GitHub, sekali pakai; pengguna wajib mengetik nama lengkap dan menyetujui dampaknya. Workflow aktif/antre memblokir hapus. Repo sumber layanan dilindungi. Setelah GitHub mengonfirmasi penghapusan, mapping, settings, vault repo dan semua token XyDesk pengguna dibersihkan; login/App installation tetap ada. Tidak ada repository nyata yang dihapus selama pengujian; tes destructive API menggunakan mock.
+Fthatr delete tersedia di `/dashboard/connection` for session browser pemilik repository akun pribadi, bukan login admin layanan or token XyDesk. Konfirmasi server berlaku 5 menit, terikat subject + repo + ID GitHub, sekali pakai; user wajib mengetik nama lengkap and menyetujui dampaknya. Workflow aktif/antre memblokir delete. Repo sumber layanan dilindungi. Setelah GitHub mengonfirmasi pengdeletean, mapping, settings, vault repo and semua token XyDesk user dibersihkan; login/App installation tetap available. No available repository nyata that didelete selama pengujian; tes destructive API menggunwill mock.
 
-**Perubahan izin:** keterangan lama “tidak meminta Administration” berlaku untuk versi sebelum fitur hapus. Manifest baru meminta Administration write selain izin sebelumnya. Untuk App yang sudah terdaftar, owner harus menambahkan Administration: Read and write di Permissions & events, lalu pemilik instalasi menyetujui pembaruannya. GitHub tidak menyediakan izin delete-only; Administration mencakup kewenangan pengelolaan repo lain juga. Gunakan Only select repositories. Token operasi biasa tetap hanya Contents/Metadata read, Actions/Secrets write; Administration hanya diminta pada token sementara yang dibatasi ke satu repo saat operasi hapus dan dicabut sesudahnya. Contents tetap read: fitur ini tidak menambah kemampuan menulis source.
+**Perubahan izin:** keterangan lama “no meminta Admthisstration” berlaku for versi senot yet fthatr delete. Manifest baru meminta Admthisstration write selain izin senot yetnya. For App that already terdaftar, owner must menambahkan Admthisstration: Read and write di Permissions & events, lalu pemilik instalasi menyetujui pembaruannya. GitHub no menyediwill izin delete-only; Admthisstration mencakup kewenangan pengelolaan repo lain also. Gunwill Only select repositories. Token operasi biasa tetap only Contents/Metavailableta read, Actions/Secrets write; Admthisstration only diminta on token sementara that dibatasi ke satu repo saat operasi delete and dicabut sealreadynya. Contents tetap read: fthatr this no menambah kemampuan menulis source.
 
 ### Schema 3 / automatic XyVerse wallpaper
 

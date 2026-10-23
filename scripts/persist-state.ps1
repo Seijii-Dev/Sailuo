@@ -1,20 +1,17 @@
 # ============================================================================
-#  persist-state.ps1 - Simpan State Sesi XyRDP (Auto-Save ke GitHub Release)
+#  persist-state.ps1 - Save XyRDP Session State (Auto-Save to GitHub Release)
 # ----------------------------------------------------------------------------
-#  Menyimpan:
-#    - C:\Persist (Folder permanen pengguna)
-#    - C:\Games (Save data / instalasi game di bawah batas ukuran)
-#    - Desktop, Documents, Downloads, Pictures, Videos, Music pengguna RDP
-#      (membaca dari semua kandidat folder profil: C:\Users\$u, ProfileList, C:\Users\$u.*)
-#    - Sesi Login Browser (Google Chrome, Microsoft Edge, Brave, Firefox)
-#      beserta kunci DPAPI (AppData\Roaming\Microsoft\Protect & Credentials)
-#      dan file SQLite WAL/SHM/LevelDB menggunakan FileShare.ReadWrite
-#      sehingga login Google/YouTube/GitHub tetap tersimpan meski Chrome sedang dibuka!
-#    - AppData\Roaming\.minecraft, TLauncher, PrismLauncher, GTA San Andreas User Files,
-#      dan konfigurasi Registry HKCU\Software\SAMP + Gaming Boost + Wallpaper
-#  Lalu mengenkripsi arsip dengan AES-256-CBC (PBKDF2 dari RDP_PASSWORD /
-#  GITHUB_TOKEN) dan mengunggahnya ke Release tersembunyi `xyrdp-state-latest`
-#  di repositori pengguna sendiri.
+#  Saves:
+#    - C:\Persist (user's permanent folder)
+#    - The RDP user's Desktop, Documents, Downloads, Pictures, Videos, Music
+#      (read from all candidate profile folders: C:\Users\$u, ProfileList, C:\Users\$u.*)
+#    - Browser Login Sessions (Google Chrome, Microsoft Edge, Brave, Firefox)
+#      along with the DPAPI keys (AppData\Roaming\Microsoft\Protect & Credentials)
+#      and SQLite WAL/SHM/LevelDB files using FileShare.ReadWrite
+#      so Google/YouTube/GitHub logins stay saved even while Chrome is open!
+#  Then encrypts the archive with AES-256-CBC (PBKDF2 from RDP_PASSWORD /
+#  GITHUB_TOKEN) and uploads it to the hidden Release `xyrdp-state-latest`
+#  in the user's own repository.
 # ============================================================================
 param(
   [switch]$Checkpoint
@@ -24,12 +21,12 @@ $XyTag = if ($Checkpoint) { 'XyRDP:checkpoint' } else { 'XyRDP:persist' }
 . "$PSScriptRoot/lib-common.ps1"
 
 $cfg = Get-Cfg
-if ($env:PERSIST_DATA -and @('tidak','0','false','no','off') -contains $env:PERSIST_DATA.Trim().ToLower()) {
-  Log 'Persistensi data dinonaktifkan oleh input pengguna - lewati.'
+if ($env:PERSIST_DATA -and @('no','0','false','no','off') -contains $env:PERSIST_DATA.Trim().ToLower()) {
+  Log 'Data persistence disabled by user input - skip.'
   exit 0
 }
 
-# Fallback baca environment dari C:\XyRDP\tools\session-env.json bila dipanggil dari background job / Dashboard
+# Fallback: read the environment from C:\XyRDP\tools\session-env.json when called from a background job / Dashboard
 if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:\XyRDP\tools\session-env.json')) {
   try {
     $sEnv = Get-Content 'C:\XyRDP\tools\session-env.json' -Raw | ConvertFrom-Json
@@ -43,7 +40,7 @@ if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:
 $ghToken = $env:GITHUB_TOKEN
 $ghRepo  = $env:GITHUB_REPOSITORY
 if (-not $ghToken -or -not $ghRepo) {
-  Log 'GITHUB_TOKEN atau GITHUB_REPOSITORY tidak tersedia - lewati persist state.'
+  Log 'GITHUB_TOKEN or GITHUB_REPOSITORY not available - skip persist state.'
   exit 0
 }
 
@@ -59,9 +56,9 @@ $encPath  = Join-Path $workDir 'xyrdp-state.bin'
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 
-Log "Menyiapkan penyimpanan state sesi untuk user '$u' (mode=$(if ($Checkpoint) { 'Checkpoint Live' } else { 'Final Shutdown' }))..."
+Log "Preparing session state storage for user '$u' (mode=$(if ($Checkpoint) { 'Checkpoint Live' } else { 'Final Shutdown' }))..."
 
-# Saat akhir sesi (bukan checkpoint live), tutup browser secara halus agar SQLite me-flush WAL ke Cookies & Login Data
+# At session end (not a live checkpoint), close browsers gracefully so SQLite flushes the WAL into Cookies & Login Data
 if (-not $Checkpoint) {
   foreach ($brProc in @('chrome', 'msedge', 'brave', 'firefox')) {
     try {
@@ -87,18 +84,18 @@ function Copy-SafeFolder([string]$Src, [string]$Dst, [int]$MaxMB = 900) {
   $sz = Get-DirSizeMB $Src
   if ($sz -le 0) { return }
   if ($sz -gt $MaxMB) {
-    Log "  Lewati $Src ($sz MB > batas $MaxMB MB)"
+    Log "  Skip $Src ($sz MB > limit $MaxMB MB)"
     return
   }
-  Log "  Menyalin $Src ($sz MB)..."
+  Log "  Copying $Src ($sz MB)..."
   New-Item -ItemType Directory -Path $Dst -Force -ErrorAction SilentlyContinue | Out-Null
   Copy-TreeUnlocked $Src $Dst
 }
 
-# 1. C:\Persist (Folder khusus anti-reset)
+# 1. C:\Persist (dedicated anti-reset folder)
 Copy-SafeFolder 'C:\Persist' (Join-Path $stageDir 'Persist') 1200
 
-# Simpan juga Wallpaper aktif ke Persist\Config agar sesi berikutnya otomatis memakai wallpaper yang sama
+# Also save the active Wallpaper to Persist\Config so the next session automatically uses the same wallpaper
 try {
   $wpPersistenceDir = Join-Path $stageDir 'Persist\Config'
   New-Item -ItemType Directory -Path $wpPersistenceDir -Force -ErrorAction SilentlyContinue | Out-Null
@@ -110,12 +107,12 @@ try {
   }
 } catch {}
 
-# 2. Kumpulkan SEMUA folder profil tempat user mungkin menyimpan file / login browser
-#    (C:\Users\$u, ProfileImagePath dari ProfileList, C:\Users\$u.*)
+# 2. Collect ALL profile folders where the user may store files / browser logins
+#    (C:\Users\$u, ProfileImagePath from ProfileList, C:\Users\$u.*)
 $profileDirs = @(Get-AllUserProfileDirs $u)
-Log "  Kandidat folder profil user '$u': $($profileDirs -join ', ')"
+Log "  Candidate profile folders for user '$u': $($profileDirs -join ', ')"
 
-# Folder standar pengguna (Downloads, Desktop, Documents, Pictures, Videos, Music)
+# Standard user folders (Downloads, Desktop, Documents, Pictures, Videos, Music)
 foreach ($profDir in $profileDirs) {
   foreach ($sub in @('Desktop', 'Documents', 'Downloads', 'Pictures', 'Videos', 'Music')) {
     $s = Join-Path $profDir $sub
@@ -125,41 +122,9 @@ foreach ($profDir in $profileDirs) {
   }
 }
 
-# 3. Save Game & Konfigurasi Launcher (Minecraft, TLauncher, PrismLauncher, Roblox, GTA SA-MP)
-foreach ($profDir in $profileDirs) {
-  $mcDir = Join-Path $profDir 'AppData\Roaming\.minecraft'
-  if (Test-Path $mcDir) {
-    foreach ($mcSub in @('saves', 'resourcepacks', 'shaderpacks', 'mods', 'config', 'options.txt', 'servers.dat', 'launcher_profiles.json', 'TlauncherProfiles.json')) {
-      $p = Join-Path $mcDir $mcSub
-      if (Test-Path $p) {
-        $dst = Join-Path $stageDir "Minecraft\$mcSub"
-        if ((Get-Item $p -Force).PSIsContainer) {
-          Copy-SafeFolder $p $dst 450
-        } else {
-          Copy-FileUnlocked $p $dst | Out-Null
-        }
-      }
-    }
-  }
-  $tlDir = Join-Path $profDir 'AppData\Roaming\.tlauncher'
-  if (Test-Path $tlDir) {
-    Copy-SafeFolder $tlDir (Join-Path $stageDir 'TLauncher') 250
-  }
-}
-
-if (Test-Path 'C:\Games\PrismLauncher\accounts.json') {
-  Copy-FileUnlocked 'C:\Games\PrismLauncher\accounts.json' (Join-Path $stageDir 'PrismLauncher\accounts.json') | Out-Null
-}
-if (Test-Path 'C:\Games\PrismLauncher\prismlauncher.cfg') {
-  Copy-FileUnlocked 'C:\Games\PrismLauncher\prismlauncher.cfg' (Join-Path $stageDir 'PrismLauncher\prismlauncher.cfg') | Out-Null
-}
-if (Test-Path 'C:\Games\PrismLauncher\instances') {
-  Copy-SafeFolder 'C:\Games\PrismLauncher\instances' (Join-Path $stageDir 'PrismLauncher\instances') 600
-}
-
-# 3b. Sesi Login Browser (Chrome, Edge, Brave, Firefox) + DPAPI Master Keys + SQLite WAL/SHM
-#     Menggunakan Copy-FileUnlocked (FileShare.ReadWrite) sehingga tetap ter-backup 100%
-#     walaupun browser sedang dibuka saat auto-checkpoint!
+# 3. Browser Login Sessions (Chrome, Edge, Brave, Firefox) + DPAPI Master Keys + SQLite WAL/SHM
+#     Uses Copy-FileUnlocked (FileShare.ReadWrite) so it stays 100% backed up
+#     even while the browser is open during auto-checkpoint!
 function Copy-ChromiumSession([string]$BrowserName, [string]$UserDataDir) {
   if (-not (Test-Path $UserDataDir)) { return }
   $dstRoot = Join-Path $stageDir "Browsers\$BrowserName"
@@ -177,7 +142,7 @@ function Copy-ChromiumSession([string]$BrowserName, [string]$UserDataDir) {
     $profDst = Join-Path $dstRoot $prof
     New-Item -ItemType Directory -Path $profDst -Force -ErrorAction SilentlyContinue | Out-Null
 
-    # Daftar lengkap file SQLite utama + file jurnal/WAL (-wal, -shm, -journal)
+    # Complete list of main SQLite files + journal/WAL files (-wal, -shm, -journal)
     $essentialFiles = @(
       'Preferences',
       'Secure Preferences',
@@ -229,7 +194,7 @@ function Copy-ChromiumSession([string]$BrowserName, [string]$UserDataDir) {
       }
     }
   }
-  Log "  Sesi login browser $BrowserName (Cookies + WAL + Login Data + LevelDB) berhasil disalin."
+  Log "  Browser login session $BrowserName (Cookies + WAL + Login Data + LevelDB) copied successfully."
 }
 
 foreach ($profDir in $profileDirs) {
@@ -242,7 +207,7 @@ foreach ($profDir in $profileDirs) {
     Copy-SafeFolder $ffProfiles (Join-Path $stageDir 'Browsers\Firefox') 200
   }
 
-  # Kunci DPAPI Pengguna agar Cookie & Password Chrome tetap bisa didekripsi di VM sesi berikutnya
+  # User DPAPI Keys so Chrome Cookies & Passwords can still be decrypted in the next session's VM
   foreach ($dpapiRel in @(
     'AppData\Roaming\Microsoft\Protect',
     'AppData\Roaming\Microsoft\Credentials',
@@ -255,28 +220,13 @@ foreach ($profDir in $profileDirs) {
       Copy-TreeUnlocked $dpSrc $dpDst
     }
   }
-
-  # Roblox LocalStorage & ClientSettings (agar login akun Roblox juga tersimpan!)
-  foreach ($rbxRel in @('AppData\Local\Roblox\LocalStorage', 'AppData\Local\Bloxstrap')) {
-    $rSrc = Join-Path $profDir $rbxRel
-    if (Test-Path $rSrc) {
-      Copy-SafeFolder $rSrc (Join-Path $stageDir "Roblox\$($rbxRel -replace '^AppData\\Local\\','')") 150
-    }
-  }
 }
 
-# Ekspor Registry HKCU\Software\SAMP (Nickname & Path gta_sa.exe)
-try {
-  $sampRegOut = Join-Path $stageDir 'Persist\samp-settings.reg'
-  New-Item -ItemType Directory -Path (Split-Path $sampRegOut -Parent) -Force -ErrorAction SilentlyContinue | Out-Null
-  & reg.exe export "HKCU\Software\SAMP" $sampRegOut /y 2>&1 | Out-Null
-} catch {}
-
-# 4. Hitung apakah ada file yang akan disimpan & cek perubahan (Anti-Spam API untuk Akun Baru)
+# 4. Check whether anything will be saved & detect changes (API Anti-Spam for New Accounts)
 $allStagedFiles = @(Get-ChildItem -Path $stageDir -Recurse -File -Force -ErrorAction SilentlyContinue)
 $fileCount = $allStagedFiles.Count
 if ($fileCount -eq 0) {
-  Log 'Tidak ada file baru di C:\Persist atau profil user untuk disimpan.'
+  Log 'No new files in C:\Persist or the user profile to save.'
   Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
   exit 0
 }
@@ -288,13 +238,13 @@ $sigFile = 'C:\XyRDP\tools\last-checkpoint-sig.txt'
 if ($Checkpoint -and (Test-Path $sigFile)) {
   $prevSig = (Get-Content $sigFile -Raw -ErrorAction SilentlyContinue).Trim()
   if ($prevSig -eq $stateSig) {
-    Log "Tidak ada perubahan data sejak checkpoint terakhir ($fileCount file) - lewati upload API."
+    Log "No data changes since the last checkpoint ($fileCount files) - skip the API upload."
     Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
     exit 0
   }
 }
 
-Log "Mengompresi $fileCount file state..."
+Log "Compressing $fileCount state files..."
 $sevenZip = "${env:ProgramFiles}\7-Zip\7z.exe"
 if (Test-Path $sevenZip) {
   & $sevenZip a -t7z -mx=3 $zipPath "$stageDir\*" | Out-Null
@@ -304,14 +254,14 @@ if (Test-Path $sevenZip) {
 }
 
 if (-not (Test-Path $zipPath)) {
-  Log 'Gagal membuat arsip state.'
+  Log 'Failed to create the state archive.'
   exit 0
 }
 
 $zipMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
-Log "Arsip state dibuat ($zipMB MB). Mengenkripsi AES-256..."
+Log "State archive created ($zipMB MB). Encrypting with AES-256..."
 if ($zipMB -gt 5400) {
-  Log "Arsip melebihi batas maksimum multi-part (5400 MB) - lewati upload."
+  Log "Archive exceeds the maximum multi-part limit (5400 MB) - skip upload."
   Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
   exit 0
 }
@@ -340,7 +290,7 @@ try {
   $cs.Close()
   $fsOut.Close()
 } catch {
-  Log "Enkripsi gagal: $($_.Exception.Message)"
+  Log "Encryption failed: $($_.Exception.Message)"
   Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
   exit 0
 }
@@ -362,7 +312,7 @@ try {
     $body = @{
       tag_name   = $tag
       name       = 'XyRDP Persistent State (Auto-Save)'
-      body       = 'Arsip terenkripsi AES-256 untuk menyimpan file dan game antar sesi RDP.'
+      body       = 'AES-256 encrypted archive for saving files between RDP sessions.'
       draft      = $false
       prerelease = $true
     } | ConvertTo-Json
@@ -388,9 +338,9 @@ try {
   if ($encLen -le $chunkMaxBytes) {
     $uploadUrl = ($rel.upload_url -replace '\{\?name,label\}$', '') + "?name=$baseAssetName"
     Invoke-RestMethod -Method Post -Uri $uploadUrl -Headers $upHdrs -InFile $encPath -TimeoutSec 300 | Out-Null
-    Log "State berhasil disimpan ke Release '$tag' ($baseAssetName, $zipMB MB, $fileCount file)."
+    Log "State saved successfully to Release '$tag' ($baseAssetName, $zipMB MB, $fileCount files)."
   } else {
-    # Multi-Part Split Archive Upload (>1.85 GB s/d 5.4 GB)
+    # Multi-Part Split Archive Upload (>1.85 GB up to 5.4 GB)
     $fsRead = [System.IO.File]::OpenRead($encPath)
     $partIdx = 1
     $buf = New-Object byte[] (16 * 1024 * 1024)
@@ -419,11 +369,11 @@ try {
     }
   }
 
-  # Simpan signature state terakhir agar checkpoint berikutnya tidak spam API bila belum ada perubahan
+  # Save the last state signature so the next checkpoint does not spam the API when nothing has changed
   New-Item -ItemType Directory -Path 'C:\XyRDP\tools' -Force -ErrorAction SilentlyContinue | Out-Null
   Set-Content -Path $sigFile -Value $stateSig -Encoding ASCII -Force
 
-  # Catat waktu simpan terakhir untuk ditampilkan di XyDeskRemote Dashboard
+  # Record the last save time to display in the XyDeskRemote Dashboard
   New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
   @{
     last_saved_utc = [DateTime]::UtcNow.ToString('o')
@@ -432,7 +382,7 @@ try {
     user           = $u
   } | ConvertTo-Json | Set-Content -Path 'C:\Persist\System\last-cloud-save.json' -Encoding UTF8 -Force
 } catch {
-  Log "Upload state gagal: $($_.Exception.Message)"
+  Log "State upload failed: $($_.Exception.Message)"
 }
 
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue

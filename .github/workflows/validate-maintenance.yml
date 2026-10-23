@@ -12,7 +12,7 @@ jobs:
       - name: Parse scripts and verify retired transparency setting
         shell: pwsh
         run: |
-          foreach ($name in @('lib-common','setup-extras','setup-grafis','setup-explorer')) {
+          foreach ($name in @('lib-common','setup-extras','setup-explorer')) {
             $errors=$null; $tokens=$null
             [System.Management.Automation.Language.Parser]::ParseFile("$pwd/scripts/$name.ps1",[ref]$tokens,[ref]$errors) | Out-Null
             if ($errors.Count) { throw ($errors | Out-String) }
@@ -34,7 +34,7 @@ jobs:
           . ./scripts/lib-common.ps1
           $errors=$null; $tokens=$null
           $ast=[System.Management.Automation.Language.Parser]::ParseFile("$pwd/scripts/setup-extras.ps1",[ref]$tokens,[ref]$errors)
-          $functions=$ast.FindAll({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -in @('Find-Lightshot','Install-LightshotDirect')},$true)
+          $functions=$ast.FindAll({param($n) $n -is [System.Management.Automation.Language.FunctionDefthistionAst] -and $n.Name -in @('Find-Lightshot','Install-LightshotDirect')},$true)
           foreach ($fn in $functions) { . ([scriptblock]::Create($fn.Extent.Text)) }
           if (-not (Install-LightshotDirect)) { throw 'Lightshot vendor install failed' }
           $exe=Find-Lightshot

@@ -2,7 +2,7 @@
 # ============================================================================
 #  setup-linux-rdp.sh — Multi-Mode Linux Cloud Server & Desktop
 #  - Mode "desktop" : Ubuntu XFCE4 GUI + XRDP :3389 + OpenSSH :22 + PulseAudio On-Mic
-#  - Mode "polos"   : Linux Polos Tanpa XFCE4 (Headless SSH Server :22 & :3389 Kilat)
+#  - Mode "polos"   : Linux Polos Without XFCE4 (Headless SSH Server :22 & :3389 Kilat)
 # ============================================================================
 set -e
 
@@ -42,7 +42,7 @@ restore_linux_state() {
   local asset_id
   asset_id="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/xyrdp-state-latest" | jq -r '.assets[]? | select(.name=="xyrdp-linux-state.zip") | .id' | head -n1)"
   if [ -n "$asset_id" ] && [ "$asset_id" != "null" ]; then
-    log "Memulihkan state Linux dari Release xyrdp-state-latest (asset $asset_id)..."
+    log "Restoring the Linux state from the xyrdp-state-latest release (asset $asset_id)..."
     mkdir -p /tmp/xyrdp-restore
     if curl -sL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/octet-stream" \
       "$api/releases/assets/${asset_id}" -o /tmp/xyrdp-restore/state.zip; then
@@ -61,7 +61,7 @@ restore_linux_state() {
         sudo cp -rf /tmp/xyrdp-restore/ext/_tailscale/. /var/lib/tailscale/ 2>/dev/null || true
       fi
       sudo chown -R "${RDP_USER}:${RDP_USER}" "/home/${RDP_USER}" "/persist"
-      log "State Linux (termasuk sesi browser & file) berhasil dipulihkan."
+      log "State Linux (tersign in session browser & file) succeeded direstore."
     fi
     rm -rf /tmp/xyrdp-restore
   fi
@@ -104,7 +104,7 @@ persist_linux_state() {
     curl -s -X POST -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Content-Type: application/zip" \
       "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${rel_id}/assets?name=xyrdp-linux-state.zip" \
       --data-binary @/tmp/xyrdp-persist/xyrdp-linux-state.zip >/dev/null 2>&1 || true
-    log "State Linux berhasil disimpan ke Release xyrdp-state-latest."
+    log "State Linux succeeded disave ke Release xyrdp-state-latest."
   fi
   rm -rf /tmp/xyrdp-persist
 }
@@ -139,7 +139,7 @@ publish_linux_status() {
 
   local connect_host="$ts_ref"
   local connect_port="$default_port"
-  if [ "${AKSES:-tailscale}" = "portmap" ]; then
+  if [ "${ACCESS:-tailscale}" = "portmap" ]; then
     connect_host="${PORTMAP_HOST:-$ts_ref}"
     connect_port="${PORTMAP_PORT:-$default_port}"
   fi
@@ -159,7 +159,7 @@ publish_linux_status() {
     --arg run_attempt "${GITHUB_RUN_ATTEMPT:-1}" \
     --arg run_number "${GITHUB_RUN_NUMBER:-1}" \
     --arg run_url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-    --arg akses_mode "${AKSES:-tailscale}" \
+    --arg access_mode "${ACCESS:-tailscale}" \
     --arg ts_ip "$ts_ref" \
     --arg connect_host "$connect_host" \
     --argjson connect_port "${connect_port:-$default_port}" \
@@ -202,8 +202,8 @@ publish_linux_status() {
         disk_used_gb: $disk_used,
         uptime_minutes: $uptime_min
       },
-      akses: {
-        mode: $akses_mode,
+      access: {
+        mode: $access_mode,
         tailscale: {
           status: (if $ts_ip != "" then "ok" else "pending" end),
           ip: $ts_ip,
@@ -214,7 +214,7 @@ publish_linux_status() {
         },
         tunnel: {
           status: (if $connect_host != "" then "ok" else "pending" end),
-          type: $akses_mode,
+          type: $access_mode,
           host: $connect_host,
           port: $connect_port,
           address: (if $connect_host != "" then ($connect_host + ":" + ($connect_port|tostring)) else "" end),
@@ -230,7 +230,7 @@ publish_linux_status() {
   cp out/rdp-status.json "$tmp_git/out/rdp-status.json"
   (
     cd "$tmp_git"
-    git init -q
+    git thist -q
     git config user.name "github-actions[bot]"
     git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
     git checkout -B status -q
@@ -241,14 +241,14 @@ publish_linux_status() {
 }
 
 if [ "$STAGE_MODE" = "--finalize-only" ]; then
-  log "Menyimpan state Linux akhir & membersihkan status sesi..."
+  log "Menyimpan state Linux akhir & membersihkan status session..."
   persist_linux_state || true
   publish_linux_status false || true
   exit 0
 fi
 
 if [ "$STAGE_MODE" = "--keepalive-only" ]; then
-  log "Menjalankan keepalive sesi Linux (${LINUX_MODE}) — ${TS_IP:-} (user: ${RDP_USER})..."
+  log "Menrun keepalive session Linux (${LINUX_MODE}) — ${TS_IP:-} (user: ${RDP_USER})..."
   i=0
   while [ "$(date -u +%s)" -lt "$(( ${EXP_EPOCH:-0} - 180 ))" ]; do
     sleep 60
@@ -269,12 +269,12 @@ if [ "$STAGE_MODE" = "--keepalive-only" ]; then
       persist_linux_state || true
     fi
   done
-  log "Durasi sesi Linux selesai."
+  log "Durasi session Linux selesai."
   exit 0
 fi
 
 if [ -z "${RDP_PASSWORD:-}" ] || [ "${#RDP_PASSWORD}" -lt 8 ]; then
-  log "ERROR: secret RDP_PASSWORD belum di-set / kurang dari 8 karakter."
+  log "ERROR: secret RDP_PASSWORD not yet di-set / kurang from 8 karakter."
   exit 1
 fi
 
@@ -297,9 +297,9 @@ sudo apt-get update -qq
 
 if [ "$LINUX_MODE" = "polos" ]; then
   # ==========================================================================
-  # MODE LINUX POLOS (TANPA XFCE4 / HEADLESS SSH VPS SERVER)
+  # PLAIN LINUX MODE (WITHOUT XFCE4 / HEADLESS SSH VPS SERVER)
   # ==========================================================================
-  log "Mode Linux Polos dipilih (Tanpa XFCE4 GUI) — memasang OpenSSH Server & CLI tools..."
+  log "Mode Linux Polos dipilih (Without XFCE4 GUI) — memasang OpenSSH Server & CLI tools..."
   sudo apt-get install -y -qq \
     openssh-server p7zip-full curl wget jq git unzip zip \
     htop tmux screen python3 python3-pip net-tools iproute2 ca-certificates
@@ -320,7 +320,7 @@ EOF
   sudo sed -i 's/^#\?KbdInteractiveAuthentication.*/KbdInteractiveAuthentication yes/' /etc/ssh/sshd_config || true
   sudo systemctl enable ssh >/dev/null 2>&1 || sudo systemctl enable sshd >/dev/null 2>&1 || true
   sudo systemctl restart ssh >/dev/null 2>&1 || sudo systemctl restart sshd >/dev/null 2>&1 || true
-  log "OpenSSH Server aktif di port :22 dan :3389 (siap untuk Tailscale & Portmap)."
+  log "OpenSSH Server aktif di port :22 and :3389 (ready for Tailscale & Portmap)."
 else
   # ==========================================================================
   # MODE LINUX DESKTOP (XFCE4 + XRDP :3389 + OpenSSH :22 + PulseAudio On-Mic)
@@ -334,15 +334,7 @@ else
     pulseaudio pavucontrol alsa-utils \
     mesa-utils libgl1-mesa-dri
 
-  if [ "${MINECRAFT_JAVA:-tidak}" = "ya" ]; then
-    log "Memasang OpenJDK 21 & OpenJDK 8 untuk Minecraft Java..."
-    sudo apt-get install -y -qq openjdk-21-jre openjdk-8-jre || true
-  fi
 
-  if [ "${SAMP:-tidak}" = "ya" ]; then
-    log "Memasang Wine untuk kompatibilitas aplikasi/game Windows di Linux..."
-    sudo apt-get install -y -qq wine64 wine || true
-  fi
 
   sudo mkdir -p /run/sshd /etc/ssh/sshd_config.d
   cat << 'EOF' | sudo tee /etc/ssh/sshd_config.d/99-xyrdp.conf >/dev/null
@@ -367,8 +359,8 @@ EOF
   sudo adduser xrdp ssl-cert || true
   echo "xfce4-session" | sudo -u "$RDP_USER" tee "/home/${RDP_USER}/.xsession" >/dev/null
   sudo chmod +x "/home/${RDP_USER}/.xsession"
-  sudo sed -i 's/^tcp_nodelay=.*/tcp_nodelay=true/' /etc/xrdp/xrdp.ini || true
-  sudo sed -i 's/^max_bpp=.*/max_bpp=32/' /etc/xrdp/xrdp.ini || true
+  sudo sed -i 's/^tcp_nodelay=.*/tcp_nodelay=true/' /etc/xrdp/xrdp.this || true
+  sudo sed -i 's/^max_bpp=.*/max_bpp=32/' /etc/xrdp/xrdp.this || true
   sudo systemctl enable xrdp xrdp-sesman || true
   sudo systemctl restart xrdp-sesman xrdp
 fi
@@ -380,15 +372,15 @@ sudo chown -h "${RDP_USER}:${RDP_USER}" "/home/${RDP_USER}/Desktop/Folder-Perman
 
 # 4. Hubungkan Tailscale / Portmap
 TS_IP=""
-if [ "${AKSES:-tailscale}" = "portmap" ] && [ -n "${PORTMAP_OVPN_CONFIG:-}" ]; then
-  log "Menyiapkan akses Portmap OpenVPN..."
+if [ "${ACCESS:-tailscale}" = "portmap" ] && [ -n "${PORTMAP_OVPN_CONFIG:-}" ]; then
+  log "Menyiapkan access Portmap OpenVPN..."
   sudo apt-get install -y -qq openvpn
   echo "${PORTMAP_OVPN_CONFIG}" > /tmp/portmap.ovpn
   sudo openvpn --config /tmp/portmap.ovpn --daemon
   sleep 8
   TS_IP="${PORTMAP_HOST:-portmap.io}"
 else
-  log "Menyiapkan akses Tailscale..."
+  log "Menyiapkan access Tailscale..."
   if ! command -v tailscale >/dev/null 2>&1; then
     curl -fsSL https://tailscale.com/install.sh | sh
   fi
@@ -419,14 +411,14 @@ OS_NAME="${OS_NAME}"
 EOF
 
 publish_linux_status true
-log "SESI LINUX (${LINUX_MODE}) SIAP — ${TS_IP} (user: ${RDP_USER})"
+log "LINUX SESSION (${LINUX_MODE}) READY - ${TS_IP} (user: ${RDP_USER})"
 
 if [ "$STAGE_MODE" = "--setup-only" ]; then
   exit 0
 fi
 
 cleanup_on_exit() {
-  log "Menyimpan state Linux akhir & membersihkan status sesi..."
+  log "Menyimpan state Linux akhir & membersihkan status session..."
   persist_linux_state || true
   publish_linux_status false || true
 }
@@ -453,4 +445,4 @@ while [ "$(date -u +%s)" -lt "$(( EXP_EPOCH - 180 ))" ]; do
   fi
 done
 
-log "Durasi sesi Linux selesai."
+log "Durasi session Linux selesai."

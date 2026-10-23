@@ -3,10 +3,10 @@ param([switch]$RestartExplorer)
 $ErrorActionPreference='Stop'
 $session=(Get-Process -Id $PID).SessionId
 if($RestartExplorer){
-  if($session -eq 0){throw 'Jalankan pemulihan dari sesi RDP pengguna, bukan service/Actions.'}
+  if($session -eq 0){throw 'Run the recovery from the user RDP session, not from a service/Actions.'}
   Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Process explorer.exe
-  Write-Host 'Explorer sesi ini dimulai ulang. Tidak menjalankan logout, reboot, atau restart layanan RDP.'
+  Write-Host 'Explorer for this session restarted. No logout, reboot, or RDP service restart was performed.'
 }
 $root='C:\ProgramData\RdpFree\Diagnostics'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
@@ -23,8 +23,8 @@ $events=foreach($log in @('Application','System')){
  }
 }
 $dlls=foreach($folder in @('System32','SysWOW64')){foreach($dll in @('d3d9.dll','d3dx9_25.dll','d3dx9_43.dll','xinput1_3.dll','vcruntime140.dll','msvcr120.dll')){@{file="$folder/$dll";exists=(Test-Path "$env:SystemRoot\$folder\$dll")}}}
-$report=@{created_at=(Get-Date).ToUniversalTime().ToString('o');os=$os.Caption;version=$os.Version;session_id=$session;drivers=@(Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion,Status);processes=@(Get-Process -ErrorAction SilentlyContinue | Where-Object {$_.SessionId -eq $session -and $_.ProcessName -match '^(explorer|dwm|gta_sa|samp|RobloxPlayerBeta)$'} | Select-Object ProcessName,Id,Responding);runtimes=@($dlls);installed_apps=@($apps | Sort-Object InstallDate -Descending);recent_errors=@($events)}
+$report=@{created_at=(Get-Date).ToUniversalTime().ToString('o');os=$os.Caption;version=$os.Version;session_id=$session;drivers=@(Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion,Status);processes=@(Get-Process -ErrorAction SilentlyContinue | Where-Object {$_.SessionId -eq $session -and $_.ProcessName -match '^(explorer|dwm)$'} | Select-Object ProcessName,Id,Responding);runtimes=@($dlls);installed_apps=@($apps | Sort-Object InstallDate -Descending);recent_errors=@($events)}
 $file=Join-Path $root ('desktop-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'.json')
 $report | ConvertTo-Json -Depth 7 | Set-Content $file -Encoding utf8
-Write-Host "Diagnosis disimpan lokal: $file"
-Write-Host 'Periksa laporan sebelum membagikan. Tidak ada file yang diunggah otomatis. Runtime tersedia bukan bukti game berhasil dimainkan.'
+Write-Host "Diagnosis saved locally: $file"
+Write-Host 'Review the report before sharing. No files are uploaded automatically.'

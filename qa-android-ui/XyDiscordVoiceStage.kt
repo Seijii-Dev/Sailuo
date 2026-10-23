@@ -81,8 +81,8 @@ internal data class LiveRdpScreenShareState(
 )
 
 /**
- * Engine Global ala Discord untuk Multi-User Voice Party + Live RDP Screen Share.
- * Tetap hidup saat pengguna berpindah antara Sesi XyRDP, Chat Global, dan Beranda.
+ * Engine Global ala Discord for Multi-User Voice Party + Live RDP Screen Share.
+ * Tetap hidup saat user berpindah antara Session XyRDP, Chat Global, and Beranda.
  */
 internal object XyDiscordVoiceStageManager {
     private const val ENDPOINT = "https://api.xydeskremote.biz.id/api/voice-stage"
@@ -178,14 +178,14 @@ internal object XyDiscordVoiceStageManager {
             scope.launch {
                 sendStageAction(appCtx, "stop_screen", JSONObject())
             }
-            Toast.makeText(appCtx, "Share Screen Sesi XyRDP dihentikan", Toast.LENGTH_SHORT).show()
+            Toast.makeText(appCtx, "Share Screen Session XyRDP dihentikan", Toast.LENGTH_SHORT).show()
             return
         }
         if (!_joined.value) {
             joinVoiceParty(appCtx, startWithMic = false)
         }
         _sharingMyRdp.value = true
-        Toast.makeText(appCtx, "LIVE: Share Screen Sesi XyRDP dimulai ke Voice Room!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(appCtx, "LIVE: Share Screen Session XyRDP distart ke Voice Room!", Toast.LENGTH_SHORT).show()
         screenShareJob?.cancel()
         screenShareJob = scope.launch {
             while (isActive && _sharingMyRdp.value) {
@@ -206,7 +206,7 @@ internal object XyDiscordVoiceStageManager {
                             appCtx,
                             "screen_frame",
                             JSONObject()
-                                .put("title", "Live Sesi XyRDP ($hostTitle)")
+                                .put("title", "Live Session XyRDP ($hostTitle)")
                                 .put("frame_b64", b64)
                                 .put("width", bmp.width)
                                 .put("height", bmp.height)
@@ -251,7 +251,7 @@ internal object XyDiscordVoiceStageManager {
                             if (a > peak) peak = a
                         }
                         if (peak > 420) {
-                            // Down-quantize ke 8-bit signed PCM agar hemat bandwidth & instan untuk banyak orang
+                            // Down-quantize ke 8-bit signed PCM agar hemat bandwidth & instan for banyak orang
                             val pcm8 = ByteArray(read)
                             for (i in 0 until read) {
                                 pcm8[i] = (shortBuf[i].toInt() shr 8).toByte()
@@ -429,7 +429,7 @@ internal object XyDiscordVoiceStageManager {
                     streamerKey = scr.optString("streamer_key"),
                     streamerName = scr.optString("streamer_name", "User"),
                     githubLogin = scr.optString("github_login"),
-                    title = scr.optString("title", "Live Sesi XyRDP"),
+                    title = scr.optString("title", "Live Session XyRDP"),
                     width = scr.optInt("width", 1280),
                     height = scr.optInt("height", 720),
                     fps = scr.optInt("fps", 60),
@@ -447,7 +447,7 @@ internal object XyDiscordVoiceStageManager {
 
 /**
  * Bar & Panel Discord-Style Multi-User Voice Party + Live RDP Screen Share
- * untuk dipasang di Global Chat dan di Panel Kontrol Sesi RDP.
+ * for diinstall di Global Chat and di Panel Kontrol Session RDP.
  */
 @Composable
 internal fun XyDiscordVoiceStageBar(
@@ -561,9 +561,9 @@ internal fun XyDiscordVoiceStageBar(
                     }
                     Text(
                         text = when {
-                            liveScreen.active -> "${liveScreen.streamerName} sedang Share Screen RDP · ${participants.size} di Voice"
-                            participants.isNotEmpty() -> "${participants.size} orang sedang ngobrol di Voice Room"
-                            else -> xy("Ngobrol bareng banyak orang & Share Screen Sesi RDP", "Multi-user voice chat & Live RDP Screen Share")
+                            liveScreen.active -> "${liveScreen.streamerName} seandg Share Screen RDP · ${participants.size} di Voice"
+                            participants.isNotEmpty() -> "${participants.size} orang seandg ngobrol di Voice Room"
+                            else -> xy("Ngobrol bareng banyak orang & Share Screen Session RDP", "Multi-user voice chat & Live RDP Screen Share")
                         },
                         fontSize = 10.sp,
                         color = Color(0xFFB2B2B8),
@@ -637,7 +637,7 @@ internal fun XyDiscordVoiceStageBar(
             }
         }
 
-        // Deretan Peserta Voice Room & Tombol Share Screen Sesi RDP (Ala Discord Stage)
+        // Deretan Peserta Voice Room & Tombol Share Screen Session RDP (Ala Discord Stage)
         AnimatedVisibility(visible = expandedStage || joined || liveScreen.active) {
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 if (participants.isNotEmpty()) {
@@ -696,7 +696,7 @@ internal fun XyDiscordVoiceStageBar(
                     }
                 }
 
-                // Kontrol Share Screen Sesi RDP & Tonton Stream
+                // Kontrol Share Screen Session RDP & Tonton Stream
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -719,7 +719,7 @@ internal fun XyDiscordVoiceStageBar(
                                 text = if (sharingMyRdp) {
                                     xy("Hentikan Share Screen RDP", "Stop RDP Screen Share")
                                 } else {
-                                    xy("Share Screen Sesi RDP (Go Live)", "Share RDP Session Screen (Go Live)")
+                                    xy("Share Screen Session RDP (Go Live)", "Share RDP Session Screen (Go Live)")
                                 },
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -770,7 +770,7 @@ internal fun XyDiscordVoiceStageBar(
                     }
                 }
 
-                // Kanvas Penonton Live Screen Share Sesi RDP (Ala Discord Go Live)
+                // Kanvas Penonton Live Screen Share Session RDP (Ala Discord Go Live)
                 if (liveScreen.active && (watchingLiveStream || sharingMyRdp)) {
                     val bmp = liveScreen.bitmap
                     Column(
@@ -788,7 +788,7 @@ internal fun XyDiscordVoiceStageBar(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "LIVE · ${liveScreen.title} · oleh ${liveScreen.streamerName}",
+                                text = "LIVE · ${liveScreen.title} · by ${liveScreen.streamerName}",
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFFF3F3F5),
@@ -822,7 +822,7 @@ internal fun XyDiscordVoiceStageBar(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = xy("Memuat stream layar sesi XyRDP…", "Loading live XyRDP screen stream…"),
+                                    text = xy("Loading live XyRDP screen stream…", "Loading live XyRDP screen stream…"),
                                     fontSize = 11.sp,
                                     color = Color(0xFFB2B2B8),
                                 )

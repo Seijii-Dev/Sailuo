@@ -1,12 +1,12 @@
 # ============================================================================
-#  lib-common.ps1 - helper bersama untuk semua script XyRDP (v2: Win10-style,
-#  akses privat Tailscale). Dipakai dengan cara di-dot-source:
+#  lib-common.ps1 - shared helpers for all XyRDP scripts (v2: Win10-style,
+#  private Tailscale access). Dot-source it like this:
 #
-#      $XyTag = 'XyRDP:akses'
+#      $XyTag = 'XyRDP:access'
 #      . "$PSScriptRoot/lib-common.ps1"
 #
-#  Berisi: logger, registry helper, pembaca konfigurasi (assets/rdp-extras.json),
-#  pengelola hive profil Default, pembaca/penulis out/rdp-status.json.
+#  Contains: logger, registry helper, configuration reader (assets/rdp-extras.json),
+#  Default-profile hive manager, out/rdp-status.json reader/writer.
 # ============================================================================
 
 $ErrorActionPreference = 'Continue'
@@ -24,16 +24,16 @@ function Log-Tail([string]$text, [int]$lines = 2) {
 }
 
 # ---------- registry ----------
-# Pelajaran dari validasi nyata (2026-10-03) di runner windows-2022:
-#   - 'New-ItemProperty -Force' di value yang SUDAH ADA bisa ditolak
-#     "Attempted to perform an unauthorized operation" (butuh hak Create/Delete
-#     yang tidak dimiliki Administrators pada sebagian kunci, mis.
+# Lessons from a real validation run (2026-10-03) on the windows-2022 runner:
+#   - 'New-ItemProperty -Force' on a value that ALREADY EXISTS can be rejected
+#     "Attempted to perform an unauthorized operation" (needs Create/Delete rights
+#     which Admthisstrators do not have on some keys, e.g.
 #     Terminal Server\fDenyTSConnections, Winlogon\DisableCAD,
 #     CurrentVersion\ProductName).
-#   - 'Set-ItemProperty' pada value yang sudah ada hanya butuh "Set Value"
-#     -> BERHASIL (itu sebabnya script lama jalan).
-# Set-Reg sekarang: exists? -> Set-ItemProperty; kalau perlu -> New-ItemProperty
-# -> reg.exe add /f -> ambil kepemilikan kunci lalu ulangi.
+#   - 'Set-ItemProperty' on a value that already exists only needs "Set Value"
+#     -> SUCCEEDED (that is why the old script worked).
+# Set-Reg now: exists? -> Set-ItemProperty; if needed -> New-ItemProperty
+# -> reg.exe add /f -> take ownership of the key then retry.
 
 function To-RegExePath([string]$Path) {
   $p = ($Path -replace '^Registry::', '') -replace '^HKLM:\\', 'HKEY_LOCAL_MACHINE\' -replace '^HKCU:\\', 'HKEY_CURRENT_USER\' -replace '^HKU:\\', 'HKEY_USERS\' -replace '^HKCR:\\', 'HKEY_CLASSES_ROOT\' -replace '^HKLM\\', 'HKEY_LOCAL_MACHINE\' -replace '^HKCU\\', 'HKEY_CURRENT_USER\' -replace '^HKU\\', 'HKEY_USERS\' -replace '^HKCR\\', 'HKEY_CLASSES_ROOT\'
@@ -53,9 +53,9 @@ function Normalize-PsRegPath([string]$Path) {
 }
 
 function Grant-KeyAccess([string]$Path) {
-  # ambil kepemilikan + FullControl untuk user sekarang (dipakai hanya kalau
-  # penulisan ditolak; mis. CurrentVersion milik TrustedInstaller).
-  # JANGAN PERNAH ubah ACL/owner WinStations\RDP-Tcp karena akan memutus akses TermService (NetworkService) ke listener 3389!
+  # take ownership + FullControl for the current user (used only when
+  # writing is rejected; e.g. CurrentVersion is owned by TrustedInstaller).
+  # NEVER change the ACL/owner of WinStations\RDP-Tcp - it would break TermService (NetworkService) access to the 3389 listener!
   try {
     if ($Path -match 'WinStations|RDP-Tcp') {
       return $false
@@ -76,42 +76,42 @@ function Grant-KeyAccess([string]$Path) {
     $acl = $key.GetAccessControl()
     $acl.SetAccessRule((New-Object System.Security.AccessControl.RegistryAccessRule($ident.Name, 'FullControl', 'Allow')))
     $key.SetAccessControl($acl); $key.Close()
-    Log "  reg: kepemilikan kunci diambil ($sub)"
+    Log "  reg: key ownership taken ($sub)"
     return $true
-  } catch { Log "  reg: ambil kepemilikan gagal: $($_.Exception.Message)"; return $false }
+  } catch { Log "  reg: taking ownership failed: $($_.Exception.Message)"; return $false }
 }
 
 function Set-Reg([string]$Path, [string]$Name, $Value, [string]$Type = 'String') {
   $psPath = Normalize-PsRegPath $Path
-  # 1) value sudah ada -> Set-ItemProperty (hak paling minimal)
+  # 1) value already exists -> Set-ItemProperty (least privilege)
   $exists = $false
   try { $null = Get-ItemProperty -Path $psPath -Name $Name -ErrorAction Stop; $exists = $true } catch {}
   if ($exists) {
     try { Set-ItemProperty -Path $psPath -Name $Name -Value $Value -ErrorAction Stop; return $true }
-    catch { Log "  reg: Set-ItemProperty gagal ($Name): $($_.Exception.Message)" }
+    catch { Log "  reg: Set-ItemProperty failed ($Name): $($_.Exception.Message)" }
   }
-  # 2) reg.exe add langsung (tidak merusak key ACL & membuat key/value secara native Win32)
+  # 2) reg.exe add directly (does not alter the key ACL, creates key/value through native Win32)
   $rk = To-RegExePath $Path
   if ($rk) {
     $t = switch ("$Type") { 'DWord' { 'REG_DWORD' } 'QWord' { 'REG_QWORD' } 'ExpandString' { 'REG_EXPAND_SZ' } 'MultiString' { 'REG_MULTI_SZ' } default { 'REG_SZ' } }
     $out = & reg add $rk /v $Name /t $t /d $Value /f 2>&1
     if ($LASTEXITCODE -eq 0) { return $true }
-    Log "  reg: reg.exe add gagal ($Name): $(Log-Tail "$out" 1)"
+    Log "  reg: reg.exe add failed ($Name): $(Log-Tail "$out" 1)"
   }
-  # 3) bikin/set lewat provider PowerShell
+  # 3) create/set through the PowerShell provider
   try {
     if (-not (Test-Path $psPath)) { New-Item -Path $psPath -Force -ErrorAction Stop | Out-Null }
     New-ItemProperty -Path $psPath -Name $Name -Value $Value -PropertyType $Type -Force -ErrorAction Stop | Out-Null
     return $true
-  } catch { Log "  reg: New-ItemProperty gagal ($Name): $($_.Exception.Message)" }
-  # 4) ambil kepemilikan kunci, lalu ulangi (kecuali WinStations\RDP-Tcp)
+  } catch { Log "  reg: New-ItemProperty failed ($Name): $($_.Exception.Message)" }
+  # 4) take ownership of the key, then retry (except WinStations\RDP-Tcp)
   if (Grant-KeyAccess $Path) {
     try {
       New-ItemProperty -Path $psPath -Name $Name -Value $Value -PropertyType $Type -Force -ErrorAction Stop | Out-Null
       return $true
-    } catch { Log "  reg: masih gagal setelah ambil kepemilikan ($Name): $($_.Exception.Message)" }
+    } catch { Log "  reg: still failing after taking ownership ($Name): $($_.Exception.Message)" }
   }
-  Log "  reg GAGAL total ($Path\$Name)"
+  Log "  reg FAILED entirely ($Path\$Name)"
   return $false
 }
 
@@ -122,22 +122,20 @@ function Get-Reg([string]$Path, [string]$Name) {
 
 # ---------- konfigurasi (assets/rdp-extras.json) ----------
 $script:XyCfgDefaults = [ordered]@{
-  lightshot        = $false           # jangan jalankan app latar jika tidak diminta
+  lightshot        = $false           # do not run the background app unless requested
   wallpaper        = $true
   wallpaper_file   = 'wallpaper.jpg'
-  win10_look       = $true            # semua tweak tampilan Windows 10
-  win10_badge      = $true            # label "Windows 10 Pro" di registry (kosmetik)
-  win10_wallpaper  = $true            # pakai wallpaper gaya Windows 10
-  xydesk_host      = $true            # host setup untuk klien XyDesk Remote (AVC444/ClearType/audio)
-  dark_theme       = $true            # tema aplikasi dan sistem gelap
-  lightweight_mode = $true            # matikan hanya layanan latar non-esensial
-  vscode           = $false           # IDE tambahan opsional
-  notepadpp        = $false           # editor ringan opsional
-  rdp_user         = 'xyadmin'        # username RDP default tersimpan per-repo
-  storage_boost    = $true            # bersihkan toolcache biar free 70GB -> 120GB+
-  debloat          = 'ringan'         # tidak / ringan / full (Edge)
-  samp             = $false           # pasang GTA SAMP (butuh GTA_SA_URL atau upload manual)
-  samp_extra       = $false           # silentpatch + widescreen fix
+  win10_look       = $true            # all Windows 10 visual tweaks
+  win10_badge      = $true            # "Windows 10 Pro" label in the registry (cosmetic)
+  win10_wallpaper  = $true            # use the Windows 10 style wallpaper
+  xydesk_host      = $true            # host setup for the XyDesk Remote client (AVC444/ClearType/audio)
+  dark_theme       = $true            # dark application and system theme
+  lightweight_mode = $true            # stop only non-essential background services
+  vscode           = $false           # optional extra IDE
+  notepadpp        = $false           # optional lightweight editor
+  rdp_user         = 'xyadmin'        # default RDP username stored per-repo
+  storage_boost    = $true            # clear the toolcache to gain 70GB -> 120GB+ of free space
+  debloat          = 'light'         # none / light / full (Edge)
 }
 
 function Get-CfgBool([object]$o, [string]$n, [bool]$d) {
@@ -153,21 +151,21 @@ function Get-CfgStr([object]$o, [string]$n, [string]$d) {
   return $d
 }
 
-# Get-Cfg -> pscustomobject berisi semua setting (default + isi repo)
+# Get-Cfg -> pscustomobject contathisng all settings (defaults + repo contents)
 function Get-Cfg {
   $j = $null
   $path = Join-Path (Get-Workspace) 'assets\rdp-extras.json'
   if (Test-Path $path) {
-    try { $j = Get-Content $path -Raw | ConvertFrom-Json; Log 'konfigurasi: assets/rdp-extras.json' }
-    catch { Log "rdp-extras.json tidak terbaca ($($_.Exception.Message)) - pakai default" }
-  } else { Log 'assets/rdp-extras.json tidak ada - pakai default' }
+    try { $j = Get-Content $path -Raw | ConvertFrom-Json; Log 'configuration: assets/rdp-extras.json' }
+    catch { Log "rdp-extras.json could not be read ($($_.Exception.Message)) - use defaults" }
+  } else { Log 'assets/rdp-extras.json is missing - use defaults' }
 
   $c = [pscustomobject]@{}
   foreach ($k in $script:XyCfgDefaults.Keys) {
     $c | Add-Member -NotePropertyName $k -NotePropertyValue $script:XyCfgDefaults[$k] -Force
   }
   if ($j) {
-    foreach ($k in @('lightshot','wallpaper','win10_look','win10_badge','win10_wallpaper','xydesk_host','dark_theme','lightweight_mode','vscode','notepadpp','storage_boost','samp','samp_extra')) {
+    foreach ($k in @('lightshot','wallpaper','win10_look','win10_badge','win10_wallpaper','xydesk_host','dark_theme','lightweight_mode','vscode','notepadpp','storage_boost')) {
       $c.$k = Get-CfgBool $j $k $c.$k
     }
         $c.debloat          = (Get-CfgStr $j 'debloat' $c.debloat).ToLower()
@@ -177,7 +175,7 @@ function Get-Cfg {
     return $c
 }
 
-# ---------- lokasi repo (Actions: GITHUB_WORKSPACE, lokal: folder script/..) ----------
+# ---------- repository location (Actions: GITHUB_WORKSPACE, local: the script folder/..) ----------
 function Get-Workspace {
   if ($env:GITHUB_WORKSPACE) { return $env:GITHUB_WORKSPACE }
   return (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -190,11 +188,11 @@ function Get-StatusPath {
 
 function Read-Status {
   $p = Get-StatusPath
-  if (-not (Test-Path $p)) { Log "status: $p belum ada"; return $null }
-  try { return (Get-Content $p -Raw | ConvertFrom-Json) } catch { Log "status tidak terbaca: $($_.Exception.Message)"; return $null }
+  if (-not (Test-Path $p)) { Log "status: $p does not exist yet"; return $null }
+  try { return (Get-Content $p -Raw | ConvertFrom-Json) } catch { Log "status could not be read: $($_.Exception.Message)"; return $null }
 }
 
-# Update-Status @{ key = value } - merge + tulis balik (tanpa password)
+# Update-Status @{ key = value } - merge + write back (no password)
 function Update-Status([hashtable]$Pairs) {
   $p = Get-StatusPath
   $obj = Read-Status
@@ -206,7 +204,7 @@ function Update-Status([hashtable]$Pairs) {
     New-Item -ItemType Directory -Path (Split-Path $p -Parent) -Force | Out-Null
     ($obj | ConvertTo-Json -Depth 8) | Set-Content -Path $p -Encoding utf8
     return $true
-  } catch { Log "tulis status gagal: $($_.Exception.Message)"; return $false }
+  } catch { Log "writing status failed: $($_.Exception.Message)"; return $false }
 }
 
 # ---------- hive profil Default (setting ikut user RDP saat login pertama) ----------
@@ -221,7 +219,7 @@ function Open-DefaultHive {
     & reg load $script:DefHive 'C:\Users\Default\NTUSER.DAT' 2>&1 | Out-Null
     Start-Sleep -Milliseconds 600
     if (Test-Path $script:DefReg) { $script:HiveLoaded = $true; Log 'profil Default di-load (setting ikut user RDP saat login pertama)'; return $true }
-  } catch { Log "load profil Default gagal: $($_.Exception.Message)" }
+  } catch { Log "load profil Default failed: $($_.Exception.Message)" }
   $script:HiveLoaded = $false
   return $false
 }
@@ -233,10 +231,10 @@ function Close-DefaultHive {
     & reg unload $script:DefHive 2>&1 | Out-Null
     $script:HiveLoaded = $false
     Log 'profil Default di-unload'
-  } catch { Log "unload hive (tidak kritis): $($_.Exception.Message)" }
+  } catch { Log "unload hive (no kritis): $($_.Exception.Message)" }
 }
 
-# Set-RegDefault: tulis ke profil Default DAN ke HKCU sesi sekarang
+# Set-RegDefault: tulis ke profil Default DAN ke HKCU session sekarang
 function Set-RegBoth([string]$SubKey, [string]$Name, $Value, [string]$Type = 'DWord') {
   Open-DefaultHive | Out-Null
   if ($script:HiveLoaded) { Set-Reg ($script:DefReg + '\' + $SubKey) $Name $Value $Type | Out-Null }
@@ -263,11 +261,11 @@ function Get-PrimaryIPv4 {
 }
 
 # ---------------------------------------------------------------------------
-#  Kesiapan RDP (pelajaran validasi 2026-10-03 di runner nyata):
-#   - "port 3389 LISTENING" TIDAK cukup: listener sempat hilang ~2 menit
-#     setelah tweak XyDesk, dan koneksi ke 127.0.0.1 bisa ditolak sementara
-#     IP utama VM menerima. Jadi kita tunggu sampai RDP benar-benar menjawab
-#     handshake X.224 sebelum tunnel diarahkan ke sana.
+#  RDP readiness (lesson from the 2026-10-03 validation on a real runner):
+#   - "port 3389 LISTENING" is NOT enough: the listener briefly disappeared for ~2 minutes
+#     setelah tweak XyDesk, and koneksi ke 127.0.0.1 can ditolak sementara
+#     the VM's main IP receives. So we wait until RDP really answers
+#     handshake X.224 senot yet tunnel diarahkan ke sana.
 # ---------------------------------------------------------------------------
 
 # semua alamat IPv4 non-loopback (kandidat alamat RDP lokal)
@@ -283,11 +281,11 @@ function Get-LocalIPv4List {
   return $out
 }
 
-# ringkas keadaan listener 3389 (alamat + nama proses) untuk log
+# summarize listener 3389 availability (address + process name) for the log
 function Get-RdpListenerState([int]$Port = 3389) {
   try {
     $l = @(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
-    if (-not $l) { return 'TIDAK ADA listener' }
+    if (-not $l) { return 'NO listener' }
     $items = foreach ($x in $l) {
       $pn = '?'; try { $pn = (Get-Process -Id $x.OwningProcess -ErrorAction Stop).ProcessName } catch {}
       "$($x.LocalAddress):$($x.LocalPort) ($pn)"
@@ -318,12 +316,12 @@ function Test-RdpHandshake([string]$Address, [int]$Port = 3389, [int]$TimeoutMs 
       $hex = (($buf[0..($n - 1)] | ForEach-Object { $_.ToString('x2') }) -join ' ')
       return @{ ok = $false; detail = "balasan $n byte non-confirm [$hex]" }
     }
-    return @{ ok = $false; detail = 'koneksi ditutup tanpa data' }
+    return @{ ok = $false; detail = 'koneksi dthattup without data' }
   } catch { return @{ ok = $false; detail = $_.Exception.Message } }
 }
 
-# tunggu sampai ADA alamat lokal yang menjawab handshake RDP; kembalikan alamat
-# itu (atau $null). Kalau lama tidak ada, TermService di-restart sekali.
+# wait until a local address answers the RDP handshake; return that address
+# that (or $null). Kalau lama does not exist, TermService di-restart sekali.
 function Wait-RdpReady([int]$TimeoutSec = 240, [int]$Port = 3389) {
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
   $lastState = ''
@@ -331,39 +329,39 @@ function Wait-RdpReady([int]$TimeoutSec = 240, [int]$Port = 3389) {
     $cands = @('127.0.0.1', '::1') + @(Get-LocalIPv4List) | Select-Object -Unique
     foreach ($c in $cands) {
       $r = Test-RdpHandshake $c $Port
-      if ($r.ok) { Log "  RDP SIAP di $c`:$Port - $($r.detail)"; return $c }
+      if ($r.ok) { Log "  RDP READY di $c`:$Port - $($r.detail)"; return $c }
     }
     $st = Get-RdpListenerState $Port
     if ($st -ne $lastState) { Log "  listener $Port : $st"; $lastState = $st }
-    # CATATAN: restart TermService SENGAJA tidak dilakukan lagi - pada runner
-    # GitHub, restart tidak menghidupkan kembali listener 3389 (terbukti di
+    # CATATAN: restart TermService SENGAJA no dilakukan lagi - on runner
+    # GitHub, a restart does not bring listener 3389 back (proven on
     # validasi 2026-10-03: menunggu 240s + 150s tetap mati). Kita cukup menunggu
-    # dan melaporkan apa adanya; penyebabnya sudah dihindari di setup-xydesk.
+    # and reported what is there; the cause is already mentioned in setup-xydesk.
     Start-Sleep -Seconds 8
   }
-  Log "  RDP belum menjawab handshake setelah ${TimeoutSec}s"
+  Log "  RDP not yet menjawab handshake setelah ${TimeoutSec}s"
   return $null
 }
 
-# probe satu baris: dipakai untuk melacak step mana yang merusak RDP
+# probe satu baris: dipakai for melacak step mana that merusak RDP
 function Probe-Rdp([string]$Where, [string]$Address = '127.0.0.1') {
   $state = Get-RdpListenerState 3389
   $r = Test-RdpHandshake $Address 3389 5000
-  $txt = if ($r.ok) { 'handshake ok' } else { "handshake GAGAL ($($r.detail))" }
+  $txt = if ($r.ok) { 'handshake ok' } else { "handshake FAILED ($($r.detail))" }
   Log "  [probe] $Where -> $txt | listener: $state"
   return $r.ok
 }
 
 # ---------------------------------------------------------------------------
-#  Spot-check HTTPS dari ALAMAT LAIN (bukan dari VM)
-#  Kenapa penting: pada 3 Okt 2026 terbukti tunnel bisa "selftest ok" dari dalam
-#  VM (bore.pub:51782 menjawab X.224 dari dalam), TAPI dari internet port itu
-#  ditolak (6/8 node luar "connection refused"). Jadi "selftest ok" saja TIDAK
-#  cukup - alamat yang dipamerkan ke pengguna harus diuji dari luar.
-#  Layanan: check-host.net (tanpa akun, mendukung TCP).
+#  Spot-check HTTPS from ALAMAT LAIN (bukan from VM)
+#  Why it matters: on 3 Oct 2026 the tunnel proved "selftest ok" from inside
+#  VM (bore.pub:51782 menjawab X.224 from in), TAPI from internet port that
+#  rejected (6/8 outside nodes "connection refused"). So "selftest ok" alone is NOT
+#  cukup - alamat that dipamerkan ke user must diuji from luar.
+#  Service: check-host.net (no account needed, supports TCP).
 # ---------------------------------------------------------------------------
 function Get-OutsideReach([string]$HostName, [int]$Port, [int]$TimeoutSec = 90) {
-  $res = @{ ok = $false; detail = 'tidak diuji'; nodesOk = 0; nodesAll = 0 }
+  $res = @{ ok = $false; detail = 'no diuji'; nodesOk = 0; nodesAll = 0 }
   try {
     $u = "https://check-host.net/check-tcp?host=$([uri]::EscapeDataString("$HostName`:$Port"))&max_nodes=6"
     $req = $null
@@ -372,9 +370,9 @@ function Get-OutsideReach([string]$HostName, [int]$Port, [int]$TimeoutSec = 90) 
         $req = Invoke-RestMethod -Uri $u -Headers @{ 'Accept' = 'application/json'; 'User-Agent' = 'XyRDP' } -TimeoutSec 30
         if ($req.request_id) { break }
       } catch {
-        # 403 = check-host membatasi laju (bukan bukti tunnel mati!) -> jangan
-        # dipakai untuk memutuskan ganti provider, cukup 'tidak diuji'.
-        $res.ok = $null; $res.detail = "tidak bisa diuji dari luar: $($_.Exception.Message)"
+        # 403 = check-host membatasi laju (bukan bukti tunnel mati!) -> do not
+        # dipakai for memutuskan ganti provider, cukup 'no diuji'.
+        $res.ok = $null; $res.detail = "no can diuji from luar: $($_.Exception.Message)"
         Log "  (uji luar: $($res.detail))"
         Start-Sleep -Seconds 8
       }
@@ -396,21 +394,21 @@ function Get-OutsideReach([string]$HostName, [int]$Port, [int]$TimeoutSec = 90) 
           if ($v -is [array] -and $v.Count -gt 0 -and $v[0] -and $v[0].time) { $ok++ }
         }
         $res.nodesOk = $ok; $res.nodesAll = $all; $res.ok = ($ok -gt 0)
-        $res.detail = "$ok/$all node luar bisa tersambung"
+        $res.detail = "$ok/$all node luar can tersambung"
         return $res
       }
       Start-Sleep -Seconds 6
     }
-    $res.detail = 'uji luar tidak selesai (timeout)'
+    $res.detail = 'uji luar no selesai (timeout)'
     return $res
   } catch { $res.detail = $_.Exception.Message; return $res }
 }
 
-# ---------- unduhan ----------
+# ---------- downloaand ----------
 function Get-File([string]$Url, [string]$OutFile, [int]$TimeoutSec = 120) {
-  # curl.exe (ada di runner Windows) -> batas waktu keras, tidak bisa menggantung
+  # curl.exe (available di runner Windows) -> batas waktu keras, no can menggantung
   # (kejadian nyata: Invoke-WebRequest ke app.prntscr.com menggantung 20 menit
-  #  sampai step timeout & seluruh step sesudahnya ter-skip)
+  #  until the step times out and all subsequent steps are skipped)
   $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
   for ($i = 1; $i -le 3; $i++) {
     try {
@@ -420,16 +418,16 @@ function Get-File([string]$Url, [string]$OutFile, [int]$TimeoutSec = 120) {
         Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -TimeoutSec $TimeoutSec
       }
       if ((Test-Path $OutFile) -and ((Get-Item $OutFile).Length -gt 0)) { return $true }
-      Log "  unduh kosong (coba $i/3)"
-    } catch { Log "  unduh gagal (coba $i/3): $($_.Exception.Message)" }
+      Log "  download kosong (coba $i/3)"
+    } catch { Log "  download failed (coba $i/3): $($_.Exception.Message)" }
     Start-Sleep -Seconds 3
   }
   return $false
 }
 
-# Get-GhAssetUrl <owner/repo> <regex nama asset> -> url unduhan asset terbaru
-# Pakai GITHUB_TOKEN supaya tidak kena rate-limit 403 (kejadian nyata di runner:
-# IP bersama GitHub-hosted sering sudah habis kuota API anonim).
+# Get-GhAssetUrl <owner/repo> <asset name regex> -> latest asset download url
+# Use GITHUB_TOKEN to avoid the 403 rate limit (a real case on the runner:
+# shared GitHub-hosted IP often already exhausted the anonymous API quota).
 function Get-GhAssetUrl([string]$Repo, [string]$NameRegex) {
   $hdrs = @{ 'User-Agent' = 'XyRDP' }
   if ($env:GITHUB_TOKEN) { $hdrs['Authorization'] = "Bearer $($env:GITHUB_TOKEN)" }
@@ -438,16 +436,16 @@ function Get-GhAssetUrl([string]$Repo, [string]$NameRegex) {
       $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers $h -TimeoutSec 60
       $a = $rel.assets | Where-Object { $_.name -match $NameRegex } | Select-Object -First 1
       if ($a) { return @{ url = $a.browser_download_url; tag = $rel.tag_name; name = $a.name } }
-    } catch { Log "  GitHub API ($Repo) gagal: $($_.Exception.Message)" }
+    } catch { Log "  GitHub API ($Repo) failed: $($_.Exception.Message)" }
   }
   return $null
 }
 
-# fallback URL keras (kalau API tidak bisa dipakai sama sekali)
+# fallback URL keras (kalau API no can dipakai sama sekali)
 $script:XyFallbackUrls = @{
 }
 
-# ---------- 10. Profil Windows Resmi & Unlocker Copy (Anti-Hilang Data Sesi) ----------
+# ---------- 10. Profil Windows Resmi & Unlocker Copy (Anti-Hilang Data Session) ----------
 function Ensure-UserProfileCreated([string]$UserName) {
   if (-not $UserName) { return $null }
   $targetDir = "C:\Users\$UserName"
@@ -457,7 +455,7 @@ function Ensure-UserProfileCreated([string]$UserName) {
     $profKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$sid"
     if (-not (Test-Path $profKey)) {
       if (-not ('XyWin32Profile' -as [type])) {
-        Add-Type -TypeDefinition @"
+        Add-Type -TypeDefthistion @"
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -481,7 +479,7 @@ public static class XyWin32Profile {
       $existingPath = (Get-ItemProperty -Path $profKey -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
       if ($existingPath) { $targetDir = $existingPath }
     }
-    # Pastikan ProfileList menunjuk ke folder profil yang konsisten & milik user penuh
+    # Ensure ProfileList menunjuk ke folder profil that konsisten & milik user penuh
     if (-not (Test-Path $targetDir)) {
       New-Item -ItemType Directory -Path $targetDir -Force -ErrorAction SilentlyContinue | Out-Null
     }
@@ -489,7 +487,7 @@ public static class XyWin32Profile {
       Set-ItemProperty -Path $profKey -Name 'ProfileImagePath' -Value $targetDir -ErrorAction SilentlyContinue
       Set-ItemProperty -Path $profKey -Name 'State' -Value 0 -Type DWord -ErrorAction SilentlyContinue
     }
-    & icacls $targetDir /grant "${UserName}:(OI)(CI)F" /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /C /Q 2>&1 | Out-Null
+    & icacls $targetDir /grant "${UserName}:(OI)(CI)F" /grant "Admthisstrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /C /Q 2>&1 | Out-Null
   } catch {
     Log "  Ensure-UserProfileCreated warning: $($_.Exception.Message)"
   }
@@ -647,20 +645,9 @@ function Ensure-XyDesktopIcons {
   $icoDir = 'C:\XyRDP\icons'
   New-Item -ItemType Directory -Path $icoDir -Force -ErrorAction SilentlyContinue | Out-Null
   New-XyAppIcon "$icoDir\xydesk-dashboard.ico"   'XY'  2   132 199 15  23  42  'DASHBOARD' | Out-Null
-  New-XyAppIcon "$icoDir\tlauncher.ico"          'TL'  16  185 129 4   120 87  'CRACKED'   | Out-Null
-  New-XyAppIcon "$icoDir\prismlauncher.ico"      'PL'  139 92  246 76  29  149 'MODPACK'   | Out-Null
-  New-XyAppIcon "$icoDir\minecraft-official.ico" 'MC'  245 158 11  180 83  9   'OFFICIAL'  | Out-Null
-  New-XyAppIcon "$icoDir\roblox-antivm.ico"      'RBX' 239 68  68  153 27  27  'ANTI-VM'   | Out-Null
-  New-XyAppIcon "$icoDir\samp-launcher.ico"      'SA'  249 115 22  194 65  12  'SA-MP'     | Out-Null
-  New-XyAppIcon "$icoDir\samp-antiban.ico"       'FIX' 20  184 166 15  118 110 'ANTI-BAN'  | Out-Null
   New-XyAppIcon "$icoDir\cloud-save.ico"         'CLD' 56  189 248 3   105 161 'SAVE'      | Out-Null
   New-XyAppIcon "$icoDir\persist-folder.ico"     'DIR' 234 179 8   161 98  7   'PERSIST'   | Out-Null
   New-XyAppIcon "$icoDir\bluestacks.ico"         'BS5' 59  130 246 29  78  216 'ANDROID'   | Out-Null
-  New-XyAppIcon "$icoDir\mumu.ico"               'MM'  236 72  153 157 23  77  'ANDROID'   | Out-Null
-  New-XyAppIcon "$icoDir\memu.ico"               'ME'  16  185 129 5   150 105 'MEMU PLAY' | Out-Null
-  New-XyAppIcon "$icoDir\ets2.ico"               'ETS' 245 158 11  180 83  9   'ETS 2'     | Out-Null
-  New-XyAppIcon "$icoDir\blender.ico"            '3D'  234 88  12  37  99  235 'BLENDER'   | Out-Null
-  New-XyAppIcon "$icoDir\fivem.ico"              'V'   249 115 22  220 38  38  'FiveM'     | Out-Null
   return $icoDir
 }
 

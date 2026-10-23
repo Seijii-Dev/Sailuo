@@ -1,26 +1,25 @@
 # ============================================================================
-#  restore-state.ps1 - Pulihkan State Sesi XyRDP dari GitHub Release
+#  restore-state.ps1 - Restore XyRDP Session State from GitHub Release
 # ----------------------------------------------------------------------------
-#  Mengunduh arsip terenkripsi dari Release `xyrdp-state-latest` di repo
-#  pengguna, mendekripsi dengan AES-256-CBC (PBKDF2 dari RDP_PASSWORD /
-#  GITHUB_TOKEN), lalu mengekstrak kembali ke:
+#  Downloads the encrypted archive from the `xyrdp-state-latest` Release in the
+#  user's repo, decrypts it with AES-256-CBC (PBKDF2 from RDP_PASSWORD /
+#  GITHUB_TOKEN), then extracts it back to:
 #    - C:\Persist
-#    - Profil resmi C:\Users\$u (Desktop, Documents, Downloads, Pictures, Videos, Music)
-#    - Sesi Login Browser (Chrome, Edge, Brave, Firefox) + DPAPI Master Keys
-#    - AppData\Roaming\.minecraft, .tlauncher, PrismLauncher, Roblox, & SAMP
-#    - Wallpaper & Gaming Boost dari sesi sebelumnya
+#    - The official C:\Users\$u profile (Desktop, Documents, Downloads, Pictures, Videos, Music)
+#    - Browser Login Sessions (Chrome, Edge, Brave, Firefox) + DPAPI Master Keys
+#    - Wallpaper from the previous session
 # ============================================================================
 
 $XyTag = 'XyRDP:restore'
 . "$PSScriptRoot/lib-common.ps1"
 
 $cfg = Get-Cfg
-if ($env:PERSIST_DATA -and @('tidak','0','false','no','off') -contains $env:PERSIST_DATA.Trim().ToLower()) {
-  Log 'Pemulihan state dinonaktifkan oleh input pengguna - lewati.'
+if ($env:PERSIST_DATA -and @('no','0','false','no','off') -contains $env:PERSIST_DATA.Trim().ToLower()) {
+  Log 'State restore disabled by user input - skip.'
   exit 0
 }
 
-# Fallback baca environment dari C:\XyRDP\tools\session-env.json bila dipanggil dari Dashboard
+# Fallback: read the environment from C:\XyRDP\tools\session-env.json when called from the Dashboard
 if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:\XyRDP\tools\session-env.json')) {
   try {
     $sEnv = Get-Content 'C:\XyRDP\tools\session-env.json' -Raw | ConvertFrom-Json
@@ -36,35 +35,33 @@ $ghRepo  = $env:GITHUB_REPOSITORY
 $u = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { $cfg.rdp_user }
 $p = if ($env:RDP_PASSWORD) { $env:RDP_PASSWORD.Trim() } else { '' }
 
-# KRITIKAL: Pastikan profil Windows C:\Users\$u terdaftar resmi di ProfileList
-# sebelum membuat subfolder apa pun di dalamnya!
+# CRITICAL: Ensure the Windows profile C:\Users\$u is officially registered in ProfileList
+# before creating any subfolder inside it!
 $primaryProfDir = Ensure-UserProfileCreated $u
 
-# Selalu siapkan C:\Persist dan C:\Games agar user langsung melihat folder permanen
+# Always prepare C:\Persist so the user immediately sees the permanent folder
 New-Item -ItemType Directory -Path 'C:\Persist' -Force | Out-Null
-New-Item -ItemType Directory -Path 'C:\Games' -Force | Out-Null
 
 $readmePersist = 'C:\Persist\BACA-SAYA-ANTI-RESET.txt'
 if (-not (Test-Path $readmePersist)) {
   @(
     '===================================================================='
-    '  FOLDER PERMANEN XyRDP (C:\Persist) - ANTI RESET'
+    '  XyRDP PERMANENT FOLDER (C:\Persist) - ANTI RESET'
     '===================================================================='
-    'Semua file, installer, akun browser, atau dokumen yang Anda simpan di:'
+    'Any file, installer, browser account, or document you save in:'
     '  1. C:\Persist'
     '  2. Desktop, Documents, Downloads, Pictures, Videos, Music'
     '  3. Google Chrome, Microsoft Edge, Brave, Firefox (Login & Cookie)'
-    '  4. Save data Minecraft (.minecraft / PrismLauncher), Roblox & GTA SA'
     ''
-    'Akan OTOMATIS DI-BACKUP setiap 4 menit & saat sesi RDP berakhir ke'
-    'GitHub Release pribadi Anda (terenkripsi AES-256) dan DIPULIHKAN'
-    'kembali saat Anda menyalakan RDP berikutnya!'
+    'Is AUTOMATICALLY BACKED UP every 4 minutes & when the RDP session ends to'
+    'your private GitHub Release (AES-256 encrypted) and RESTORED'
+    'back when you start the next RDP session!'
     '===================================================================='
   ) | Set-Content -Path $readmePersist -Encoding UTF8 -Force
 }
 
 if (-not $ghToken -or -not $ghRepo) {
-  Log 'GITHUB_TOKEN atau GITHUB_REPOSITORY tidak tersedia - lewati restore state.'
+  Log 'GITHUB_TOKEN or GITHUB_REPOSITORY not available - skip restore state.'
   exit 0
 }
 
@@ -79,14 +76,14 @@ $rel = $null
 try {
   $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$ghRepo/releases/tags/$tag" -Headers $hdrs -TimeoutSec 25
 } catch {
-  Log "Belum ada simpanan state sebelumnya di Release '$tag' (sesi pertama)."
+  Log "No previous state save exists in Release '$tag' (first session)."
   exit 0
 }
 
 $asset = $rel.assets | Where-Object { $_.name -like 'xyrdp-state.*.enc' } | Select-Object -First 1
 $partAssets = @($rel.assets | Where-Object { $_.name -like 'xyrdp-state.*.enc.part*' } | Sort-Object -Property name)
 if (-not $asset -and $partAssets.Count -eq 0) {
-  Log 'Asset state tidak ditemukan di release.'
+  Log 'State asset not found in the release.'
   exit 0
 }
 
@@ -105,7 +102,7 @@ if ($partAssets.Count -gt 0) {
   $encPath = Join-Path $workDir $baseEncName
   $zipPath = Join-Path $workDir ($baseEncName -replace '\.enc$', '')
   $extDir  = Join-Path $workDir 'extracted'
-  Log "Mengunduh & menggabungkan $($partAssets.Count) part arsip state ($baseEncName)..."
+  Log "Downloading & merging $($partAssets.Count) state archive parts ($baseEncName)..."
   try {
     $fsJoin = [System.IO.File]::Create($encPath)
     try {
@@ -121,7 +118,7 @@ if ($partAssets.Count -gt 0) {
       $fsJoin.Close()
     }
   } catch {
-    Log "Gagal mengunduh multi-part state: $($_.Exception.Message)"
+    Log "Failed to download multi-part state: $($_.Exception.Message)"
     Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
     exit 0
   }
@@ -129,23 +126,23 @@ if ($partAssets.Count -gt 0) {
   $encPath = Join-Path $workDir $asset.name
   $zipPath = Join-Path $workDir ($asset.name -replace '\.enc$', '')
   $extDir  = Join-Path $workDir 'extracted'
-  Log "Mengunduh state sesi sebelumnya ($($asset.name), $([math]::Round($asset.size / 1MB, 2)) MB)..."
+  Log "Downloading previous session state ($($asset.name), $([math]::Round($asset.size / 1MB, 2)) MB)..."
   try {
     Invoke-WebRequest -Uri "https://api.github.com/repos/$ghRepo/releases/assets/$($asset.id)" -Headers $dlHdrs -OutFile $encPath -UseBasicParsing -TimeoutSec 240
   } catch {
-    Log "Gagal mengunduh state: $($_.Exception.Message)"
+    Log "Failed to download state: $($_.Exception.Message)"
     Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
     exit 0
   }
 }
 
 if (-not (Test-Path $encPath) -or (Get-Item $encPath).Length -lt 32) {
-  Log 'File state yang diunduh kosong/rusak.'
+  Log 'The downloaded state file is empty/corrupted.'
   Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
   exit 0
 }
 
-# Coba dekripsi dengan key berbasis password saat ini, lalu fallback ke key berbasis repo
+# Try to decrypt with the current password-based key, then fall back to the repo-based key
 $keysToTry = @()
 if ($p.Length -ge 4) { $keysToTry += "XyRDP-Persist-$u-$p" }
 $keysToTry += "XyRDP-Persist-$ghRepo"
@@ -159,7 +156,7 @@ foreach ($k in $keysToTry) {
     $magic = [System.Text.Encoding]::ASCII.GetString($hdr)
     if ($magic -ne 'XYST01') {
       $fsIn.Close()
-      throw 'Header magic bukan XYST01'
+      throw 'Header magic is not XYST01'
     }
     $salt = New-Object byte[] 16
     [void]$fsIn.Read($salt, 0, 16)
@@ -188,7 +185,7 @@ foreach ($k in $keysToTry) {
 }
 
 if (-not $decrypted -or -not (Test-Path $zipPath)) {
-  Log 'Gagal mendekripsi arsip state (password RDP berubah dari sesi sebelumnya).'
+  Log 'Failed to decrypt the state archive (the RDP password changed since the previous session).'
   Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
   exit 0
 }
@@ -201,7 +198,7 @@ if ((Test-Path $sevenZip) -and $zipPath.EndsWith('.7z')) {
   Expand-Archive -Path $zipPath -DestinationPath $extDir -Force
 }
 
-# Pulihkan ke lokasi asli (dan ke semua kandidat direktori profil user)
+# Restore to the original location (and to all candidate user profile directories)
 $targetProfileDirs = @(Get-AllUserProfileDirs $u)
 if ($primaryProfDir -and ($targetProfileDirs -notcontains $primaryProfDir)) {
   $targetProfileDirs = @($primaryProfDir) + $targetProfileDirs
@@ -211,7 +208,7 @@ if (Test-Path (Join-Path $extDir 'Persist')) {
   Copy-TreeUnlocked (Join-Path $extDir 'Persist') 'C:\Persist'
 }
 
-# Pulihkan wallpaper tersimpan dari sesi sebelumnya
+# Restore the wallpaper saved from the previous session
 $savedWpDir = 'C:\Persist\Config'
 if (Test-Path $savedWpDir) {
   $pubWpDir = 'C:\Users\Public\Pictures\XyRDP'
@@ -232,74 +229,44 @@ foreach ($userDir in $targetProfileDirs) {
       }
     }
   }
-  if (Test-Path (Join-Path $extDir 'Minecraft')) {
-    $mcDst = Join-Path $userDir 'AppData\Roaming\.minecraft'
-    New-Item -ItemType Directory -Path $mcDst -Force -ErrorAction SilentlyContinue | Out-Null
-    Copy-TreeUnlocked (Join-Path $extDir 'Minecraft') $mcDst
-  }
-  if (Test-Path (Join-Path $extDir 'TLauncher')) {
-    $tlDst = Join-Path $userDir 'AppData\Roaming\.tlauncher'
-    New-Item -ItemType Directory -Path $tlDst -Force -ErrorAction SilentlyContinue | Out-Null
-    Copy-TreeUnlocked (Join-Path $extDir 'TLauncher') $tlDst
-  }
   if (Test-Path (Join-Path $extDir 'Browsers\Chrome')) {
     $chDst = Join-Path $userDir 'AppData\Local\Google\Chrome\User Data'
     New-Item -ItemType Directory -Path $chDst -Force -ErrorAction SilentlyContinue | Out-Null
     Copy-TreeUnlocked (Join-Path $extDir 'Browsers\Chrome') $chDst
-    Log "  Sesi login Google Chrome berhasil dipulihkan ke $chDst."
+    Log "  Google Chrome login session restored successfully to $chDst."
   }
   if (Test-Path (Join-Path $extDir 'Browsers\Edge')) {
     $edDst = Join-Path $userDir 'AppData\Local\Microsoft\Edge\User Data'
     New-Item -ItemType Directory -Path $edDst -Force -ErrorAction SilentlyContinue | Out-Null
     Copy-TreeUnlocked (Join-Path $extDir 'Browsers\Edge') $edDst
-    Log "  Sesi login Microsoft Edge berhasil dipulihkan ke $edDst."
+    Log "  Microsoft Edge login session restored successfully to $edDst."
   }
   if (Test-Path (Join-Path $extDir 'Browsers\Brave')) {
     $brDst = Join-Path $userDir 'AppData\Local\BraveSoftware\Brave-Browser\User Data'
     New-Item -ItemType Directory -Path $brDst -Force -ErrorAction SilentlyContinue | Out-Null
     Copy-TreeUnlocked (Join-Path $extDir 'Browsers\Brave') $brDst
-    Log "  Sesi login Brave Browser berhasil dipulihkan ke $brDst."
+    Log "  Brave Browser login session restored successfully to $brDst."
   }
   if (Test-Path (Join-Path $extDir 'Browsers\Firefox')) {
     $ffDst = Join-Path $userDir 'AppData\Roaming\Mozilla\Firefox'
     New-Item -ItemType Directory -Path $ffDst -Force -ErrorAction SilentlyContinue | Out-Null
     Copy-TreeUnlocked (Join-Path $extDir 'Browsers\Firefox') $ffDst
-    Log "  Sesi login Mozilla Firefox berhasil dipulihkan ke $ffDst."
+    Log "  Mozilla Firefox login session restored successfully to $ffDst."
   }
   if (Test-Path (Join-Path $extDir 'DPAPI')) {
     Copy-TreeUnlocked (Join-Path $extDir 'DPAPI') $userDir
-    Log "  Kunci enkripsi DPAPI pengguna berhasil dipulihkan ke $userDir."
-  }
-  if (Test-Path (Join-Path $extDir 'Roblox')) {
-    $rbxBase = Join-Path $userDir 'AppData\Local'
-    New-Item -ItemType Directory -Path $rbxBase -Force -ErrorAction SilentlyContinue | Out-Null
-    Copy-TreeUnlocked (Join-Path $extDir 'Roblox') $rbxBase
-    Log "  Data login & konfigurasi Roblox berhasil dipulihkan ke $rbxBase."
+    Log "  User DPAPI encryption keys restored successfully to $userDir."
   }
 
-  # KRITIKAL: Berikan kepemilikan & FullControl penuh kepada user '$u' atas seluruh file hasil restore
-  # agar Chrome, Explorer & Game dapat membaca/menulis Cookies, Downloads, dan Desktop tanpa Access Denied!
+  # CRITICAL: Give full ownership & FullControl to user '$u' over all restored files
+  # so Chrome, Explorer & other apps can read/write Cookies, Downloads, and Desktop without Access Denied!
   try {
-    & icacls $userDir /grant "${u}:(OI)(CI)F" /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /T /C /Q 2>&1 | Out-Null
+    & icacls $userDir /grant "${u}:(OI)(CI)F" /grant "Admthisstrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /T /C /Q 2>&1 | Out-Null
   } catch {}
-}
-
-if (Test-Path (Join-Path $extDir 'PrismLauncher')) {
-  $plDst = 'C:\Games\PrismLauncher'
-  New-Item -ItemType Directory -Path $plDst -Force | Out-Null
-  Copy-TreeUnlocked (Join-Path $extDir 'PrismLauncher') $plDst
-}
-if (Test-Path 'C:\Persist\samp-settings.reg') {
-  try { & reg.exe import 'C:\Persist\samp-settings.reg' 2>&1 | Out-Null } catch {}
-}
-
-# Jika sesi sebelumnya menyimpan Gaming Boost, terapkan kembali secara otomatis
-if ((Test-Path 'C:\Persist\System\gaming-boost.json') -and (Test-Path 'C:\XyRDP\tools\Apply-AntiVM-Boost.ps1')) {
-  try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\XyRDP\tools\Apply-AntiVM-Boost.ps1' | Out-Null } catch {}
 }
 
 $restoredCount = (Get-ChildItem -Path $extDir -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object).Count
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-Log "State sesi sebelumnya berhasil dipulihkan! ($restoredCount file dikembalikan ke profil $primaryProfDir)"
+Log "Previous session state restored successfully! ($restoredCount files returned to profile $primaryProfDir)"
 Update-Status @{ persist = @{ restored = $true; files = $restoredCount; source = $asset.name; profile = $primaryProfDir } } | Out-Null
 exit 0

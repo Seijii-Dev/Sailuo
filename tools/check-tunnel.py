@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Cek apakah host:port tunnel bisa dijangkau dari INTERNET (via check-host.net).
+"""Cek apakah host:port tunnel can dijangkau from INTERNET (via check-host.net).
 Pakai: python3 tools/cek-tunnel.py bore.pub:36603
-Ini menjawab pertanyaan 'kenapa HP saya tidak bisa, padahal self-test di VM ok?'"""
+Ini menjawab pertanyaan 'kenapa HP saya no can, onhal self-test di VM ok?'"""
 import json, sys, time, urllib.request, urllib.parse
 
 def get(url, tries=3):
@@ -35,15 +35,15 @@ def main(t):
                 v = val[0]
                 if v.get('time') is not None:
                     ok += 1; print(f'  {(neg.upper()+": "+kota)[:26]:26} {"TERSAMBUNG":28} {v["time"]:.3f}s')
-                else: fail += 1; print(f'  {(neg.upper()+": "+kota)[:26]:26} {"GAGAL: "+str(v.get("error") or "?")[:24]:28}')
+                else: fail += 1; print(f'  {(neg.upper()+": "+kota)[:26]:26} {"FAILED: "+str(v.get("error") or "?")[:24]:28}')
             elif isinstance(val, list) and val and val[0] is None:
-                fail += 1; print(f'  {(neg.upper()+": "+kota)[:26]:26} {"GAGAL (timeout)":28}')
+                fail += 1; print(f'  {(neg.upper()+": "+kota)[:26]:26} {"FAILED (timeout)":28}')
         tot = ok + fail
-        print(f'\n  RINGKASAN: {ok}/{tot} node luar berhasil tersambung ke {host}:{port}')
+        print(f'\n  RINGKASAN: {ok}/{tot} node luar succeeded tersambung ke {host}:{port}')
         print('  -> kalau ≥1 node ASIA tersambung, tunnel memang terbuka ke internet;')
         print('     masalahnya di sisi klien HP (alamat lama / aplikasi), bukan di VM.')
         return 0
-    print('  (hasil tidak lengkap dalam 60s)'); return 1
+    print('  (hasil no lengkap in 60s)'); return 1
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else ''))

@@ -9,7 +9,7 @@ test('GitHub failure diagnosis preserves setup state and never exposes token',as
  try{
  for(const [message,status,code,headers] of [
  ['Your account was suspended.',403,'account_restricted',{}],
- ['API rate limit exceeded',403,'github_rate_limit',{'x-ratelimit-remaining':'0'}],
+ ['API rate limit exceeded',403,'github_rate_limit',{'x-ratelimit-remathisng':'0'}],
  ['Bad credentials',401,'github_token_invalid',{}],
  ['Resource not accessible by integration',403,'github_permission_denied',{}]
  ] as const){

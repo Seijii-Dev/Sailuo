@@ -5,7 +5,7 @@ const source=(v:unknown)=>'# rdpfree-workflow-schema: 5\n'+stringify({on:{workfl
 test('workflow compatibility checks actual input names/options, not only marker',()=>{
  assert.equal(workflowCompatible(source(inputs)),true);
  const missing={...inputs};delete missing.microphone;assert.equal(workflowCompatible(source(missing)),false);
- assert.equal(workflowCompatible(source({...inputs,akses:{type:'choice',options:['public']}})),false);
+ assert.equal(workflowCompatible(source({...inputs,access:{type:'choice',options:['public']}})),false);
  assert.equal(workflowCompatible(source(inputs).replace('schema: 5','schema: 2')),false);
  assert.equal(workflowCompatible(source({...inputs,new_requirement:{required:true,type:'string'}})),false);
  assert.equal(workflowCompatible('# rdpfree-workflow-schema: 5\nnot yaml ['),false);

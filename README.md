@@ -2,53 +2,46 @@
 
 Dashboard: **https://rdpfree.projectkal.my.id** · Credit: **KallAncrit**
 
-Windows RDP melalui **Tailscale privat**, dengan dashboard Next.js/Cloudflare dan integrasi API native XyDesk Remote. Tidak ada Pinggy, bore, ngrok, Serveo, localhost.run, Funnel, atau relay publik pada workflow aktif.
+Windows RDP over **private Tailscale**, with a Next.js/Cloudflare dashboard and native XyDesk Remote API integration. The active workflow uses no Pinggy, bore, ngrok, Serveo, localhost.run, Funnel, or public relay.
 
-## Mulai
+## Getting started
 
-1. Login identitas GitHub di `/login` (scope `read:user`). Login tidak memberikan akses repository.
-2. Pasang GitHub App secara terpisah di `/dashboard/connection`, pilih repository yang diizinkan. Owner layanan harus mendaftarkan App dahulu di halaman admin tersembunyi `/admin/github-app`.
-3. Buat repository dari template dengan nama pilihanmu. Token operasi biasa hanya mendapat Contents/Metadata read, Actions/Secrets write. Manifest baru juga meminta Administration write untuk fitur hapus repo setelah konfirmasi pemilik; token hak hapus dibuat terpisah. App tetap tidak dapat menulis atau membersihkan folder source. Template manual tetap menyalin folder web.
-4. Isi `RDP_PASSWORD` dan `TAILSCALE_AUTH_KEY` lewat Setup. Hubungkan HP ke tailnet yang sama. Jangan membagikan auth key atau password.
-5. Atur sesi di Settings, jalankan dari Home. Password tidak dicetak, di-Base64, atau dijadikan artefak workflow. Reveal/copy tetap melalui vault dashboard yang terautentikasi.
+1. Sign in with your GitHub identity at `/login` (scope `read:user`). Signing in does not grant repository access.
+2. Install the GitHub App separately at `/dashboard/connection` and pick the repositories you allow. The service owner must register the App first on the hidden admin page `/admin/github-app`.
+3. Create a repository from the template under a name of your choice. A regular operation token only gets Contents/Metavailableta read and Actions/Secrets write. The new manifest also requests Admthisstration write for the delete-repo feature after owner confirmation; the token with delete rights is created separately. The App still cannot write to or clean up the source folder. Manual templates still copy the web folder.
+4. Fill in `RDP_PASSWORD` and `TAILSCALE_AUTH_KEY` through Setup. Connect your phone to the same tailnet. Do not share the auth key or password.
+5. Configure the session in Settings and start it from Home. The password is never printed, Base64-encoded, or turned into a workflow artifact. Reveal/copy only happens through the authenticated dashboard vault.
 
-`xyadmin` adalah username default; `runneradmin` hanya bila dipilih eksplisit. Workflow mengubah kebijakan Windows termasuk UAC dan akun administrator. Gunakan mesin khusus/disposable, **bukan komputer kerja utama**. Durasi job maksimal 360 menit termasuk setup; waktu persiapan mengurangi sisa sesi. Sesi GitHub-hosted bukan layanan PC gaming dan tidak ada jaminan bebas suspend.
+`xyadmin` is the default username; `runneradmin` only when explicitly chosen. The workflow changes Windows policies, including UAC and the admthisstrator account. Use a dedicated or disposable machine, **not your main work computer**. The maximum job duration is 360 minutes including setup; preparation time reduces what is left of the session. GitHub-hosted sessions are not a general-purpose PC service, and there is no guarantee they stay free of suspension.
 
-## Games dan media
+## Wallpaper and microphone
 
-Halaman `/dashboard/games` menyimpan pilihan persiapan SA-MP, Roblox, Minecraft Java dan Bedrock serta menampilkan status Windows pada sesi aktif. Pengaturan berlaku pada run berikutnya. Start/stop yang tersedia saat ini adalah **sesi workflow**, bukan proses game di desktop. Login, pemasangan interaktif, launch, dan stop game dilakukan lewat XyDesk. **Kontrol proses game langsung dari dashboard belum tersedia.**
+- **Wallpaper**: the original XyVerse anime wallpaper from assets/wallpaper.jpg is applied to the user profile at sign-in, not just to the runner's HKCU. The wallpaper turns on automatically, with no yes/no choice or replacement URL. The client must also enable the desktop wallpaper.
+- **Microphone**: the host allows the RDP audio capture channel; XyDesk must enable input and request the Android permission. Test it in Windows Settings > Sound > Input. A device named “Remote Audio” under **Input** is for recording, which is different from speaker output.
 
-Persiapan game hanya berjalan pada runner Windows self-hosted khusus milikmu, berlabel `self-hosted`, `Windows`, `X64`, `rdpfree`. Jangan izinkan workflow/PR dari pihak tidak tepercaya memakai runner ini. Finalize memutus Tailscale, tetapi tidak menghapus akun, aplikasi, atau perubahan sistem pada mesin self-hosted; reset image setelah pemakaian.
+Wallpaper and microphone support has not yet passed end-to-end testing on Windows plus an Android device.
 
-- **SA-MP**: membutuhkan GTA SA milikmu. Installer/dependensi atau keberadaan EXE bukan bukti berhasil masuk server.
-- **Roblox**: installer resmi dengan signature diverifikasi. VM dapat ditolak Roblox. Tidak ada spoofing BIOS, penghapusan driver VM, atau bypass anti-cheat.
-- **Minecraft Java**: launcher resmi, akun berlisensi dan dukungan OpenGL/GPU tetap diperlukan.
-- **Minecraft Bedrock**: Windows desktop dengan Store/Xbox. Windows Server tidak didukung oleh setup ini. Instalasi dan login Store tetap interaktif.
-- **Wallpaper**: wallpaper anime XyVerse asli dari assets/wallpaper.jpg diterapkan pada profil pengguna saat logon, bukan hanya HKCU milik runner. Wallpaper otomatis aktif tanpa pilihan ya/tidak atau URL pengganti. Klien juga harus mengaktifkan desktop wallpaper.
-- **Mikrofon**: host mengizinkan kanal audio capture RDP; XyDesk harus mengaktifkan input dan meminta izin Android. Uji Windows Settings > Sound > Input. Perangkat bernama “Remote Audio” pada **Input** adalah recording, berbeda dari output speaker.
+## Updating an existing repository
 
-Status `installer_ready`, `installed_unverified`, `store_required`, `unsupported_environment`, dan `requires_self_hosted` bukan klaim berhasil bermain. Wallpaper/mikrofon dan game belum lulus pengujian Windows + perangkat Android end-to-end.
+The current workflow carries `# rdpfree-workflow-schema: 6`. The dashboard refuses to dispatch to older workflows so the current inputs are not delivered incorrectly. Sync `.github/workflows/rdp-6h.yml`, all of `scripts/`, and `assets/` from this repository. The GitHub App has no source write permission, so the repository owner performs the update. Saved `tunnel`/`semua` settings are migrated to Tailscale.
 
-## Update repository lama
+Inputs now use `duration_minutes`, `access`, `windows10`, `extras`, `debloat`, and `auto_renew`. Toggles take `yes`/`no`, `debloat` takes `light`/`full`/`none`, and Linux mode takes `desktop`/`plain`.
 
-Workflow baru bertanda `# rdpfree-workflow-schema: 3`. Dashboard menolak dispatch ke workflow lama agar parameter game/media baru tidak salah dikirim. Sinkronkan `.github/workflows/rdp-6h.yml`, seluruh `scripts/`, dan `assets/` dari repository ini. GitHub App tidak punya izin menulis source, jadi pembaruan dilakukan pemilik repository. Pengaturan tersimpan `tunnel`/`semua` dimigrasikan ke Tailscale; SA-MP default lama dinonaktifkan sampai pemilik memilih mesin khusus secara eksplisit.
+## Source and access
 
-## Source dan akses
+- `.github/workflows/rdp-6h.yml`: Windows session plus host preparation.
+- `scripts/`: Windows scripts; `assets/`: wallpaper and configuration.
+- `web-next/`: the active Next.js/OpenNext/Cloudflare dashboard. The `web/`, `deploy/`, and older documentation folders are archives of earlier implementations, not the current access configuration.
+- The admin area stays hidden behind email/password login plus Turnstile; it has not been moved to GitHub login.
+- Native API: see `web-next/docs/XYDESK-API.md`. Tokens are bound to a repository and can be revoked. Old native OAuth tokens must be recreated after the App split.
+- A separate login does not prevent suspension. For a suspended tester account, review is only available through GitHub Support; the cause cannot be inferred from a 404 or from login patterns alone.
 
-- `.github/workflows/rdp-6h.yml`: Windows session + persiapan host.
-- `scripts/`: skrip Windows; `assets/`: wallpaper dan konfigurasi.
-- `web-next/`: dashboard Next.js/OpenNext/Cloudflare aktif. Folder `web/`, `deploy/`, dan dokumentasi lama adalah arsip implementasi terdahulu, bukan konfigurasi akses saat ini.
-- Admin tetap tersembunyi, login email/password + Turnstile; tidak dipindah ke GitHub login.
-- Native API: lihat `web-next/docs/XYDESK-API.md`. Token terikat repository dan dapat dicabut. Token OAuth native lama perlu dibuat ulang setelah pemisahan App.
-- Login terpisah tidak mencegah suspend. Untuk akun tester yang ditangguhkan, review hanya melalui GitHub Support; penyebab tidak dapat disimpulkan dari 404 atau pola login saja.
+## Validation
 
-## Validasi
+Lint, TypeScript, the OpenNext build, unit tests, and the mobile browser smoke test are available and exercised. PowerShell scripts are parsed with PowerShell 7; the parser is not a Windows installation test. Real App installation requires owner approval. Do not treat these results as certification of end-to-end audio or device compatibility.
 
-Lint, TypeScript, build OpenNext, unit tests dan browser mobile smoke tersedia/diuji. Skrip PowerShell diparse dengan PowerShell 7; parser bukan pengujian instalasi Windows. Tes UI game memakai mock API tanpa menyalakan runner atau game. Instalasi App nyata memerlukan persetujuan owner. Jangan menganggap hasil-hasil ini sebagai sertifikasi kompatibilitas game atau audio end-to-end.
+## Repository guide and deleting through the dashboard
 
+Flow: create the repo from the template first → confirm “My repo is created” → grant repository access through the GitHub App (Only select repositories) → pick the repo → fill in the secrets → start a session. Installing the App means authorization; it does not create a repo or download a phone app.
 
-## Panduan repo dan hapus lewat dashboard
-
-Alur: buat repo dari template dahulu → konfirmasi “Repo saya sudah dibuat” → izinkan akses repository melalui GitHub App (Only select repositories) → pilih repo → isi secrets → mulai sesi. Install App berarti otorisasi, bukan membuat repo atau mengunduh aplikasi HP.
-
-Hapus repo tersedia di `/dashboard/connection`, khusus login GitHub pemilik repo pribadi. Ketik nama lengkap `owner/repo` dan setujui dampak penghapusan; workflow aktif/antre harus berhenti. Repo sumber layanan dilindungi dan token XyDesk tidak dapat menghapus. App yang sudah terdaftar perlu Administration: Read and write dan persetujuan pembaruan dari pemilik instalasi. Izin Administration lebih luas daripada delete-only; GitHub tidak menyediakan scope hapus khusus untuk installation token. Token biasa tetap tanpa Administration. Pengujian destructive menggunakan mock, bukan menghapus repo pengguna.
+Repo deletion is available at `/dashboard/connection`, only for a GitHub login that owns a private repository. Type the full `owner/repo` name and accept the deletion impact; any active or queued workflow must be stopped first. The service's source repository is protected and an XyDesk token cannot delete it. An App that is already registered needs Admthisstration: Read and write plus the installation owner's approval for the update. The Admthisstration permission is broader than delete-only; GitHub does not provide a delete-only scope for installation tokens. A regular token still has no Admthisstration. Destructive testing uses mocks and never deletes user repositories.

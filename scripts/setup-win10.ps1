@@ -1,23 +1,23 @@
 # ============================================================================
-#  setup-win10.ps1 - "Windows 10 look" untuk runner windows-2022
+#  setup-win10.ps1 - "Windows 10 look" for runner windows-2022
 # ----------------------------------------------------------------------------
-#  Catatan jujur: runner GitHub TIDAK punya image Windows 10 desktop. Yang
-#  dipakai adalah Windows Server 2022 yang secara UI/kernel = Windows 10 21H2
-#  (build 20348) - jadi tampilannya sudah Windows 10. Script ini menambahkan
-#  yang khas "Windows 10" dan mematikan yang khas "Server":
+#  Honest note: the GitHub runner does NOT have a Windows 10 desktop image. That
+#  dipakai is Windows Server 2022 that as UI/kernel = Windows 10 21H2
+#  (build 20348) - jadi tampilannya already Windows 10. Script this menambahkan
+#  that khas "Windows 10" and mematikan that khas "Server":
 #
-#    1) Server Manager tidak muncul saat login, IE Enhanced Security mati
-#    2) Shutdown Event Tracker mati (tidak tanya "alasan shutdown")
+#    1) Server Manager no muncul saat login, IE Enhanced Security mati
+#    2) Shutdown Event Tracker mati (no tanya "alasan shutdown")
 #    3) Personalisasi: transparansi, warna aksen di taskbar, taskbar
-#       "jangan gabungkan tombol", kotak pencarian, tema gelap taskbar
+#       "do not gabungkan tombol", kotak pencarian, tema gelap taskbar
 #    4) Wallpaper + latar login/lock screen bergaya Windows 10
-#    5) Ctrl+Alt+Del tidak diwajibkan di layar login (seperti Windows 10)
-#    6) Windows Search diaktifkan supaya Start menu bisa mencari
+#    5) Ctrl+Alt+Del no diwajibkan di layar login (seperti Windows 10)
+#    6) Windows Search diaktifkan so that Start menu can mencari
 #    7) (opsional) label "Windows 10 Pro" di registry - kosmetik
 #
-#  Semua langkah BEST-EFFORT: gagal satu tidak mematikan sesi.
+#  Semua langkah BEST-EFFORT: failed satu does not stop session.
 #  Konfigurasi: assets/rdp-extras.json -> win10_look / win10_badge /
-#  win10_wallpaper (bisa diubah dari dashboard web).
+#  win10_wallpaper (can diubah from dashboard web).
 # ============================================================================
 
 $XyTag = 'XyRDP:win10'
@@ -25,25 +25,25 @@ $XyTag = 'XyRDP:win10'
 
 # ---------- 0. master switch ----------
 $skip = $false
-if ($env:WIN10) { $e = $env:WIN10.Trim().ToLower(); if (@('tidak', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $skip = $true } }
+if ($env:WINDOWS10) { $e = $env:WINDOWS10.Trim().ToLower(); if (@('no', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $skip = $true } }
 $cfg = Get-Cfg
 if (-not $cfg.win10_look) { $skip = $true }
 if ($skip) {
-  Log 'tweak Windows 10 dilewati (input WIN10=tidak atau win10_look=false di rdp-extras.json)'
+  Log 'tweak Windows 10 skipped (input WIN10=no or win10_look=false di rdp-extras.json)'
   Update-Status @{ win10 = @{ look = 'skip' } } | Out-Null
   exit 0
 }
-Log "mulai tweak Windows 10 (badge=$($cfg.win10_badge) wallpaper=$($cfg.win10_wallpaper) dark=$($cfg.dark_theme) ringan=$($cfg.lightweight_mode))"
+Log "start tweak Windows 10 (badge=$($cfg.win10_badge) wallpaper=$($cfg.win10_wallpaper) dark=$($cfg.dark_theme) ringan=$($cfg.lightweight_mode))"
 
 $os = try { Get-CimInstance Win32_OperatingSystem } catch { $null }
-Log "  OS terpasang: $($os.Caption) build $($os.Version) - UI-nya sama dengan Windows 10 21H2"
+Log "  OS terinstall: $($os.Caption) build $($os.Version) - UI-nya sama with Windows 10 21H2"
 
 # ---------- 1. buang ciri khas "Server" ----------
 Open-DefaultHive | Out-Null
 
-# Server Manager: jangan buka otomatis saat login
+# Server Manager: do not buka otomatis saat login
 Set-RegBoth 'Software\Microsoft\ServerManager' 'DoNotOpenServerManagerAtLogon' 1 'DWord' | Out-Null
-# Shutdown Event Tracker: jangan tanya alasan
+# Shutdown Event Tracker: do not tanya alasan
 Set-Reg 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Reliability\Shutdown' 'ShutdownReasonOn' 0 'DWord' | Out-Null
 # IE Enhanced Security Configuration (2 key: admin + user)
 foreach ($guid in @('{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}', '{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}')) {
@@ -52,13 +52,13 @@ foreach ($guid in @('{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}', '{A509B1A8-37EF-4b
 Log '  Server Manager & Shutdown Event Tracker dimatikan, IE ESC dimatikan'
 
 # ---------- 2. layar login ala Windows 10 ----------
-# Windows 10 tidak mewajibkan Ctrl+Alt+Del di layar login
+# Windows 10 no mewajibkan Ctrl+Alt+Del di layar login
 Set-Reg 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' 'DisableCAD' 1 'DWord' | Out-Null
 # sembunyikan teks versi/edisi di sudut desktop
 Set-RegBoth 'Control Panel\Desktop' 'PaintDesktopVersion' 0 'DWord' | Out-Null
-# sembunyikan akun Administrator bawaan supaya layar login bersih (job runner
-# jalan sebagai runneradmin, jadi tidak terpengaruh)
-try { Disable-LocalUser -Name 'Administrator' -ErrorAction Stop; Log '  akun Administrator bawaan dinonaktifkan (layar login bersih)' } catch { Log "  nonaktifkan Administrator dilewati: $($_.Exception.Message)" }
+# sembunyikan akun Admthisstrator bawaan so that layar login bersih (job runner
+# jalan sebagai runneradmin, jadi no terpengaruh)
+try { Disable-LocalUser -Name 'Admthisstrator' -ErrorAction Stop; Log '  akun Admthisstrator bawaan dinonaktifkan (layar login bersih)' } catch { Log "  nonaktifkan Admthisstrator skipped: $($_.Exception.Message)" }
 
 # ---------- 3. personalisasi ala Windows 10 ----------
 $themeMode = if ($cfg.dark_theme) { 0 } else { 1 }
@@ -66,7 +66,7 @@ Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'Enab
 Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'ColorPrevalence'   1 'DWord' | Out-Null   # warna aksen di taskbar (khas Win10)
 Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'SystemUsesLightTheme' $themeMode 'DWord' | Out-Null
 Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'AppsUseLightTheme'   $themeMode 'DWord' | Out-Null
-# taskbar: jangan gabungkan tombol (default Win10), kotak pencarian, tombol Task View
+# taskbar: do not gabungkan tombol (default Win10), kotak pencarian, tombol Task View
 $adv = 'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 Set-RegBoth $adv 'TaskbarGlomLevel'      2 'DWord' | Out-Null
 Set-RegBoth $adv 'TaskbarSmallIcons'     0 'DWord' | Out-Null
@@ -82,19 +82,19 @@ Set-RegBoth $dwm 'ColorizationAfterglow' 0xc40078d7 'DWord' | Out-Null
 Set-RegBoth $dwm 'EnableWindowColorization' 1 'DWord' | Out-Null
 Log "  personalisasi diterapkan (tema=$(if ($cfg.dark_theme) { 'gelap' } else { 'terang' }), aksen, taskbar)"
 
-# ---------- 4. Windows Search diaktifkan (Start menu bisa mencari) ----------
+# ---------- 4. Windows Search diaktifkan (Start menu can mencari) ----------
 try {
   Set-Service -Name WSearch -StartupType Automatic -ErrorAction Stop
   Start-Service -Name WSearch -ErrorAction Stop
-  Log '  layanan Windows Search: aktif (Start menu bisa mencari aplikasi)'
+  Log '  layanan Windows Search: aktif (Start menu can mencari aplikasi)'
   $searchStatus = 'ok'
-} catch { Log "  Windows Search tidak bisa diaktifkan (tidak kritis): $($_.Exception.Message)"; $searchStatus = 'gagal' }
+} catch { Log "  Windows Search no can diaktifkan (no kritis): $($_.Exception.Message)"; $searchStatus = 'failed' }
 
 # ---------- 5. wallpaper & latar login ----------
 function Get-Win10WallpaperFile {
   $names = @()
-  # Pilihan dashboard/current config harus didahulukan; wallpaper-win10.* hanya
-  # fallback. Kalau tidak, gambar bawaan lama akan menimpa wallpaper upload.
+  # Pilihan dashboard/current config must didahulukan; wallpaper-win10.* only
+  # fallback. Kalau no, gambar bawaan lama will menimpa wallpaper upload.
   if ($cfg.wallpaper_file) { $names += @($cfg.wallpaper_file) }
   if ($cfg.win10_wallpaper) { $names += @('wallpaper-win10.jpg', 'wallpaper-win10.png') }
   $names += @('wallpaper.jpg', 'wallpaper.jpeg', 'wallpaper.png', 'wallpaper.bmp')
@@ -132,7 +132,7 @@ function Save-LogonBackground([string]$Src, [string]$Dst, [int]$MaxKB = 240) {
     $img.Dispose()
     Log "  latar login: $([math]::Round((Get-Item $Dst).Length / 1KB)) KB (di atas batas 256 KB, Windows mungkin mengabaikan)"
     return $true
-  } catch { Log "  gagal menyiapkan latar login: $($_.Exception.Message)"; return $false }
+  } catch { Log "  failed menyiapkan latar login: $($_.Exception.Message)"; return $false }
 }
 
 $wallStatus = 'skip'
@@ -143,12 +143,12 @@ if ($wpFile) {
     $ext = [IO.Path]::GetExtension($wpFile).TrimStart('.').ToLower(); if (-not $ext) { $ext = 'jpg' }
     $local = "C:\XyRDP\wallpaper-win10.$ext"
     Copy-Item $wpFile $local -Force
-    # desktop wallpaper (profil Default + sesi sekarang)
+    # desktop wallpaper (profil Default + session sekarang)
     Set-RegBoth 'Control Panel\Desktop' 'Wallpaper'      $local 'String' | Out-Null
     Set-RegBoth 'Control Panel\Desktop' 'WallpaperStyle' '10'    'String' | Out-Null   # 10 = Fill
     Set-RegBoth 'Control Panel\Desktop' 'TileWallpaper'  '0'     'String' | Out-Null
     try {
-      Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class XyWall { [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni); }' -ErrorAction Stop
+      Add-Type -TypeDefthistion 'using System.Runtime.InteropServices; public class XyWall { [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni); }' -ErrorAction Stop
       [XyWall]::SystemParametersInfo(20, 0, $local, 3) | Out-Null
     } catch {}
     # layar login / lock screen
@@ -158,9 +158,9 @@ if ($wpFile) {
     Set-Reg 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\Background' 'OEMBackground' 1 'DWord' | Out-Null
     $wallStatus = 'ok'
     Log "  wallpaper diterapkan: $local (+ latar layar login)"
-  } catch { Log "  wallpaper gagal: $($_.Exception.Message)"; $wallStatus = 'gagal' }
+  } catch { Log "  wallpaper failed: $($_.Exception.Message)"; $wallStatus = 'failed' }
 } else {
-  Log '  tidak ada file wallpaper di assets/ - wallpaper bawaan dipakai'
+  Log '  does not exist file wallpaper di assets/ - wallpaper bawaan dipakai'
   $wallStatus = 'default'
 }
 
@@ -174,7 +174,7 @@ if ($cfg.win10_badge) {
     $b3 = Set-Reg $cv 'CompositionEditionID' 'Professional' 'String'
     $b4 = Set-Reg $cv 'DisplayVersion'  '22H2'           'String'
     $badgewins = @($b1, $b2, $b3, $b4 | Where-Object { $_ }).Count
-    # ProductType: key ini milik TrustedInstaller -> ambil kepemilikan dulu
+    # ProductType: key this milik TrustedInstaller -> take ownership dulu
     $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\ProductOptions', $true)
     if (-not $key) {
       $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\ProductOptions',
@@ -188,9 +188,9 @@ if ($cfg.win10_badge) {
     }
     $key.SetValue('ProductType', 'WinNT', [Microsoft.Win32.RegistryValueKind]::String)
     $key.Close()
-    Log "  label registry: Windows 10 Pro / 22H2 (ProductType=WinNT, $badgewins/4 kunci nama produk berhasil)"
+    Log "  label registry: Windows 10 Pro / 22H2 (ProductType=WinNT, $badgewins/4 kunci nama produk succeeded)"
     $badgeStatus = if ($badgewins -ge 3) { 'ok' } else { "sebagian ($badgewins/4)" }
-  } catch { Log "  label Windows 10 gagal (tidak kritis): $($_.Exception.Message)"; $badgeStatus = 'gagal' }
+  } catch { Log "  label Windows 10 failed (no kritis): $($_.Exception.Message)"; $badgeStatus = 'failed' }
 } else {
   Log '  label Windows 10 dimatikan (win10_badge=false) - sistem tetap menampilkan nama Windows Server'
 }

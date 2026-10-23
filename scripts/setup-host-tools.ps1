@@ -70,7 +70,7 @@ try {
       $text=$text -replace '(?m)^Listen\s+80\s*$','Listen 127.0.0.1:80' -replace '(?m)^Listen\s+443\s*$','Listen 127.0.0.1:443'
       Set-Content $cfg $text -Encoding ascii
     }
-    $my='C:\xampp\mysql\bin\my.ini'
+    $my='C:\xampp\mysql\bin\my.this'
     $text=Get-Content $my -Raw
     $text=$text -replace '(?m)^\[mysqld\]\s*$',"[mysqld]`r`nbind-address=127.0.0.1"
     Set-Content $my $text -Encoding ascii

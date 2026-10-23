@@ -3,9 +3,9 @@ $XyTag='RdpFree:finalize'
 . "$PSScriptRoot/lib-common.ps1"
 $exe="$env:ProgramFiles\Tailscale\tailscale.exe"
 if (Test-Path $exe) {
-  try { & $exe down 2>$null | Out-Null; & $exe logout 2>$null | Out-Null } catch { Log 'Tailscale perlu diperiksa pemilik tailnet' }
+  try { & $exe down 2>$null | Out-Null; & $exe logout 2>$null | Out-Null } catch { Log 'Tailscale must be checked by the tailnet owner' }
 }
-Log 'Sesi dihentikan. Mesin self-hosted tidak dihapus otomatis.'
+Log 'Session stopped. The self-hosted machine is not deleted automatically.'
 
 $portmapRoot='C:\ProgramData\RdpFree\portmap'
 foreach ($pf in @('pid.txt', 'railway-pid.txt')) {
@@ -20,4 +20,4 @@ foreach ($pf in @('pid.txt', 'railway-pid.txt')) {
 }
 Remove-Item (Join-Path $portmapRoot 'client.ovpn'), (Join-Path $portmapRoot 'pid.txt'), (Join-Path $portmapRoot 'railway-pid.txt') -Force -ErrorAction SilentlyContinue
 Remove-NetFirewallRule -DisplayName 'RdpFree Portmap RDP' -ErrorAction SilentlyContinue
-Log 'Tunnel sesi ini ditutup; konfigurasi privat lokal dibersihkan.'
+Log 'Tunnel session this dthattup; konfigurasi privat lokal dibersihkan.'

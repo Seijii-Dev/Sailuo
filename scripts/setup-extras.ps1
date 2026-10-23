@@ -1,18 +1,18 @@
 # ============================================================================
-#  setup-extras.ps1 - MODE EKSTRA (v2: Win10-style, tanpa Tailscale/XyDesk)
+#  setup-extras.ps1 - MODE EKSTRA (v2: Win10-style, without Tailscale/XyDesk)
 # ----------------------------------------------------------------------------
-#  Dijalankan SETELAH setup-rdp.ps1 (+ setup-win10.ps1). Semua langkah
-#  BEST-EFFORT: satu gagal tidak mematikan sesi.
+#  Dirun SETELAH setup-rdp.ps1 (+ setup-win10.ps1). Semua langkah
+#  BEST-EFFORT: satu failed does not stop session.
 #
-#    1) baca konfigurasi dari repo: assets/rdp-extras.json (ubah dari dashboard)
+#    1) baca konfigurasi from repo: assets/rdp-extras.json (ubah from dashboard)
 #    2) LIGHTSHOT   - install otomatis (winget -> installer vendor), auto-run
 #    3) TranslucentTB disabled
-#    4) WALLPAPER   - assets/wallpaper.* di repo (atau WALLPAPER_URL)
-#    5) VERIFIKASI  - user RDP dipastikan anggota grup Administrators
+#    4) WALLPAPER   - assets/wallpaper.* di repo (or WALLPAPER_URL)
+#    5) VERIFIKASI  - user RDP diensure anggota grup Admthisstrators
 #    6) rangkum hasil -> out/rdp-status.json (dibaca dashboard web)
 #
-#  Catatan: VM sekali-pakai. Setting per-user ditulis ke profil Default
-#  (C:\Users\Default\NTUSER.DAT) supaya otomatis aktif saat user RDP login.
+#  Note: VM sekali-pakai. Setting per-user dthatlis ke profil Default
+#  (C:\Users\Default\NTUSER.DAT) so that otomatis aktif saat user RDP login.
 # ============================================================================
 
 $XyTag = 'XyRDP:ekstra'
@@ -24,20 +24,20 @@ $u = if ($env:RDP_USER) { $env:RDP_USER } else { 'xyadmin' }
 $master = $true
 if ($env:EXTRAS) {
   $e = $env:EXTRAS.Trim().ToLower()
-  if (@('tidak', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $master = $false }
+  if (@('no', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $master = $false }
 }
 if (-not $master) {
-  Log "EXTRAS='$env:EXTRAS' - semua langkah ekstra dilewati."
+  Log "EXTRAS='$env:EXTRAS' - semua langkah ekstra skipped."
   Update-Status @{ extras = @{ lightshot = 'skip'; wallpaper = 'skip'; wallpaper_file = ''; vscode = 'skip'; notepadpp = 'skip'; admin = $true } } | Out-Null
   exit 0
 }
 
 # ---------- 1. Konfigurasi ----------
 $cfg = Get-Cfg
-if ($env:WALLPAPER_URL) { Log 'WALLPAPER_URL diisi dari input workflow - override file di repo' }
+if ($env:WALLPAPER_URL) { Log 'WALLPAPER_URL diisi from input workflow - override file di repo' }
 Log "lightshot=$($cfg.lightshot) | wallpaper=$($cfg.wallpaper) | win10_look=$($cfg.win10_look) | VSCode=$($cfg.vscode) | Notepad++=$($cfg.notepadpp)"
 
-# Terapkan tema juga bila pengguna mematikan langkah visual Win10.
+# Terapkan tema also bila user mematikan langkah visual Win10.
 $themeMode = if ($cfg.dark_theme) { 0 } else { 1 }
 Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'SystemUsesLightTheme' $themeMode 'DWord' | Out-Null
 Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' 'AppsUseLightTheme' $themeMode 'DWord' | Out-Null
@@ -97,22 +97,22 @@ if ($cfg.lightshot) {
   # final check: coba cari lagi via registry
   if (-not $lsExe) { Start-Sleep -Seconds 2; $lsExe = Find-Lightshot }
   if ($lsExe) {
-    Log "  terpasang: $lsExe"
+    Log "  terinstall: $lsExe"
     Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'Lightshot' ('"{0}"' -f $lsExe) 'String' | Out-Null
     # ensure firewall allow
     # Screenshot capture does not require opening an inbound firewall rule.
-    try { Start-Process -FilePath $lsExe -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; $proc=Get-Process -Name 'Lightshot' -ErrorAction SilentlyContinue; if($proc){Log '  Lightshot proses jalan'} else {Log '  Lightshot terpasang tapi proses belum jalan (akan auto-run saat login)'} } catch {}
-    # fix: Lightshot kadang butuh Visual C++ redist, sudah diinstall di setup-samp, tapi cek
+    try { Start-Process -FilePath $lsExe -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; $proc=Get-Process -Name 'Lightshot' -ErrorAction SilentlyContinue; if($proc){Log '  Lightshot proses jalan'} else {Log '  Lightshot terinstall tapi proses not yet jalan (will auto-run saat login)'} } catch {}
+    # fix: Lightshot sometimes needs the Visual C++ redist, already installed by setup-extras, but check
     $resLightshot = 'ok'
   } else {
-    Log '  GAGAL memasang Lightshot (tidak kritis, sesi tetap jalan) - cek log installer vendor'
-    $resLightshot = 'gagal'
+    Log '  FAILED to install Lightshot (not critical, session continues) - check the vendor installer log'
+    $resLightshot = 'failed'
   }
 }
 
 # ---------- 3b. EDITOR CODING OPSIONAL -------------------------------------
-# Git/Node/Python/7-Zip/Visual Studio sudah ada pada image windows-2022.
-# Hanya VS Code dan Notepad++ yang ditambahkan bila dipilih di dashboard.
+# Git/Node/Python/7-Zip/Visual Studio already available on image windows-2022.
+# Only VS Code and Notepad++ that ditambahkan bila dipilih di dashboard.
 function Find-VSCode {
   foreach ($c in @(
     (Join-Path $env:ProgramFiles 'Microsoft VS Code\Code.exe'),
@@ -134,36 +134,36 @@ function Find-NotepadPP {
 }
 function Install-ChocoCodingTool([string]$Label, [string]$Package) {
   $choco = Get-Command choco.exe -ErrorAction SilentlyContinue
-  if (-not $choco) { Log "  $Label dilewati: Chocolatey tidak tersedia"; return $false }
+  if (-not $choco) { Log "  $Label skipped: Chocolatey no tersedia"; return $false }
   try {
-    Log "  memasang $Label dari Chocolatey ($Package)..."
+    Log "  memasang $Label from Chocolatey ($Package)..."
     $out = & $choco.Source install $Package -y --no-progress 2>&1 | Out-String
     $code = $LASTEXITCODE
     if ($out) { Log "  Chocolatey $Label (exit $code): $(Log-Tail $out 2)" }
     return ($code -eq 0)
-  } catch { Log "  pemasangan $Label gagal: $($_.Exception.Message)"; return $false }
+  } catch { Log "  pemasangan $Label failed: $($_.Exception.Message)"; return $false }
 }
 
 $resVSCode = 'skip'
 if ($cfg.vscode) {
-  Log 'VS CODE: cek / pasang...'
-  if (Find-VSCode) { $resVSCode = 'sudah ada'; Log '  VS Code sudah tersedia' }
+  Log 'VS CODE: cek / install...'
+  if (Find-VSCode) { $resVSCode = 'already available'; Log '  VS Code already tersedia' }
   else {
     Install-ChocoCodingTool 'VS Code' 'vscode.install' | Out-Null
     Start-Sleep -Seconds 2
-    $resVSCode = if (Find-VSCode) { 'ok' } else { 'gagal' }
+    $resVSCode = if (Find-VSCode) { 'ok' } else { 'failed' }
     Log "  VS Code: $resVSCode"
   }
 }
 
 $resNotepadPP = 'skip'
 if ($cfg.notepadpp) {
-  Log 'NOTEPAD++: cek / pasang...'
-  if (Find-NotepadPP) { $resNotepadPP = 'sudah ada'; Log '  Notepad++ sudah tersedia' }
+  Log 'NOTEPAD++: cek / install...'
+  if (Find-NotepadPP) { $resNotepadPP = 'already available'; Log '  Notepad++ already tersedia' }
   else {
     Install-ChocoCodingTool 'Notepad++' 'notepadplusplus.install' | Out-Null
     Start-Sleep -Seconds 2
-    $resNotepadPP = if (Find-NotepadPP) { 'ok' } else { 'gagal' }
+    $resNotepadPP = if (Find-NotepadPP) { 'ok' } else { 'failed' }
     Log "  Notepad++: $resNotepadPP"
   }
 }
@@ -171,19 +171,19 @@ if ($cfg.notepadpp) {
 # ---------- 4. WALLPAPER ----------
 function Set-WallpaperLive([string]$imgPath) {
   try {
-    Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class XyWall { [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni); }' -ErrorAction Stop
+    Add-Type -TypeDefthistion 'using System.Runtime.InteropServices; public class XyWall { [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni); }' -ErrorAction Stop
     [XyWall]::SystemParametersInfo(20, 0, $imgPath, 3) | Out-Null
     return $true
-  } catch { Log "  set live wallpaper gagal: $($_.Exception.Message)"; return $false }
+  } catch { Log "  set live wallpaper failed: $($_.Exception.Message)"; return $false }
 }
 
 $resWall = 'skip'; $wallName = ''
 if ($cfg.wallpaper) {
-  Log 'WALLPAPER: siapkan gambar...'
+  Log 'WALLPAPER: readykan gambar...'
   $wpDir = 'C:\XyRDP'
   $wpFile = $null; $srcUsed = ''
 
-  # urutan sumber: input workflow -> simpanan sesi sebelumnya (C:\Persist\Config) -> file di repo (checkout) -> raw github
+  # urutan sumber: input workflow -> session snapshot senot yetnya (C:\Persist\Config) -> file di repo (checkout) -> raw github
   if ($env:WALLPAPER_URL) {
     try {
       New-Item -ItemType Directory -Path $wpDir -Force | Out-Null
@@ -193,7 +193,7 @@ if ($cfg.wallpaper) {
         if ($ext) { $wpFile = Join-Path $wpDir "wallpaper.$ext"; Move-Item $tmp $wpFile -Force; $srcUsed = 'WALLPAPER_URL' }
         else { Log '  URL bukan gambar jpg/png/bmp - diabaikan' }
       }
-    } catch { Log "  unduh dari WALLPAPER_URL gagal: $($_.Exception.Message)" }
+    } catch { Log "  download from WALLPAPER_URL failed: $($_.Exception.Message)" }
   }
   if (-not $wpFile -and (Test-Path 'C:\Persist\Config')) {
     $persistedWp = Get-ChildItem -Path 'C:\Persist\Config' -Filter 'wallpaper.*' -File -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -227,7 +227,7 @@ if ($cfg.wallpaper) {
         $ext = Get-ImageExt ([IO.File]::ReadAllBytes($tmp))
         if ($ext) { $wpFile = Join-Path $wpDir "wallpaper.$ext"; Move-Item $tmp $wpFile -Force; $srcUsed = 'raw github' }
       }
-    } catch { Log "  raw github tidak ada ($($_.Exception.Message))" }
+    } catch { Log "  raw github does not exist ($($_.Exception.Message))" }
   }
 
   if ($wpFile -and (Test-Path $wpFile)) {
@@ -242,10 +242,10 @@ if ($cfg.wallpaper) {
     Set-RegBoth 'Control Panel\Desktop' 'Wallpaper'      $wpFile 'String' | Out-Null
     Set-RegBoth 'Control Panel\Desktop' 'WallpaperStyle' '10'     'String' | Out-Null
     Set-RegBoth 'Control Panel\Desktop' 'TileWallpaper'  '0'      'String' | Out-Null
-    if (Set-WallpaperLive $wpFile) { Log '  wallpaper diterapkan ke sesi live' }
+    if (Set-WallpaperLive $wpFile) { Log '  wallpaper diterapkan ke session live' }
     $resWall = 'ok'; $wallName = Split-Path $wpFile -Leaf
   } else {
-    Log '  tidak ada wallpaper (upload lewat dashboard atau isi WALLPAPER_URL)'
+    Log '  does not exist wallpaper (upload lewat dashboard or isi WALLPAPER_URL)'
     $resWall = 'default'
   }
 }
@@ -254,9 +254,9 @@ if ($cfg.wallpaper) {
 $resLively = 'skip'
 try {
   Log 'LIVELY WALLPAPER: mengoptimalkan DWM 60Hz & memasang Lively Wallpaper v2.2.1.0 Anti-Stuck RDP...'
-  # 1. Buka kebijakan RDP Wallpaper & Desktop Composition 60 FPS via Policy & WinStations root
-  #    PENTING: JANGAN PERNAH memanggil New-Item -Force atau menulis ke WinStations\RDP-Tcp
-  #    karena akan menghapus konfigurasi listener RDP 3389 (membuat step Tailscale gagal)!
+  # 1. Buka kebijwill RDP Wallpaper & Desktop Composition 60 FPS via Policy & WinStations root
+  #    IMPORTANT: NEVER call New-Item -Force or write to WinStations\RDP-Tcp
+  #    because will mengdelete konfigurasi listener RDP 3389 (membuat step Tailscale failed)!
   $tsPolPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'
   if (-not (Test-Path $tsPolPath)) {
     New-Item -Path $tsPolPath -Force -ErrorAction SilentlyContinue | Out-Null
@@ -268,7 +268,7 @@ try {
   Set-RegBoth 'Software\Microsoft\Windows\DWM' 'Composition' 1 'DWord' | Out-Null
   Set-RegBoth 'Software\Microsoft\Windows\DWM' 'CompositionPolicy' 2 'DWord' | Out-Null
 
-  # 2. Cari atau pasang Lively Wallpaper v2.2.1.0 resmi
+  # 2. Cari or install Lively Wallpaper v2.2.1.0 resmi
   function Find-LivelyExe {
     foreach ($cand in @(
       'C:\Program Files (x86)\Lively Wallpaper\Lively.exe',
@@ -292,8 +292,8 @@ try {
     }
   }
 
-  # 3. Tulis Settings.json Lively Wallpaper dengan RemoteDesktopPause = 1 (AppRules.ignore)
-  #    agar Live Wallpaper TIDAK PERNAH PAUSE / STUCK saat diakses dari RDP maupun APK Android!
+  # 3. Tulis Settings.json Lively Wallpaper with RemoteDesktopPause = 1 (AppRules.ignore)
+  #    so that Live Wallpaper NEVER PAUSES / STUCKS when accessed from RDP or the Android APK!
   $livelySettingsJson = @'
 {
   "AppVersion": "2.2.1.0",
@@ -332,9 +332,9 @@ try {
     Set-Content -LiteralPath (Join-Path $livelyDataDir 'Settings.json') -Value $livelySettingsJson -Encoding UTF8 -Force
   }
 
-  # 4. Buat Shortcut Lively Wallpaper di Desktop dengan ikon asli Lively.exe
+  # 4. Buat Shortcut Lively Wallpaper di Desktop with ikon asli Lively.exe
   if ($livelyExe -and (Test-Path $livelyExe)) {
-    Log "  Lively Wallpaper siap di: $livelyExe (RemoteDesktopPause=Ignore / 60Hz Anti-Stuck)"
+    Log "  Lively Wallpaper ready di: $livelyExe (RemoteDesktopPause=Ignore / 60Hz Anti-Stuck)"
     foreach ($desk in @("C:\Users\$u\Desktop", "C:\Users\Public\Desktop", "C:\Users\Default\Desktop")) {
       New-Item -ItemType Directory -Path $desk -Force -ErrorAction SilentlyContinue | Out-Null
       try {
@@ -353,37 +353,27 @@ try {
   Log "  Lively Wallpaper setup warning: $($_.Exception.Message)"
 }
 
-# ---------- 5. VERIFIKASI: sesi harus ADMIN ----------
-Log 'VERIFIKASI HAK AKSES:'
+# ---------- 5. VERIFIKASI: session must ADMIN ----------
+Log 'VERIFIKASI HAK ACCESS:'
 $adminOk = $false
 try {
-  $grpExists = Get-LocalGroup -Name 'Administrators' -ErrorAction SilentlyContinue
+  $grpExists = Get-LocalGroup -Name 'Admthisstrators' -ErrorAction SilentlyContinue
   $usrExists = Get-LocalUser -Name $u -ErrorAction SilentlyContinue
   if ($grpExists -and $usrExists) {
-    $members = Get-LocalGroupMember -Group 'Administrators' | ForEach-Object { ($_.Name -split '\\')[-1] }
+    $members = Get-LocalGroupMember -Group 'Admthisstrators' | ForEach-Object { ($_.Name -split '\\')[-1] }
     # Highest admin check: UAC
     $lua2 = Get-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'EnableLUA'
     $cpa = Get-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'ConsentPromptBehaviorAdmin'
     $rdpMembers = @()
     try { $rdpMembers = Get-LocalGroupMember -Group 'Remote Desktop Users' | ForEach-Object { ($_.Name -split '\\')[-1] } } catch {}
     $adminOk = ($members -contains $u)
-    $adminTxt = $(if ($adminOk) { 'YA' } else { 'TIDAK' })
-    $rdpTxt   = $(if ($rdpMembers -contains $u) { 'YA' } else { 'TIDAK' })
-    Log ("  user '{0}' ada: YA | Administrators: {1} | Remote Desktop Users: {2} | HIGHEST ADMIN (UAC OFF): EnableLUA={3} Consent={4}" -f $u, $adminTxt, $rdpTxt, $lua2, $cpa)
+    $adminTxt = $(if ($adminOk) { 'YES' } else { 'NO' })
+    $rdpTxt   = $(if ($rdpMembers -contains $u) { 'YES' } else { 'NO' })
+    Log ("  user '{0}' available: YA | Admthisstrators: {1} | Remote Desktop Users: {2} | HIGHEST ADMIN (UAC OFF): EnableLUA={3} Consent={4}" -f $u, $adminTxt, $rdpTxt, $lua2, $cpa)
     $lf = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'LocalAccountTokenFilterPolicy' -ErrorAction SilentlyContinue).LocalAccountTokenFilterPolicy
-    Log "  LocalAccountTokenFilterPolicy = $lf (1 = token admin penuh untuk sesi jaringan/RDP)"
-  } else { Log '  user/grup tidak ditemukan (harusnya dibuat setup-rdp.ps1)' }
-} catch { Log "  verifikasi gagal: $($_.Exception.Message)" }
-
-# ---------- 6. Build & Pasang XyDeskTools.exe (Gaming & Tools Hub) ----------
-try {
-  $toolsHubScript = Join-Path $PSScriptRoot 'setup-tools-hub.ps1'
-  if (Test-Path $toolsHubScript) {
-    & $toolsHubScript
-  }
-} catch {
-  Log "setup-tools-hub warning: $($_.Exception.Message)"
-}
+    Log "  LocalAccountTokenFilterPolicy = $lf (1 = token admin penuh for session jaringan/RDP)"
+  } else { Log '  user/grup no ditemukan (mustnya dibuat setup-rdp.ps1)' }
+} catch { Log "  verifikasi failed: $($_.Exception.Message)" }
 
 # ---------- 7. Rangkum ke status ----------
 Update-Status @{ extras = [ordered]@{
@@ -396,7 +386,7 @@ Update-Status @{ extras = [ordered]@{
 } } | Out-Null
 Close-DefaultHive
 
-$adminTxt = $(if ($adminOk) { 'YA' } else { 'TIDAK' })
+$adminTxt = $(if ($adminOk) { 'YES' } else { 'NO' })
 Log ("SELESAI - lightshot={0} wallpaper={1} admin={2}" -f $resLightshot, $resWall, $adminTxt)
 try { Probe-Rdp 'akhir step' | Out-Null } catch {}
 

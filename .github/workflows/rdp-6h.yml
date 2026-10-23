@@ -1,26 +1,26 @@
-# rdpfree-workflow-schema: 5
-name: RdpFree — RDP 6 Jam
+# rdpfree-workflow-schema: 6
+name: RdpFree — 6-Hour RDP
 
 on:
   workflow_dispatch:
     inputs:
-      durasi_menit:
-        description: 'Durasi sesi (menit, 10–360)'
+      duration_minutes:
+        description: 'Session duration (minutes, 10-360)'
         required: false
         default: '360'
         type: string
       hostname:
-        description: 'Prefix hostname VM'
+        description: 'VM hostname prefix'
         required: false
         default: 'rdpfree'
         type: string
       rdp_user:
-        description: 'Username RDP (3–20 karakter)'
+        description: 'RDP username (3-20 characters)'
         required: false
         default: 'xyadmin'
         type: string
-      akses:
-        description: 'Jalur akses privat ke RDP'
+      access:
+        description: 'Private access path to RDP'
         required: false
         default: 'tailscale'
         type: choice
@@ -28,64 +28,48 @@ on:
           - tailscale
           - portmap
       storage_boost:
-        description: 'Bersihkan toolcache untuk ruang disk ekstra'
+        description: 'Clear the toolcache for extra disk space'
         required: false
-        default: 'ya'
+        default: 'yes'
         type: choice
         options:
-          - ya
-          - tidak
+          - 'yes'
+          - 'no'
       debloat:
-        description: 'Mode pembersihan layanan latar'
+        description: 'Background service cleanup mode'
         required: false
-        default: 'ringan'
+        default: 'light'
         type: choice
         options:
-          - ringan
+          - light
           - full
-          - tidak
-      samp:
-        description: 'Pasang runtime + SilentPatch GTA SA & SA-MP'
+          - none
+      windows10:
+        description: 'Apply the Windows 10 visual style'
         required: false
-        default: 'ya'
+        default: 'yes'
         type: choice
         options:
-          - ya
-          - tidak
-      win10:
-        description: 'Terapkan tampilan gaya Windows 10'
-        required: false
-        default: 'ya'
-        type: choice
-        options:
-          - ya
-          - tidak
+          - 'yes'
+          - 'no'
       xydesk:
-        description: 'Aktifkan optimasi host XyDesk Remote (AVC444 + ClearType + audio)'
+        description: 'Enable XyDesk Remote host tuning (AVC444 + ClearType + audio)'
         required: false
-        default: 'ya'
+        default: 'yes'
         type: choice
         options:
-          - ya
-          - tidak
-      ekstra:
-        description: 'Pasang aplikasi ekstra (7-Zip, Chrome, Lightshot, wallpaper)'
+          - 'yes'
+          - 'no'
+      extras:
+        description: 'Install extra applications (7-Zip, Chrome, Lightshot, wallpaper)'
         required: false
-        default: 'ya'
+        default: 'yes'
         type: choice
         options:
-          - ya
-          - tidak
-      grafis:
-        description: 'Akselerasi OpenGL 4.6 D3D12 (Mesa3D untuk Minecraft & Game)'
-        required: false
-        default: 'software'
-        type: choice
-        options:
-          - software
-          - tidak
+          - 'yes'
+          - 'no'
       runner:
-        description: 'OS & Image Runner (Windows / Linux Desktop / Linux Polos)'
+        description: 'Runner OS and image (Windows / Linux Desktop / plain Linux)'
         required: false
         default: 'windows-2022'
         type: choice
@@ -97,60 +81,36 @@ on:
           - ubuntu-22.04
           - ubuntu-latest
       linux_mode:
-        description: 'Mode Linux (desktop = XFCE4 GUI XRDP :3389, polos = Server SSH Tanpa XFCE4 :22/:3389)'
+        description: 'Linux mode (desktop = XFCE4 GUI XRDP :3389, plain = SSH server without XFCE4 :22/:3389)'
         required: false
         default: 'desktop'
         type: choice
         options:
           - desktop
-          - polos
+          - plain
       microphone:
-        description: 'Aktifkan redireksi mikrofon & kamera RDP'
+        description: 'Enable RDP microphone and camera redirection'
         required: false
-        default: 'ya'
+        default: 'yes'
         type: choice
         options:
-          - ya
-          - tidak
-      roblox:
-        description: 'Siapkan installer Roblox Player'
+          - 'yes'
+          - 'no'
+      auto_renew:
+        description: 'Automatically continue into the next session when time expires (data is preserved)'
         required: false
-        default: 'tidak'
+        default: 'yes'
         type: choice
         options:
-          - ya
-          - tidak
-      minecraft_java:
-        description: 'Pasang Minecraft Java + JDK 21/JRE 8 + OpenGL 4.6 D3D12'
-        required: false
-        default: 'tidak'
-        type: choice
-        options:
-          - ya
-          - tidak
-      minecraft_bedrock:
-        description: 'Pasang Minecraft Launcher (Bedrock)'
-        required: false
-        default: 'tidak'
-        type: choice
-        options:
-          - ya
-          - tidak
-      perpanjang_otomatis:
-        description: 'Lanjutkan otomatis ke sesi berikutnya saat waktu habis (data tetap utuh)'
-        required: false
-        default: 'ya'
-        type: choice
-        options:
-          - ya
-          - tidak
+          - 'yes'
+          - 'no'
       portmap_host:
-        description: 'Host publik Portmap.io (opsional)'
+        description: 'Public Portmap.io host (optional)'
         required: false
         default: ''
         type: string
       portmap_port:
-        description: 'Port publik Portmap.io (opsional)'
+        description: 'Public Portmap.io port (optional)'
         required: false
         default: ''
         type: string
@@ -165,167 +125,138 @@ concurrency:
 
 jobs:
   rdp:
-    name: Sesi RDP (${{ inputs.runner || 'windows-2022' }})
+    name: RDP session (${{ inputs.runner || 'windows-2022' }})
     runs-on: ${{ inputs.runner || 'windows-2022' }}
     timeout-minutes: 360
     env:
-      DUR: ${{ inputs.durasi_menit || '360' }}
+      DURATION_MINUTES: ${{ inputs.duration_minutes || '360' }}
       HOSTNAME: ${{ inputs.hostname || 'rdpfree' }}
       RDP_USER: ${{ inputs.rdp_user || 'xyadmin' }}
       RDP_PASSWORD: ${{ secrets.RDP_PASSWORD }}
-      AKSES: ${{ inputs.akses || 'tailscale' }}
+      ACCESS: ${{ inputs.access || 'tailscale' }}
       TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
       PORTMAP_OVPN_CONFIG: ${{ secrets.PORTMAP_OVPN_CONFIG }}
       PORTMAP_HOST: ${{ inputs.portmap_host || vars.PORTMAP_HOST }}
       PORTMAP_PORT: ${{ inputs.portmap_port || vars.PORTMAP_PORT }}
-      STORAGE_BOOST: ${{ inputs.storage_boost || 'ya' }}
-      DEBLOAT: ${{ inputs.debloat || 'ringan' }}
-      SAMP: ${{ inputs.samp || 'ya' }}
-      WIN10: ${{ inputs.win10 || 'ya' }}
-      XYDESK: ${{ inputs.xydesk || 'ya' }}
-      EKSTRA: ${{ inputs.ekstra || 'ya' }}
-      GRAFIS: ${{ inputs.grafis || 'software' }}
+      STORAGE_BOOST: ${{ inputs.storage_boost || 'yes' }}
+      DEBLOAT: ${{ inputs.debloat || 'light' }}
+      WINDOWS10: ${{ inputs.windows10 || 'yes' }}
+      XYDESK: ${{ inputs.xydesk || 'yes' }}
+      EXTRAS: ${{ inputs.extras || 'yes' }}
       LINUX_MODE: ${{ inputs.linux_mode || 'desktop' }}
-      MICROPHONE: ${{ inputs.microphone || 'ya' }}
-      ROBLOX: ${{ inputs.roblox || 'tidak' }}
-      MINECRAFT_JAVA: ${{ inputs.minecraft_java || 'tidak' }}
-      MINECRAFT_BEDROCK: ${{ inputs.minecraft_bedrock || 'tidak' }}
-      PERPANJANG_OTOMATIS: ${{ inputs.perpanjang_otomatis || 'ya' }}
+      MICROPHONE: ${{ inputs.microphone || 'yes' }}
+      AUTO_RENEW: ${{ inputs.auto_renew || 'yes' }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
       # ======================================================================
-      # JALUR LINUX DESKTOP RDP / LINUX POLOS SSH VPS (Ubuntu 24.04 / 22.04 / Latest)
+      # LINUX DESKTOP RDP / PLAIN LINUX SSH VPS (Ubuntu 24.04 / 22.04 / Latest)
       # ======================================================================
-      - name: Setup dasar RDP & Akses Linux (XRDP :3389 / SSH :22 + Tailscale)
+      - name: Set up base RDP and Linux access (XRDP :3389 / SSH :22 + Tailscale)
         if: ${{ startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: bash
         run: |
           chmod +x ./scripts/setup-linux-rdp.sh
           ./scripts/setup-linux-rdp.sh --setup-only
 
-      - name: Jaga sesi tetap hidup (keepalive + auto-checkpoint 15m) [Linux]
+      - name: Keep the session alive (keepalive + 15-minute autosave) [Linux]
         if: ${{ startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: bash
         run: ./scripts/setup-linux-rdp.sh --keepalive-only
 
-      - name: Finalize (matikan sesi + bersihkan status) [Linux]
+      - name: Finalize (stop session and clear status) [Linux]
         if: ${{ always() && startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: bash
         continue-on-error: true
         run: ./scripts/setup-linux-rdp.sh --finalize-only
 
       # ======================================================================
-      # JALUR WINDOWS DESKTOP RDP (Windows Server 2022 / 2025 / Latest)
+      # WINDOWS DESKTOP RDP (Windows Server 2022 / 2025 / Latest)
       # ======================================================================
-      - name: Bersihkan run lama
+      - name: Clean up previous runs
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/cleanup-actions.ps1
 
-      - name: Setup dasar RDP (user + port 3389)
+      - name: Set up base RDP (user + port 3389)
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         run: ./scripts/setup-rdp.ps1
 
-      - name: Pulihkan simpanan sesi sebelumnya
+      - name: Restore the previous session snapshot
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/restore-state.ps1
 
-      - name: Optimasi storage runner
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && ((inputs.storage_boost || 'ya') != 'tidak' || (inputs.debloat || 'ringan') != 'tidak') }}
+      - name: Optimize runner storage
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && ((inputs.storage_boost || 'yes') != 'no' || (inputs.debloat || 'light') != 'none') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/optimize-storage.ps1
 
-      - name: Tampilan Windows 10 + Dark Mode
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.win10 || 'ya') != 'tidak' }}
+      - name: Windows 10 look and dark mode
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.windows10 || 'yes') != 'no' }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/setup-win10.ps1
 
-      - name: Tweak Explorer & Desktop
+      - name: Explorer and desktop tweaks
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/setup-explorer.ps1
 
-      - name: Audio & Kamera RDP
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.microphone || 'ya') != 'tidak' }}
+      - name: RDP audio and camera
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.microphone || 'yes') != 'no' }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/setup-media.ps1
 
-      - name: Grafis OpenGL 4.6 D3D12 (Mesa3D untuk Minecraft & Game)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.grafis || 'software') != 'tidak' }}
-        shell: pwsh
-        continue-on-error: true
-        run: ./scripts/setup-grafis.ps1
-
-      - name: Runtime All-Software 2026 & GTA SA-MP By SilentPatch
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.samp || 'ya') != 'tidak' }}
-        shell: pwsh
-        continue-on-error: true
-        run: ./scripts/setup-samp.ps1
-
-      - name: Pasang Suite Game & Studio (Minecraft, Roblox, ETS 2, Blender, MEmu, FiveM)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
-        shell: pwsh
-        continue-on-error: true
-        run: ./scripts/setup-games.ps1
-
-      - name: Aplikasi ekstra (7-Zip, Chrome, Lightshot, Wallpaper)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.ekstra || 'ya') != 'tidak' }}
+      - name: Extra applications (7-Zip, Chrome, Lightshot, wallpaper)
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.extras || 'yes') != 'no' }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/setup-extras.ps1
 
-      - name: Pasang XyDeskTools.exe (Gaming & Tools Hub di Desktop RDP)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
-        shell: pwsh
-        continue-on-error: true
-        run: ./scripts/setup-tools-hub.ps1
-
-      - name: Host setup XyDesk Remote
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.xydesk || 'ya') != 'tidak' }}
+      - name: XyDesk Remote host setup
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.xydesk || 'yes') != 'no' }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/setup-xydesk.ps1
 
-      - name: Setup akses Tailscale (diaktifkan di akhir setelah semua siap)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.akses || 'tailscale') == 'tailscale' }}
+      - name: Set up Tailscale access (enabled last, once everything is ready)
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.access || 'tailscale') == 'tailscale' }}
         shell: pwsh
-        run: ./scripts/setup-akses.ps1
+        run: ./scripts/setup-access.ps1
 
-      - name: Setup akses Portmap OpenVPN (diaktifkan di akhir setelah semua siap)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && inputs.akses == 'portmap' }}
+      - name: Set up Portmap OpenVPN access (enabled last, once everything is ready)
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && inputs.access == 'portmap' }}
         shell: pwsh
         run: ./scripts/setup-portmap.ps1
 
-      - name: Publish status siap pakai (setelah seluruh aplikasi & game siap)
+      - name: Publish ready status (after all applications are ready)
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/publish-status.ps1
 
-      - name: Jaga sesi tetap hidup (keepalive + auto-checkpoint 15m)
+      - name: Keep the session alive (keepalive + 15-minute autosave)
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         run: ./scripts/keepalive.ps1
 
-      - name: Simpan sesi (persist-state.ps1)
+      - name: Save the session (persist-state.ps1)
         if: ${{ always() && !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/persist-state.ps1
 
-      - name: Upload simpanan sesi
+      - name: Upload the session snapshot
         if: ${{ always() && !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         continue-on-error: true
         uses: actions/upload-artifact@v4
@@ -335,14 +266,14 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-      - name: Finalize (matikan sesi + bersihkan status)
+      - name: Finalize (stop the session and clear status)
         if: ${{ always() && !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
         run: ./scripts/finalize-rdp.ps1
 
-      - name: Estafet sesi berikutnya (auto-renew tanpa mulai dari nol)
-        if: ${{ success() && (inputs.perpanjang_otomatis || 'ya') != 'tidak' }}
+      - name: Chain the next session (auto-renew without starting over)
+        if: ${{ success() && (inputs.auto_renew || 'yes') != 'no' }}
         shell: pwsh
         continue-on-error: true
         run: |
@@ -355,33 +286,28 @@ jobs:
           $body = @{
             ref    = 'main'
             inputs = @{
-              durasi_menit        = "$($env:DUR)"
-              hostname            = "$($env:HOSTNAME)"
-              rdp_user            = "$($env:RDP_USER)"
-              akses               = "$($env:AKSES)"
-              storage_boost       = "$($env:STORAGE_BOOST)"
-              debloat             = "$($env:DEBLOAT)"
-              samp                = "$($env:SAMP)"
-              win10               = "$($env:WIN10)"
-              xydesk              = "$($env:XYDESK)"
-              ekstra              = "$($env:EKSTRA)"
-              grafis              = "$($env:GRAFIS)"
-              runner              = "${{ inputs.runner || 'windows-2022' }}"
-              linux_mode          = "$($env:LINUX_MODE)"
-              microphone          = "$($env:MICROPHONE)"
-              roblox              = "$($env:ROBLOX)"
-              minecraft_java      = "$($env:MINECRAFT_JAVA)"
-              minecraft_bedrock   = "$($env:MINECRAFT_BEDROCK)"
-              perpanjang_otomatis = "$($env:PERPANJANG_OTOMATIS)"
-              portmap_host        = "$($env:PORTMAP_HOST)"
-              portmap_port        = "$($env:PORTMAP_PORT)"
+              duration_minutes = "$($env:DURATION_MINUTES)"
+              hostname         = "$($env:HOSTNAME)"
+              rdp_user         = "$($env:RDP_USER)"
+              access           = "$($env:ACCESS)"
+              storage_boost    = "$($env:STORAGE_BOOST)"
+              debloat          = "$($env:DEBLOAT)"
+              windows10        = "$($env:WINDOWS10)"
+              xydesk           = "$($env:XYDESK)"
+              extras           = "$($env:EXTRAS)"
+              runner           = "${{ inputs.runner || 'windows-2022' }}"
+              linux_mode       = "$($env:LINUX_MODE)"
+              microphone       = "$($env:MICROPHONE)"
+              auto_renew       = "$($env:AUTO_RENEW)"
+              portmap_host     = "$($env:PORTMAP_HOST)"
+              portmap_port     = "$($env:PORTMAP_PORT)"
             }
           } | ConvertTo-Json -Depth 5
           try {
-            # Anti-Suspend Guard untuk Akun Baru GitHub:
-            # 1) Cek umur akun pemilik repo. Jika akun baru berumur < 7 hari, jangan lakukan
-            #    self-retrigger tanpa henti karena sistem otomatis GitHub mendeteksinya sebagai bot loop.
-            # 2) Beri jeda acak sopan (15-25 detik) sebelum memicu sesi estafet berikutnya.
+            # Anti-suspend guard for new GitHub accounts:
+            # 1) Check the repository owner's account age. If the account is younger than 7 days,
+            #    skip the self-retrigger loop, which GitHub's automation detection treats as a bot loop.
+            # 2) Wait a polite random jitter (15-25 seconds) before triggering the next session.
             $ownerName = ($env:GITHUB_REPOSITORY -split '/')[0]
             $allowAutoRenew = $true
             try {
@@ -389,18 +315,18 @@ jobs:
               if ($usrObj -and $usrObj.created_at) {
                 $ageDays = ([DateTime]::UtcNow - [DateTime]::Parse($usrObj.created_at).ToUniversalTime()).TotalDays
                 if ($ageDays -lt 7) {
-                  Write-Host "Anti-Suspend Guard: Akun @$ownerName masih berumur $([math]::Round($ageDays,1)) hari (< 7 hari). Auto-retrigger dilewati demi keamanan akun baru (silakan nyalakan sesi berikutnya secara manual dari aplikasi)."
+                  Write-Host "Anti-suspend guard: @$ownerName is still $([math]::Round($ageDays,1)) days old (< 7 days). Auto-retrigger skipped to protect a new account (start the next session manually from the app)."
                   $allowAutoRenew = $false
                 }
               }
             } catch {}
 
             if ($allowAutoRenew) {
-              Start-Sleep -Seconds (Get-Random -Minimum 15 -Maximum 26)
+              Start-Sleep -Seconds (Get-Random -Mthismum 15 -Maximum 26)
               Invoke-RestMethod -Uri "https://api.github.com/repos/$($env:GITHUB_REPOSITORY)/actions/workflows/rdp-6h.yml/dispatches" `
                 -Headers $hdr -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 20 | Out-Null
-              Write-Host 'Sesi berikutnya berhasil dijadwalkan otomatis (data sesi ini sudah tersimpan).'
+              Write-Host 'The next session was scheduled automatically (this session is already saved).'
             }
           } catch {
-            Write-Host "Auto-renew dilewati: $($_.Exception.Message)"
+            Write-Host "Auto-renew skipped: $($_.Exception.Message)"
           }

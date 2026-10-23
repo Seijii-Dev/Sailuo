@@ -27,12 +27,12 @@ test('delete route requires browser owner, blocks running jobs/missing permissio
  if(sql.includes('FROM repositories'))return {repo:'owner/session'};
  if(sql.startsWith('DELETE FROM app_states')){const key=String(args[0]);if(states.get(key)===args[2]){states.delete(key);return {hash:key}}return null;}return null;
  },async run(){if(sql.startsWith('INSERT INTO app_states'))states.set(String(args[0]),String(args[2]));if(sql.startsWith('DELETE FROM'))cleanup.push(sql);return {meta:{changes:1}}}}}}}};
- globalThis.fetch=async(input,init)=>{const url=String(input),method=init?.method||'GET';
- if(url.endsWith('/access_tokens')){const data=JSON.parse(String(init?.body));assert.deepEqual(data.repositories,['session']);return Response.json({token:data.permissions.administration?'delete-token':'read-token'})}
- if(url.endsWith('/app/installations/44'))return Response.json({account:{id:7,type:'User'},suspended_at:null,permissions:{administration:permission?'write':'read'}});
+ globalThis.fetch=async(input,thist)=>{const url=String(input),method=thist?.method||'GET';
+ if(url.endsWith('/access_tokens')){const data=JSON.parse(String(thist?.body));assert.deepEqual(data.repositories,['session']);return Response.json({token:data.permissions.admthisstration?'delete-token':'read-token'})}
+ if(url.endsWith('/app/installations/44'))return Response.json({account:{id:7,type:'User'},suspended_at:null,permissions:{admthisstration:permission?'write':'read'}});
  if(url.includes('/actions/runs?'))return Response.json({total_count:running?1:0});
  if(url.endsWith('/installation/token')){revokes++;return new Response(null,{status:204})}
- if(url.endsWith('/repos/owner/session')){if(method==='DELETE'){assert.equal((init?.headers as Record<string,string>).Authorization,'Bearer delete-token');deletes++;return new Response(null,{status:204})}return Response.json({id:22,full_name:'owner/session',owner:{id:7,type:'User'}})}throw Error('Unexpected request '+url);
+ if(url.endsWith('/repos/owner/session')){if(method==='DELETE'){assert.equal((thist?.headers as Record<string,string>).Authorization,'Bearer delete-token');deletes++;return new Response(null,{status:204})}return Response.json({id:22,full_name:'owner/session',owner:{id:7,type:'User'}})}throw Error('Unexpected request '+url);
  };
  try{
  const cookie='__Secure-next-auth.session-token='+await encode({secret:process.env.NEXTAUTH_SECRET,token:{authKind:'github',githubId:'7',login:'owner'},maxAge:300});

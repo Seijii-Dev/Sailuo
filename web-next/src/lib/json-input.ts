@@ -1,8 +1,8 @@
 import {ApiError} from './api';
 export function validateJsonKeys(value:unknown,depth=0):void{
- if(depth>20)throw new ApiError(400,'JSON terlalu dalam');
+ if(depth>20)throw new ApiError(400,'JSON terlalu in');
  if(value&&typeof value==='object')for(const [key,item] of Object.entries(value)){
-  if(['__proto__','prototype','constructor'].includes(key))throw new ApiError(400,'Nama parameter tidak diizinkan');
+  if(['__proto__','prototype','constructor'].includes(key))throw new ApiError(400,'Nama parameter no diizinkan');
   validateJsonKeys(item,depth+1);
  }
 }

@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $root='C:\ProgramData\RdpFree'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'diagnose-desktop.ps1') (Join-Path $root 'Diagnose-Desktop.ps1') -Force
-$mic=$env:MICROPHONE -ne 'tidak'
+$mic=$env:MICROPHONE -ne 'no'
 $wall=$true
 $policy='Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'
 $tsRoot='Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server'
@@ -17,7 +17,7 @@ Set-Reg $policy 'fNoRemoteDesktopWallpaper' ([int](-not $wall)) 'DWord' | Out-Nu
 Set-Reg $tsRoot 'fDisableAudioCapture' ([int](-not $mic)) 'DWord' | Out-Null
 try { Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'fDisableAudioCapture' -Value ([int](-not $mic)) -ErrorAction SilentlyContinue } catch {}
 foreach ($service in @('AudioEndpointBuilder','Audiosrv','UmRdpService')) {
-  try { Set-Service $service -StartupType Automatic -ErrorAction Stop; Start-Service $service -ErrorAction Stop } catch { Log "Layanan $service belum aktif" }
+  try { Set-Service $service -StartupType Automatic -ErrorAction Stop; Start-Service $service -ErrorAction Stop } catch { Log "Layanan $service not yet aktif" }
 }
 if ($mic) {
   Set-Reg 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone' 'Value' 'Allow' 'String' | Out-Null
@@ -42,7 +42,7 @@ Set-ItemProperty $desk -Name Wallpaper -Value $image
 Set-ItemProperty $desk -Name WallpaperStyle -Value '10'
 Set-ItemProperty $desk -Name TileWallpaper -Value '0'
 
-Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class RdpFreeDesktop { [DllImport("user32.dll",CharSet=CharSet.Unicode,SetLastError=true)] public static extern bool SystemParametersInfo(int a,int b,string c,int d); }'
+Add-Type -TypeDefthistion 'using System.Runtime.InteropServices; public class RdpFreeDesktop { [DllImport("user32.dll",CharSet=CharSet.Unicode,SetLastError=true)] public static extern bool SystemParametersInfo(int a,int b,string c,int d); }'
 [RdpFreeDesktop]::SystemParametersInfo(20,0,$image,3) | Out-Null
 '@
   $script | Set-Content $apply -Encoding UTF8
@@ -55,8 +55,8 @@ Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class Rdp
   Set-Reg $active 'StubPath' "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$apply`"" 'String' | Out-Null
   Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'RdpFreeWallpaper' "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$apply`"" 'String' | Out-Null
   Close-DefaultHive
-  if ((Get-ItemPropertyValue -Path $policy -Name 'fNoRemoteDesktopWallpaper') -ne 0) { throw 'Kebijakan Windows masih memblokir wallpaper Remote Desktop' }
+  if ((Get-ItemPropertyValue -Path $policy -Name 'fNoRemoteDesktopWallpaper') -ne 0) { throw 'Kebijwill Windows still memblokir wallpaper Remote Desktop' }
   $wallStatus='xyverse_configured_for_user_logon'
 }
-Update-Status @{media=@{wallpaper=$wallStatus;microphone=$(if ($mic) {'rdp_capture_enabled'} else {'disabled'});audio_output='rdp_playback_enabled';verification='Login ulang, aktifkan mic di XyDesk dan izinkan Android. Uji Windows Settings > Sound > Input; kebijakan aktif bukan bukti capture end-to-end.'}} | Out-Null
-Log 'Wallpaper profil dan audio capture disiapkan; pengujian suara tetap memerlukan klien tersambung.'
+Update-Status @{media=@{wallpaper=$wallStatus;microphone=$(if ($mic) {'rdp_capture_enabled'} else {'disabled'});audio_output='rdp_playback_enabled';verification='Login ulang, aktifkan mic di XyDesk and izinkan Android. Uji Windows Settings > Sound > Input; kebijwill aktif bukan bukti capture end-to-end.'}} | Out-Null
+Log 'Wallpaper profil and audio capture direadykan; pengujian suara tetap memerlukan klien tersambung.'

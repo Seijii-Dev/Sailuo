@@ -102,28 +102,28 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 
 /**
- * Warna tombol HUD tetap gelap-transparan karena duduk di atas desktop remote;
- * panel, banner editor, dan dialog mengikuti tema app.
+ * Warna tombol HUD tetap gelap-transparan because duduk di atas desktop remote;
+ * panel, banner editor, and dialog mengikuti tema app.
  */
 internal fun updateHudEditorDraft(current: HudKey?, updated: HudKey): HudKey? =
     if (current?.id == updated.id) updated else current
 
-/** Tab di panel sesi — SATU panel, empat seksi jelas. Dulu dua panel kiri/kanan tanpa label: nobody tahu isinya apa. */
+/** Tab di panel session — SATU panel, empat seksi jelas. Dulu dua panel kiri/kanan without label: nobody tahu isinya apa. */
 private enum class PanelTab(val id: String, val en: String) {
     SCREEN("Layar", "Screen"),
     INPUT("Input", "Input"),
     BUTTONS("Tombol", "Buttons"),
-    SESSION("Sesi", "Session"),
+    SESSION("Session", "Session"),
 }
 
 /**
- * Kontrol sesi.
+ * Kontrol session.
  *
  * Model (ronde 8): satu handle di tepi kanan-atas membuka SATU panel bertab —
  * Layar (zoom/resolusi/orientasi), Input (mode/keyboard/clipboard/pointer),
- * Tombol (editor tombol HUD), Sesi (screenshot/putus/info teknis).
- * Rail kanan-bawah tetap terlihat untuk keyboard, monitor, putus, dan toggle
- * visibilitas HUD; auto-hide hanya memengaruhi tombol overlay yang dapat dipindah.
+ * Tombol (editor tombol HUD), Session (screenshot/putus/info teknis).
+ * Rail kanan-bawah tetap terlihat for keyboard, monitor, putus, and toggle
+ * visibilitas HUD; auto-hide only memengaruhi tombol overlay that dapat dipindah.
  */
 @Composable
 fun SessionControls(
@@ -205,8 +205,8 @@ fun SessionControls(
     val view = androidx.compose.ui.platform.LocalView.current
     val prefs = remember { SessionPrefs(context) }
 
-    // Tangkap otomatis tampilan desktop / wallpaper sesi RDP yang sedang berjalan
-    // supaya kartu Preview Sesi di Beranda (Home) sesuai dengan wallpaper/desktop PC/RDP pengguna.
+    // Tangkap otomatis tampilan desktop / wallpaper session RDP that seandg berjalan
+    // so that kartu Preview Session di Beranda (Home) per with wallpaper/desktop PC/RDP user.
     LaunchedEffect(deviceId) {
         delay(2500L)
         SessionPreviewStore.captureFromActiveRdpSessions(context, force = true)
@@ -232,8 +232,8 @@ fun SessionControls(
     var inertialScroll by remember { mutableStateOf(prefs.inertialScroll) }
     var edgeScrollZone by remember { mutableStateOf(prefs.edgeScrollZone) }
     var gamepadEnabled by remember { mutableStateOf(prefs.gamepadEnabled) }
-    // Mode stick dibaca lewat provider karena nilai sesungguhnya hidup di
-    // activity (dipakai mapper dari luar komposisi), bukan di prefs saja.
+    // Mode stick dibaca lewat provider because nilai sesungguhnya hidup di
+    // activity (dipakai mapper from luar komposisi), bukan di prefs saja.
     var stickModeUi by remember { mutableStateOf(stickModeProvider()) }
     var gyroMouseEnabled by remember { mutableStateOf(prefs.gyroMouseEnabled) }
     var showTelemetryPill by remember { mutableStateOf(prefs.showTelemetryPill) }
@@ -364,9 +364,9 @@ fun SessionControls(
 
     fun copyCoreInfo() {
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        // Laporan teknis pakai label netral bahasa supaya lampiran bug report
+        // Laporan teknis pakai label netral bahasa so that lampiran bug report
         // konsisten; metrik pipeline frame menyertai RTT agar laporan latensi
-        // bisa langsung dipakai untuk optimasi (issue #15 B.6).
+        // can langsung dipakai for optimasi (issue #15 B.6).
         val lines = coreInfo.toMutableList()
         if (telemetry.rttMs > 0) lines += "RTT jaringan: ${telemetry.rttMs} ms"
         if (telemetry.frameIntervalMs > 0) lines += "Interval update: ${telemetry.frameIntervalMs} ms"
@@ -398,7 +398,7 @@ fun SessionControls(
     fun importHudLayoutFromRaw(raw: String): Boolean {
         val imported = HudKey.importLayoutJson(raw, prefs.hudButtonSize)
         if (imported == null) {
-            notice.show(xyNow("JSON layout tidak valid atau kosong", "Layout JSON is invalid or empty"))
+            notice.show(xyNow("JSON layout no valid or kosong", "Layout JSON is invalid or empty"))
             return false
         }
         onKeysChange(imported)
@@ -515,7 +515,7 @@ fun SessionControls(
         onMappingModeChange(true)
         notice.show(
             xyNow(
-                "Tombol \"{0}\" ditambahkan — geser ke posisi yang kamu mau atau tekan Selesai.",
+                "Tombol \"{0}\" ditambahkan — geser ke posisi that kamu mau or tekan Selesai.",
                 "Button \"{0}\" added — drag it into position or press Done.",
                 key.label,
             ),
@@ -545,7 +545,7 @@ fun SessionControls(
             )
         }
 
-        // Hanya tombol HUD yang ikut auto-hide/transparansi; pointer, menu, dan rail
+        // Only tombol HUD that ikut auto-hide/transparansi; pointer, menu, and rail
         // (keyboard, monitor, putus, serta toggle HUD) tetap terjangkau.
         if (hudButtonsVisibleNow) {
             Box(Modifier.fillMaxSize().alpha(hudOpacity)) {
@@ -581,8 +581,8 @@ fun SessionControls(
         }
 
         // Indikator rekaman sengaja ditaruh DI LUAR syarat !panelOpen: status
-        // "sedang merekam" tidak boleh hilang hanya karena pengguna membuka
-        // menu. Tidak ada clickable, jadi tidak menyerap sentuhan layar remote.
+        // "seandg merekam" no bby hilang only because user membuka
+        // menu. No available clickable, jadi no menyerap sentuhan layar remote.
         if (recordingActive) {
             RecordingIndicator(
                 modifier = Modifier
@@ -607,9 +607,9 @@ fun SessionControls(
             )
         }
 
-        // Rail diminimalkan atas permintaan pemilik (2026-10-10): hanya dua
-        // tombol tetap — pembuka menu bubble (panah atas) dan keyboard di
-        // paling bawah. Sisanya pindah ke dalam bubble popup.
+        // Rail dimthismalkan atas permintaan pemilik (2026-10-10): only dua
+        // tombol tetap — pembuka menu bubble (panah atas) and keyboard di
+        // paling bawah. Sisanya pindah ke in bubble popup.
         if (!panelOpen && !monitorGridOpen && !mappingMode) {
             Row(
                 Modifier
@@ -622,13 +622,13 @@ fun SessionControls(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 // Bubble rail muncul rapi di sebelah kiri tombol panah & keyboard
-                // sehingga tidak mendorong tombol keyboard ke bawah dan tidak menutupi handle MENU di kanan atas.
+                // sehingga no mendorong tombol keyboard ke bawah and no menutupi handle MENU di kanan atas.
                 AnimatedVisibility(
                     visible = railMenuOpen,
                     enter = fadeIn(androidx.compose.animation.core.tween(140)) +
                         scaleIn(
                             androidx.compose.animation.core.tween(230, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                            initialScale = 0.25f,
+                            thistialScale = 0.25f,
                             transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.85f),
                         ),
                     exit = fadeOut(androidx.compose.animation.core.tween(120)) +
@@ -715,7 +715,7 @@ fun SessionControls(
                             InAppLiveNotificationBus.setFloatingHidden(context, nextHidden)
                             notice.show(
                                 if (nextHidden) {
-                                    xyNow("Floating Chat disembunyikan dari layar sesi", "Floating Chat hidden from session screen")
+                                    xyNow("Floating Chat disembunyikan from layar session", "Floating Chat hidden from session screen")
                                 } else {
                                     xyNow("Floating Chat ditampilkan kembali", "Floating Chat restored")
                                 },
@@ -745,22 +745,22 @@ fun SessionControls(
                         }
                         RailMenuItem(
                             icon = XyIcons.Monitor,
-                            label = xy("Monitor & multi-sesi", "Monitors & sessions"),
+                            label = xy("Monitor & multi-session", "Monitors & sessions"),
                         ) {
                             railMenuOpen = false
                             monitorGridOpen = true
                         }
                         RailMenuItem(
                             icon = XyIcons.Home,
-                            label = xy("Ke beranda (sesi jalan)", "Go home (keep alive)"),
+                            label = xy("Ke beranda (session jalan)", "Go home (keep alive)"),
                         ) {
                             railMenuOpen = false
                             onGoHome()
                         }
                         RailMenuItem(
                             icon = XyIcons.Power,
-                            label = xy("Putuskan sesi", "Disconnect"),
-                            danger = true,
+                            label = xy("Putuskan session", "Disconnect"),
+                            andger = true,
                         ) {
                             railMenuOpen = false
                             onDisconnect()
@@ -819,7 +819,7 @@ fun SessionControls(
                         }
                         onKeysChange(snapped)
                         prefs.setCustomHudKeys(deviceId, snapped)
-                        notice.show(xyNow("Semua tombol diratakan ke grid presisi", "All buttons snapped to precision grid"))
+                        notice.show(xyNow("Semua tombol diratwill ke grid presisi", "All buttons snapped to precision grid"))
                     },
                     onReset = { confirmResetHud = true },
                     onDone = { onMappingModeChange(false) },
@@ -831,7 +831,7 @@ fun SessionControls(
             XyOverlay(title = xy("Kirim teks", "Send text"), onDismiss = { textOpen = false }) {
                 Text(
                     xy(
-                        "Dikirim sebagai ketikan. Pakai 'Kirim sebagai clipboard' untuk Paste di Windows.",
+                        "Dikirim sebagai ketikan. Pakai 'Kirim sebagai clipboard' for Paste di Windows.",
                         "Sent as keystrokes. Use 'Send as clipboard' for Windows Paste.",
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -862,7 +862,7 @@ fun SessionControls(
                             val t = textValue
                             if (t.isEmpty()) {
                                 validationAlert = xyNow("Teks kosong", "Empty text") to
-                                    xyNow("Masukkan teks terlebih dahulu sebelum mengirim ke remote.", "Enter some text before sending to the remote.")
+                                    xyNow("Sign inkan teks terlebih dahulu senot yet mengirim ke remote.", "Enter some text before sending to the remote.")
                             } else {
                                 onSendText(t)
                                 notice.show(xyNow("Teks diketik ke jendela remote", "Text typed into the remote window"))
@@ -879,14 +879,14 @@ fun SessionControls(
                         val text = textValue
                         when {
                             text.isEmpty() -> validationAlert = xyNow("Teks kosong", "Empty text") to
-                                xyNow("Masukkan teks terlebih dahulu sebelum mengirim ke clipboard Windows.", "Enter some text before sending to Windows clipboard.")
+                                xyNow("Sign inkan teks terlebih dahulu senot yet mengirim ke clipboard Windows.", "Enter some text before sending to Windows clipboard.")
                             !clipboardSyncEnabled -> validationAlert = xyNow("Kanal clipboard nonaktif", "Clipboard channel off") to
                                 xyNow("Aktifkan kanal clipboard di pengaturan perangkat lalu sambungkan ulang.", "Enable the clipboard channel in device settings and reconnect.")
                             onSendRemoteClipboardText(text) -> {
-                                notice.show(xyNow("Permintaan clipboard dikirim; tunggu sebentar sebelum Paste", "Clipboard request sent; wait briefly before Paste"))
+                                notice.show(xyNow("Permintaan clipboard dikirim; tunggu sebentar senot yet Paste", "Clipboard request sent; wait briefly before Paste"))
                                 textOpen = false
                             }
-                            else -> notice.show(xyNow("Gagal mengirim permintaan clipboard", "Failed to queue clipboard request"))
+                            else -> notice.show(xyNow("Failed mengirim permintaan clipboard", "Failed to queue clipboard request"))
                         }
                     },
                     primary = false,
@@ -911,7 +911,7 @@ fun SessionControls(
             ) {
                 Text(
                     xy(
-                        "Salin JSON untuk memindahkan tata letak tombol ke perangkat lain, atau tempel JSON lalu tekan Terapkan.",
+                        "Salin JSON for memindahkan tata letak tombol ke perangkat lain, or tempel JSON lalu tekan Terapkan.",
                         "Copy JSON to reuse this button layout on another device, or paste JSON and press Apply.",
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -925,7 +925,7 @@ fun SessionControls(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     XyPillButton(
-                        xy("Tempel dari clipboard", "Paste clipboard"),
+                        xy("Tempel from clipboard", "Paste clipboard"),
                         {
                             val clip = clipboardText()
                             if (clip.isEmpty()) {
@@ -943,9 +943,9 @@ fun SessionControls(
                         {
                             val imported = HudKey.importLayoutJson(layoutJsonValue, prefs.hudButtonSize)
                             if (imported == null) {
-                                validationAlert = xyNow("JSON tidak valid", "Invalid JSON") to
+                                validationAlert = xyNow("JSON no valid", "Invalid JSON") to
                                     xyNow(
-                                        "Format JSON tata letak tombol tidak valid atau tidak memuat tombol kontrol.",
+                                        "Format JSON tata letak tombol no valid or no memuat tombol kontrol.",
                                         "The button layout JSON format is invalid or contains no control buttons.",
                                     )
                             } else {
@@ -957,7 +957,7 @@ fun SessionControls(
                     )
                 }
                 XyPillButton(
-                    xy("Salin layout saat ini", "Copy current layout"),
+                    xy("Salin layout saat this", "Copy current layout"),
                     {
                         exportHudLayoutToClipboard()
                         layoutJsonValue = HudKey.exportLayoutJson(keys)
@@ -976,7 +976,7 @@ fun SessionControls(
             }
         }
 
-        // ---- handle panel di kanan atas, terpisah dari rail kontrol ----
+        // ---- handle panel di kanan atas, terpisah from rail kontrol ----
         if (!panelOpen && !monitorGridOpen && !mappingMode) {
             PanelHandle(
                 onClick = {
@@ -1058,9 +1058,9 @@ fun SessionControls(
                 onCustomApply = {
                     val parsed = DisplayPrefs.parseCustom(custom)
                     if (parsed == null) {
-                        validationAlert = xyNow("Resolusi kustom tidak valid", "Invalid custom resolution") to
+                        validationAlert = xyNow("Resolusi kustom no valid", "Invalid custom resolution") to
                             xyNow(
-                                "Masukkan format WxH yang valid (640..8192 x 480..8192, lebar harus genap), contoh: 1920x1080.",
+                                "Sign inkan format WxH that valid (640..8192 x 480..8192, lebar must genap), contoh: 1920x1080.",
                                 "Enter a valid WxH format (640..8192 x 480..8192, even width), e.g. 1920x1080.",
                             )
                     } else {
@@ -1119,8 +1119,8 @@ fun SessionControls(
                 onStickModeChange = { next ->
                     stickModeUi = next
                     prefs.virtualPadStickMode = next
-                    // Activity ikut diberi tahu karena field padStickMode dibaca
-                    // mapper dari luar komposisi.
+                    // Activity ikut diberi tahu because field padStickMode dibaca
+                    // mapper from luar komposisi.
                     onStickModeChange(next)
                 },
                 gyroMouseEnabled = gyroMouseEnabled,
@@ -1149,7 +1149,7 @@ fun SessionControls(
                         onMappingModeChange(true)
                         notice.show(
                             xyNow(
-                                "Mode Kustom aktif — geser, tambah, atau ubah tombol sesuai keinginanmu",
+                                "Mode Kustom aktif — geser, tambah, or ubah tombol per keinginanmu",
                                 "Custom mode active — drag, add, or edit buttons to build your layout",
                             ),
                         )
@@ -1192,7 +1192,7 @@ fun SessionControls(
                     hudOpacity = opacity.coerceIn(0f, 1f)
                     prefs.hudOpacity = hudOpacity
                 },
-                // Sesi
+                // Session
                 recordingLabel = recordingLabel,
                 recordingStatus = recordingStatus,
                 recordingActionEnabled = recordingActionEnabled,
@@ -1263,7 +1263,7 @@ fun SessionControls(
                     editing = salinan
                     notice.show(
                         xyNow(
-                            "Tombol \"{0}\" disalin — geser ke posisi yang kamu mau.",
+                            "Tombol \"{0}\" disalin — geser ke posisi that kamu mau.",
                             "Button \"{0}\" duplicated — drag it into position.",
                             salinan.label,
                         ),
@@ -1275,18 +1275,18 @@ fun SessionControls(
 
     confirmDeleteKey?.let { key ->
         XyDialog(
-            title = xy("Hapus tombol kontrol?", "Delete control button?"),
+            title = xy("Delete tombol kontrol?", "Delete control button?"),
             body = xy(
-                "Hapus tombol \"{0}\" dari tata letak sesi ini?",
+                "Delete tombol \"{0}\" from tata letak session this?",
                 "Delete button \"{0}\" from this session layout?",
                 key.label,
             ),
-            confirmLabel = xy("Hapus", "Delete"),
+            confirmLabel = xy("Delete", "Delete"),
             onConfirm = {
                 confirmDeleteKey = null
                 if (editing?.id == key.id) editing = null
                 onDeleteKey(key)
-                notice.show(xyNow("Tombol dihapus", "Button deleted"))
+                notice.show(xyNow("Tombol didelete", "Button deleted"))
             },
             dismissLabel = xy("Batal", "Cancel"),
             onDismiss = { confirmDeleteKey = null },
@@ -1297,7 +1297,7 @@ fun SessionControls(
         XyDialog(
             title = xy("Reset tata letak tombol?", "Reset button layout?"),
             body = xy(
-                "Kembalikan semua tombol kontrol ke setelan bawaan? Susunan tombol kustom saat ini akan diganti.",
+                "Kembalikan semua tombol kontrol ke setelan bawaan? Susunan tombol kustom saat this will diganti.",
                 "Restore all control buttons to the default set? Your current custom button layout will be replaced.",
             ),
             confirmLabel = xy("Reset", "Reset"),
@@ -1316,7 +1316,7 @@ fun SessionControls(
         XyDialog(
             title = xy("Terapkan tata letak JSON?", "Apply JSON layout?"),
             body = xy(
-                "Ganti tata letak tombol saat ini dengan {0} tombol dari JSON?",
+                "Ganti tata letak tombol saat this with {0} tombol from JSON?",
                 "Replace the current button layout with {0} buttons from JSON?",
                 imported.size,
             ),
@@ -1343,7 +1343,7 @@ fun SessionControls(
         XyDialog(
             title = xy("Ganti profil tombol HUD?", "Switch HUD button profile?"),
             body = xy(
-                "Terapkan profil \"{0}\"? Susunan tombol kontrol di layar sesi akan disesuaikan dengan profil ini.",
+                "Terapkan profil \"{0}\"? Susunan tombol kontrol di layar session will diperkan with profil this.",
                 "Apply profile \"{0}\"? The on-screen control buttons will be updated to match this preset.",
                 xy(preset.title, preset.titleEn),
             ),
@@ -1370,7 +1370,7 @@ fun SessionControls(
         XyDialog(
             title = xy("Kunci layar PC (Win+L)?", "Lock PC screen (Win+L)?"),
             body = xy(
-                "Kirim perintah Win+L untuk mengunci sesi Windows di komputer remote sekarang?",
+                "Kirim perintah Win+L for mengunci session Windows di komputer remote sekarang?",
                 "Send Win+L to lock the Windows session on the remote computer now?",
             ),
             confirmLabel = xy("Kunci PC", "Lock PC"),
@@ -1388,7 +1388,7 @@ fun SessionControls(
         XyDialog(
             title = xy("Ubah resolusi remote?", "Change remote resolution?"),
             body = xy(
-                "Terapkan resolusi \"{0}\"? Jika server belum menerapkan perubahan langsung, sesi akan menyambung ulang otomatis.",
+                "Terapkan resolusi \"{0}\"? If server not yet menerapkan perubahan langsung, session will menyambung ulang otomatis.",
                 "Apply resolution \"{0}\"? If the server does not apply live resize, the session will reconnect automatically.",
                 targetRes,
             ),
@@ -1480,7 +1480,7 @@ private fun LiveTelemetryPill(
     }
 }
 
-/** Tombol rail sesi: latar mengikuti rasa tombol HUD, ikon selalu terbaca. */
+/** Tombol rail session: latar mengikuti rasa tombol HUD, ikon selalu terbaca. */
 @Composable
 private fun RailButton(
     icon: ImageVector,
@@ -1517,13 +1517,13 @@ private fun RailMenuItem(
     icon: ImageVector,
     label: String,
     active: Boolean = false,
-    danger: Boolean = false,
+    andger: Boolean = false,
     badge: String? = null,
     onClick: () -> Unit,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
     val rowBg = when {
-        danger -> Color(0xFF1A1A1E)
+        andger -> Color(0xFF1A1A1E)
         active -> Color(0xFF232327)
         else -> Color.Transparent
     }
@@ -1541,7 +1541,7 @@ private fun RailMenuItem(
             icon,
             contentDescription = null,
             tint = when {
-                danger -> Color(0xFFB2B2B8)
+                andger -> Color(0xFFB2B2B8)
                 active -> Color(0xFFFFFFFF)
                 else -> ink
             },
@@ -1553,7 +1553,7 @@ private fun RailMenuItem(
             style = MaterialTheme.typography.labelLarge,
             fontSize = 12.sp,
             color = when {
-                danger -> Color(0xFFD4D4D8)
+                andger -> Color(0xFFD4D4D8)
                 active -> Color(0xFFFFFFFF)
                 else -> ink
             },
@@ -1614,7 +1614,7 @@ private fun PanelHandle(
                 Spacer(Modifier.height(6.dp))
                 Icon(
                     XyIcons.Sliders,
-                    contentDescription = xy("Buka panel sesi", "Open session panel"),
+                    contentDescription = xy("Buka panel session", "Open session panel"),
                     tint = Color(0xFFF3F3F5),
                     modifier = Modifier.size(17.dp),
                 )
@@ -1635,9 +1635,9 @@ private fun PanelHandle(
  * Pointer tunggal.
  *
  * Urutan prioritas:
- *  1. Bentuk kursor yang DIKIRIM SERVER (panah, tangan, I-beam, resize, ...)
- *     — digambar apa adanya, jadi bentuknya berubah selayaknya pointer desktop.
- *  2. Kalau server tidak mengirim apa-apa: panah/titik bawaan app.
+ *  1. Bentuk kursor that DIKIRIM SERVER (panah, tangan, I-beam, resize, ...)
+ *     — digambar apa aandya, jadi bentuknya berubah selayaknya pointer desktop.
+ *  2. Kalau server no mengirim apa-apa: panah/titik bawaan app.
  */
 @Composable
 private fun XyPointer(
@@ -1815,7 +1815,7 @@ private fun SessionPanel(
     onAutoHideHudOnExternalInputChange: (Boolean) -> Unit,
     hudOpacity: Float,
     onHudOpacityChange: (Float) -> Unit,
-    // Sesi
+    // Session
     recordingLabel: String,
     recordingStatus: String?,
     recordingActionEnabled: Boolean,
@@ -1834,7 +1834,7 @@ private fun SessionPanel(
     onCopyCoreInfo: () -> Unit,
 ) {
     val context = LocalContext.current
-    // Buka seksi pertama secara otomatis saat berpindah tab agar tidak kosong.
+    // Buka seksi pertama as otomatis saat berpindah tab agar no kosong.
     var openSection by remember(tab) { mutableStateOf<String?>("__FIRST__") }
     var panelShown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { panelShown = true }
@@ -1964,7 +1964,7 @@ private fun SessionPanel(
                 PanelChip(xy("Tutup", "Close"), onClose)
             }
 
-            // Area konten utama dengan animasi perpindahan tab halus +
+            // Area konten utama with animasi perpindahan tab halus +
             // Floating Rounded Full Bottom Navigation Bar di bagian bawah popup
             Box(
                 Modifier
@@ -2153,7 +2153,7 @@ private fun ScreenTab(
     section(
         "telemetri-kontrol-monitor-fisik-pc",
         if (pcConnectMode) xy("Lively Wallpaper 60Hz & Monitor Fisik PC", "Lively Wallpaper 60Hz & Physical PC Monitor")
-        else xy("Lively Live Wallpaper 60Hz & Multi-Sesi RDP", "Lively Live Wallpaper 60Hz & Multi-Session RDP"),
+        else xy("Lively Live Wallpaper 60Hz & Multi-Session RDP", "Lively Live Wallpaper 60Hz & Multi-Session RDP"),
     ) {
             XyToggleRow(
                 title = xy("Status telemetri live (Update UI, Latency, Network)", "Live telemetry status (UI updates, latency, network)"),
@@ -2184,7 +2184,7 @@ private fun ScreenTab(
                 text = if (pcConnectMode) {
                     xy("Monitor Fisik 1:1 & Mesin Direct Stream", "1:1 Physical Monitor & Direct Stream Engine")
                 } else {
-                    xy("Grid Monitor & Sesi Multi-User / Konsol", "Active Monitors & Multi-User / Console Grid")
+                    xy("Grid Monitor & Session Multi-User / Konsol", "Active Monitors & Multi-User / Console Grid")
                 },
                 onClick = onOpenMonitorGrid,
                 icon = XyIcons.DualMonitor,
@@ -2271,7 +2271,7 @@ private fun InputTab(
                     }
                 } else {
                     xy(
-                        "Nyalakan saat masuk match FPS (CS2, GTA/SAMP, Valorant, COD, Roblox) agar kamera berputar 360° tanpa mentok layar.",
+                        "Enable during FPS matches (CS2, Valorant, COD) for 360-degree camera rotation 360° without mentok layar.",
                         "Enable inside FPS matches (CS2, GTA/SAMP, Valorant, COD, Roblox) for 360° camera rotation without screen-edge lock.",
                     )
                 },
@@ -2283,7 +2283,7 @@ private fun InputTab(
                 modifier = Modifier.fillMaxWidth(),
             )
             PanelHint(xy(InputMode.entries[inputMode.ordinal].detail, InputMode.entries[inputMode.ordinal].detailEn))
-            // Switch Ikon Mouse Kiri <-> Kanan (tanpa bergantung pada teks)
+            // Switch Ikon Mouse Kiri <-> Kanan (without bergantung on teks)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2415,7 +2415,7 @@ private fun InputTab(
         val reconnPrefs = remember { SessionPrefs(reconnContext) }
         PanelHint(
             xy(
-                "XyDesk mencoba sambung ulang selama durasi ini, termasuk di latar. Setelah lewat, retry berhenti.",
+                "XyDesk mencoba sambung ulang selama durasi this, tersign in di latar. Setelah lewat, retry berhenti.",
                 "XyDesk keeps retrying for this window, even in background. After it ends, retries stop.",
             ),
         )
@@ -2455,7 +2455,7 @@ private fun InputTab(
         }
     }
 
-    section("tombol-notifikasi-kustom", xy("Tombol notifikasi sesi", "Session notification buttons"), advanced = true) {
+    section("tombol-notifikasi-kustom", xy("Tombol notifikasi session", "Session notification buttons"), advanced = true) {
         val notifContext = androidx.compose.ui.platform.LocalContext.current
         val notifPrefs = remember { AppPrefs(notifContext) }
         var notifHome by remember { mutableStateOf(notifPrefs.notifHomeButton) }
@@ -2477,12 +2477,12 @@ private fun InputTab(
             PanelHint(
                 if (clipboardSyncEnabled) {
                     xy(
-                        "Sinkronisasi dua arah aktif otomatis: teks maupun gambar/screenshot yang disalin di PC langsung masuk ke clipboard HP, dan sebaliknya.",
+                        "Sinkronisasi dua arah aktif otomatis: teks maupun gambar/screenshot that disalin di PC langsung sign in ke clipboard HP, and sebaliknya.",
                         "Two-way sync is active automatically: text and images/screenshots copied on PC go straight to the phone clipboard, and vice versa.",
                     )
                 } else {
                     xy(
-                        "Kanal clipboard mati di pengaturan perangkat. Aktifkan lalu sambungkan ulang untuk sinkronisasi otomatis PC dan HP.",
+                        "Kanal clipboard mati di pengaturan perangkat. Aktifkan lalu sambungkan ulang for sinkronisasi otomatis PC and HP.",
                         "Clipboard channel is off in device settings. Enable it and reconnect for automatic PC and phone clipboard sync.",
                     )
                 },
@@ -2490,7 +2490,7 @@ private fun InputTab(
             if (clipboardSyncEnabled && !lastClipboard.isNullOrEmpty()) {
                 PanelHint(
                     xy(
-                        "Status: teks terakhir dari remote sudah tersalin otomatis ke clipboard HP.",
+                        "Status: teks terakhir from remote already tersalin otomatis ke clipboard HP.",
                         "Status: latest remote text has been automatically copied to the phone clipboard.",
                     ),
                 )
@@ -2506,7 +2506,7 @@ private fun InputTab(
             )
             PanelHint(
                 xy(
-                    "Bentuk pointer mengikuti kursor yang dikirim server (panah, tangan, I-beam).",
+                    "Bentuk pointer mengikuti kursor that dikirim server (panah, tangan, I-beam).",
                     "Pointer shape follows the cursor sent by the server (arrow, hand, I-beam).",
                 ),
             )
@@ -2564,7 +2564,7 @@ private fun ButtonsTab(
             )
             PanelHint(
                 xy(
-                    "Opasitas tombol HUD: {0}% (0% transparan, 100% solid). Hanya tombol overlay berubah; layar remote dan rail tidak terpengaruh.",
+                    "Opasitas tombol HUD: {0}% (0% transparan, 100% solid). Only tombol overlay berubah; layar remote and rail no terpengaruh.",
                     "HUD button opacity: {0}% (0% transparent, 100% opaque). Only overlay buttons change; the remote screen and rail are unaffected.",
                     (hudOpacity * 100).roundToInt(),
                 ),
@@ -2579,7 +2579,7 @@ private fun ButtonsTab(
     section("preset-profil-hud",xy("Preset Profil HUD", "HUD Profile Presets")) {
             PanelHint(
                 xy(
-                    "Ganti susunan tombol instan sesuai aktivitas: Standar, Coding/Terminal, Gaming/WASD, Office, atau Desain/Video.",
+                    "Ganti susunan tombol instan per aktivitas: Standar, Coding/Terminal, Gaming/WASD, Office, or Desain/Video.",
                     "Switch button layouts instantly by activity: Standard, Coding/Terminal, Gaming/WASD, Office, or Design/Video.",
                 ),
             )
@@ -2603,14 +2603,14 @@ private fun ButtonsTab(
             PanelHint(
                 if (mappingMode) {
                     xy(
-                        "Mode atur posisi MENYALA: geser tombol ke tempat yang kamu mau, " +
-                            "ketuk tombol untuk ubah aksi/ukuran, atau tekan + Tambah di atas layar.",
+                        "Mode atur posisi MENYALA: geser tombol ke tempat that kamu mau, " +
+                            "ketuk tombol for ubah aksi/ukuran, or tekan + Tambah di atas layar.",
                         "Layout mode is ON: drag buttons where you want them, tap a " +
                             "button to change its action/size, or press + Add at the top bar.",
                     )
                 } else {
                     xy(
-                        "Tekan \"Atur posisi & ukuran\" untuk menggeser tombol atau menambah kontrol dari bar atas (Kombinasi, F1-F12, Single Key, Numpad, Modifier, Mouse).",
+                        "Tekan \"Atur posisi & ukuran\" for menggeser tombol or menambah kontrol from bar atas (Kombinasi, F1-F12, Single Key, Numpad, Modifier, Mouse).",
                         "Press \"Edit layout & size\" to drag buttons or add controls from the top bar (Combos, F1-F12, Single Key, Numpad, Modifiers, Mouse).",
                     )
                 },
@@ -2656,7 +2656,7 @@ private fun ButtonsTab(
             )
             PanelHint(
                 xy(
-                    "Pratinjau di bawah memakai warna tombol sungguhan di atas contoh gambar desktop, jadi hasilnya sama dengan yang tampil saat sesi berjalan.",
+                    "Pratinjau di bawah memakai warna tombol sungguhan di atas contoh gambar desktop, jadi hasilnya sama with that tampil saat session berjalan.",
                     "The preview below uses the real button colors over a sample desktop, so it matches what you get during a session.",
                 ),
             )
@@ -2669,7 +2669,7 @@ private fun ButtonsTab(
                 if (keys.isEmpty()) {
                     PanelHint(
                         xy(
-                            "Belum ada tombol. Tekan \"+ Tambah tombol\".",
+                            "Not yet available tombol. Tekan \"+ Tambah tombol\".",
                             "No buttons yet. Press \"+ Add button\".",
                         ),
                     )
@@ -2685,7 +2685,7 @@ private fun ButtonsTab(
     }
 }
 
-// -------------------------------------------------------------- tab: sesi
+// -------------------------------------------------------------- tab: session
 
 @Composable
 private fun SessionTab(
@@ -2709,7 +2709,7 @@ private fun SessionTab(
     section("keamanan-privasi-cepat",xy("Keamanan & Privasi Cepat", "Quick Security & Privacy")) {
             PanelHint(
                 xy(
-                    "Kunci sesi Windows dari jarak jauh (Win+L) atau aktifkan Tirai Privasi agar layar HP tertutup gelap sementara.",
+                    "Kunci session Windows from jarak jauh (Win+L) or aktifkan Tirai Privasi agar layar HP tertutup gelap sementara.",
                     "Remotely lock the Windows session (Win+L) or activate the Privacy Curtain to black out the phone screen temporarily.",
                 ),
             )
@@ -2736,7 +2736,7 @@ private fun SessionTab(
     section("perekaman-lokal-pc-ke-hp",xy("Perekaman lokal · PC ke HP", "Local recording · PC to phone"), advanced = true) {
             PanelHint(
                 xy(
-                    "Desktop PC + audio direkam ke MP4 di Movies/XyDesk. Layar HP tidak pernah ikut terekam.",
+                    "Desktop PC + audio direkam ke MP4 di Movies/XyDesk. Layar HP no pernah ikut terekam.",
                     "PC desktop + audio are recorded to one MP4 in Movies/XyDesk. Your phone screen is never captured.",
                 ),
             )
@@ -2762,7 +2762,7 @@ private fun SessionTab(
             val proCtx = LocalContext.current
             val proPrefs = remember(proCtx) { proCtx.getSharedPreferences("xydesk.pro.session.engine", Context.MODE_PRIVATE) }
             var antiAfkActive by remember { mutableStateOf(proPrefs.getBoolean("anti_afk_$deviceId", false)) }
-            var adaptiveFramePacing by remember { mutableStateOf(proPrefs.getBoolean("adaptive_pacing", true)) }
+            var availableptiveFramePacing by remember { mutableStateOf(proPrefs.getBoolean("availableptive_pacing", true)) }
             var zeroLagCursorBoost by remember { mutableStateOf(proPrefs.getBoolean("zero_lag_cursor", true)) }
 
             XyToggleRow(
@@ -2772,17 +2772,17 @@ private fun SessionTab(
                     antiAfkActive = it
                     proPrefs.edit().putBoolean("anti_afk_$deviceId", it).apply()
                     notice.show(
-                        if (it) xyNow("Anti-AFK Guard aktif — Sesi game terjaga dari kick AFK", "Anti-AFK Guard active — Game session protected from AFK kick")
+                        if (it) xyNow("Anti-AFK Guard aktif — Session game terjaga from kick AFK", "Anti-AFK Guard active — Game session protected from AFK kick")
                         else xyNow("Anti-AFK Guard dimatikan", "Anti-AFK Guard disabled"),
                     )
                 },
             )
             XyToggleRow(
-                title = xy("Adaptive Frame Pacing (60/90/120Hz Choreographer)", "Adaptive Frame Pacing (60/90/120Hz Choreographer)"),
-                checked = adaptiveFramePacing,
+                title = xy("Availableptive Frame Pacing (60/90/120Hz Choreographer)", "Availableptive Frame Pacing (60/90/120Hz Choreographer)"),
+                checked = availableptiveFramePacing,
                 onCheckedChange = {
-                    adaptiveFramePacing = it
-                    proPrefs.edit().putBoolean("adaptive_pacing", it).apply()
+                    availableptiveFramePacing = it
+                    proPrefs.edit().putBoolean("availableptive_pacing", it).apply()
                 },
             )
             XyToggleRow(
@@ -2803,7 +2803,7 @@ private fun SessionTab(
             )
             PanelHint(
                 xy(
-                    "Snippet Cepat Roleplay (SA-MP / Roblox): Ketuk untuk menyalin instan ke Clipboard PC & HP.",
+                    "Quick Roleplay Snippets: tap to copy instantly to Clipboard PC & HP.",
                     "Quick Roleplay Snippets (SA-MP / Roblox): Tap to copy instantly to PC & phone clipboard.",
                 ),
             )
@@ -2828,12 +2828,12 @@ private fun SessionTab(
             TransferFileSection(deviceId = deviceId, notice = notice)
         }
 
-    section("sesi",xy("Sesi", "Session")) {
+    section("session",xy("Session", "Session")) {
             val ctx = LocalContext.current
             val floatingHidden = InAppLiveNotificationBus.floatingOverlayHidden
             PanelHint(
                 xy(
-                    "Tombol bulat kanan bawah (ikon power) juga memutus — langsung kembali ke beranda setelah konfirmasi.",
+                    "Tombol bulat kanan bawah (ikon power) also memutus — langsung kembali ke beranda setelah konfirmasi.",
                     "The bottom-right round button (power icon) also disconnects — returns straight to home after confirmation.",
                 ),
             )
@@ -2848,7 +2848,7 @@ private fun SessionTab(
                     InAppLiveNotificationBus.setFloatingHidden(ctx, nextHidden)
                     notice.show(
                         if (nextHidden) {
-                            xyNow("Floating Chat disembunyikan dari layar sesi", "Floating Chat hidden from session screen")
+                            xyNow("Floating Chat disembunyikan from layar session", "Floating Chat hidden from session screen")
                         } else {
                             xyNow("Floating Chat ditampilkan kembali", "Floating Chat restored")
                         },
@@ -2868,7 +2868,7 @@ private fun SessionTab(
                 modifier = Modifier.fillMaxWidth(),
             )
             XyPillButton(
-                xy("Putuskan sesi", "Disconnect"),
+                xy("Putuskan session", "Disconnect"),
                 onDisconnect,
                 icon = XyIcons.Power,
                 primary = false,
@@ -2930,9 +2930,9 @@ internal fun PanelHint(text: String) {
 }
 
 /**
- * Floating Rounded Full Bottom Navigation Bar di bagian bawah Popup Menu Sesi.
- * Berbentuk kapsul penuh (`RoundedCornerShape(50)`) dengan pill aktif beranimasi
- * untuk berpindah antar tab Layar, Input, Kontrol/HUD, dan Sesi.
+ * Floating Rounded Full Bottom Navigation Bar di bagian bawah Popup Menu Session.
+ * Berbentuk kapsul penuh (`RoundedCornerShape(50)`) with pill aktif beranimasi
+ * for berpindah antar tab Layar, Input, Kontrol/HUD, and Session.
  */
 @Composable
 private fun PanelTabTiles(
@@ -3010,8 +3010,8 @@ private fun panelTabIcon(entry: PanelTab): ImageVector = when (entry) {
 }
 
 /**
- * Ikon kotak untuk satu seksi panel. Dicocokkan dari kunci seksi, bukan judul,
- * supaya perubahan terjemahan judul tidak mengubah ikonnya.
+ * Ikon kotak for satu seksi panel. Dicocokkan from kunci seksi, bukan judul,
+ * so that perubahan terjemahan judul no mengubah ikonnya.
  */
 private fun panelSectionIcon(key: String): ImageVector = when {
     key.startsWith("telemetri") -> XyIcons.Monitor
@@ -3030,7 +3030,7 @@ private fun panelSectionIcon(key: String): ImageVector = when {
     key.startsWith("transfer-file") -> XyIcons.Swap
     key.startsWith("keamanan") -> XyIcons.Shield
     key.startsWith("perekaman") -> XyIcons.Shot
-    key.startsWith("sesi") -> XyIcons.Power
+    key.startsWith("session") -> XyIcons.Power
     key.startsWith("info-teknis") -> XyIcons.Info
     else -> XyIcons.ChevronRight
 }
@@ -3038,10 +3038,10 @@ private fun panelSectionIcon(key: String): ImageVector = when {
 /**
  * Cakupan pembangun [PanelSectionGrid].
  *
- * Seksi direkam sebagai data dulu, tidak langsung digambar. Inilah yang membuat
- * panel bisa tampil sebagai kotak-kotak: selama belum ada seksi yang dibuka, yang
- * digambar hanya ikon + judul, jadi satu tab muat tanpa digulir. Isi seksi baru
- * disusun untuk satu seksi yang sedang terbuka.
+ * Seksi direkam sebagai data dulu, no langsung digambar. Inilah that membuat
+ * panel can tampil sebagai kotak-kotak: selama does not exist yet seksi that dibuka, that
+ * digambar only ikon + judul, jadi satu tab muat without digulir. Isi seksi baru
+ * disusun for satu seksi that seandg terbuka.
  */
 internal class PanelSectionScope {
     internal class Spec(
@@ -3054,9 +3054,9 @@ internal class PanelSectionScope {
     internal val specs: MutableList<Spec> = mutableListOf()
 
     /**
-     * Rekam satu seksi. [content] belum dijalankan di sini.
+     * Rekam satu seksi. [content] not yet dirun di sthis.
      * [advanced] = seksi jarang dipakai; disembunyikan di balik ubin
-     * "Lanjutan" supaya menu utama tetap pendek dan bersih.
+     * "Lanjutan" so that menu utama tetap pendek and bersih.
      */
     fun section(
         key: String,
@@ -3069,38 +3069,38 @@ internal class PanelSectionScope {
 }
 
 /**
- * Daftar seksi panel sebagai grid kotak dengan drill-in.
+ * Daftar seksi panel sebagai grid kotak with drill-in.
  *
- * Menggantikan accordion. Satu tab berisi 3-6 seksi dan tiap seksi memuat banyak
- * blok penjelasan, jadi accordion pun tetap menuntut scroll. Di sini tab digambar
- * sebagai dua kolom kotak; mengetuk satu kotak membuka seksi itu penuh lebar
- * dengan tombol kembali. Seksi bersarang di dalam badan seksi tetap memakai
+ * Menggantikan accordion. Satu tab berisi 3-6 seksi and tiap seksi memuat banyak
+ * blok penjelasan, jadi accordion pun tetap menuntut scroll. Di sthis tab digambar
+ * sebagai dua kolom kotak; mengetuk satu kotak membuka seksi that penuh lebar
+ * with tombol kembali. Seksi bersarang di in baand seksi tetap memakai
  * [PanelSection] biasa.
  *
- * [builder] dijalankan tiap komposisi karena judul seksi memakai `xy()` yang
- * composable dan beberapa seksi bersyarat (`if (pcConnectMode)`). Scope dibuat
- * baru tiap kali supaya seksi dari komposisi sebelumnya tidak tertinggal.
+ * [builder] dirun tiap komposisi because judul seksi memakai `xy()` that
+ * composable and beberapa seksi bersyarat (`if (pcConnectMode)`). Scope dibuat
+ * baru tiap kali so that seksi from komposisi senot yetnya no tertinggal.
  */
 @Composable
 private fun QuickActionPill(
     icon: ImageVector,
     label: String,
     active: Boolean,
-    danger: Boolean = false,
+    andger: Boolean = false,
     onClick: () -> Unit,
 ) {
     val bg = when {
-        danger -> Color(0xFF232327)
+        andger -> Color(0xFF232327)
         active -> Color(0xFFF2F2F4)
         else -> Color(0xFF1A1A1E)
     }
     val borderCol = when {
-        danger -> Color(0xFF858585)
+        andger -> Color(0xFF858585)
         active -> Color(0xFFFFFFFF)
         else -> Color(0xFF3C3C42)
     }
     val fg = when {
-        danger -> Color(0xFFE4E4E8)
+        andger -> Color(0xFFE4E4E8)
         active -> Color(0xFF111114)
         else -> Color(0xFFD4D4D8)
     }
@@ -3119,7 +3119,7 @@ private fun QuickActionPill(
             text = label,
             color = fg,
             fontSize = 11.sp,
-            fontWeight = if (active || danger) FontWeight.Bold else FontWeight.Medium,
+            fontWeight = if (active || andger) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
         )
     }
@@ -3211,8 +3211,8 @@ internal fun PanelSectionGrid(
                 },
                 onClick = {
                     showAdvanced = !showAdvanced
-                    // Seksi lanjutan yang sedang terbuka ikut tertutup supaya
-                    // isi yang disembunyikan tidak menggantung tanpa ubinnya.
+                    // Seksi lanjutan that seandg terbuka ikut tertutup so that
+                    // isi that disembunyikan no menggantung without ubinnya.
                     if (!showAdvanced) onOpenKey(null)
                 },
                 selected = false,
@@ -3233,23 +3233,23 @@ internal fun PanelSectionGrid(
 @Composable
 internal fun PanelSection(
     title: String,
-    initiallyExpanded: Boolean = false,
+    thistiallyExpanded: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    // Setiap seksi digambar sebagai kartu yang bisa dilipat. Satu fungsi ini
-    // dipakai 17 seksi di empat tab, jadi seluruh panel ikut berubah tanpa
+    // Setiap seksi digambar sebagai kartu that can dilipat. Satu fungsi this
+    // dipakai 17 seksi di empat tab, jadi seluruh panel ikut berubah without
     // menyentuh masing-masing tab.
     //
-    // Alasan accordion: satu tab berisi 3-6 seksi dengan total 24 blok teks
-    // penjelasan, sehingga tidak mungkin semua muat sekaligus di layar HP.
-    // Dengan seksi terlipat jadi judul saja, satu tab muat tanpa scroll;
-    // seksi pertama tiap tab tetap terbuka supaya isinya langsung kelihatan.
-    var expanded by remember(title) { mutableStateOf(initiallyExpanded) }
+    // Alasan accordion: satu tab berisi 3-6 seksi with total 24 blok teks
+    // penjelasan, sehingga no mungkin semua muat sekaligus di layar HP.
+    // With seksi terlipat jadi judul saja, satu tab muat without scroll;
+    // seksi pertama tiap tab tetap terbuka so that isinya langsung kelihatan.
+    var expanded by remember(title) { mutableStateOf(thistiallyExpanded) }
     Column(
         Modifier
             .fillMaxWidth()
-            // Kartu kaca: satu perubahan di sini mengubah 18 seksi di empat tab,
-            // karena semua seksi digambar lewat fungsi ini.
+            // Kartu kaca: satu perubahan di sthis mengubah 18 seksi di empat tab,
+            // because semua seksi digambar lewat fungsi this.
             .xyGlass(shape = RoundedCornerShape(14.dp), opacity = 1.25f, strength = 0.9f)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp),
@@ -3344,7 +3344,7 @@ private fun KeyRow(
         ) {
             Icon(
                 XyIcons.Trash,
-                contentDescription = xy("Hapus", "Delete"),
+                contentDescription = xy("Delete", "Delete"),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(14.dp),
             )
@@ -3362,9 +3362,9 @@ private data class MonitorGridItem(
 )
 
 /**
- * Modal Grid Monitor & Sesi User Aktif (dibuka dari tombol Monitor di atas Disconnect).
- * Mendeteksi otomatis monitor aktif (DISP / resolusi sesi) serta sesi konsol (/admin)
- * maupun akun user tersimpan untuk berpindah secara langsung saat sesi berlangsung.
+ * Modal Grid Monitor & Session User Aktif (dibuka from tombol Monitor di atas Disconnect).
+ * Mendeteksi otomatis monitor aktif (DISP / resolusi session) serta session konsol (/admin)
+ * maupun akun user tersave for berpindah as langsung saat session berlangsung.
  */
 @Composable
 private fun MonitorAndUserGridModal(
@@ -3388,7 +3388,7 @@ private fun MonitorAndUserGridModal(
     val context = LocalContext.current
     var pcOptions by remember(deviceId) { mutableStateOf(RdpOptions.of(context, deviceId)) }
     val repo = remember { id.xydesk.remote.sessions.SessionsRepository(context) }
-    val allFavorites by repo.favorites().collectAsState(initial = emptyList())
+    val allFavorites by repo.favorites().collectAsState(thistial = emptyList())
     val savedAccounts = remember(allFavorites) {
         allFavorites
             .filter { !it.username.isNullOrBlank() && !it.username.equals("XyDesk", ignoreCase = true) }
@@ -3439,7 +3439,7 @@ private fun MonitorAndUserGridModal(
         title = if (pcConnectMode) {
             xy("Monitor Fisik 1:1 & Mesin Direct Stream", "1:1 Physical Monitor & Direct Stream Engine")
         } else {
-            xy("Monitor & Sesi Multi-User / Konsol RDP", "Active Monitors & Multi-User / Console Grid")
+            xy("Monitor & Session Multi-User / Konsol RDP", "Active Monitors & Multi-User / Console Grid")
         },
         maxWidth = 440.dp,
         onDismiss = onDismiss,
@@ -3485,7 +3485,7 @@ private fun MonitorAndUserGridModal(
                             } else {
                                 append(
                                     if (consoleAdminMode) xy("Konsol Fisik / Runner (/admin)", "Physical / Runner Console (/admin)")
-                                    else xy("Sesi Virtual Multi-User RDP", "Multi-User Virtual RDP Session"),
+                                    else xy("Session Virtual Multi-User RDP", "Multi-User Virtual RDP Session"),
                                 )
                                 if (!activeUsername.isNullOrBlank()) append(" · $activeUsername")
                             }
@@ -3500,7 +3500,7 @@ private fun MonitorAndUserGridModal(
             }
 
             if (pcConnectMode) {
-                // Mode Koneksi PC: Eksklusif Direct Stream Engine (Tidak ada Multi-User RDP)
+                // Mode Koneksi PC: Eksklusif Direct Stream Engine (No available Multi-User RDP)
                 Text(
                     text = xy("MESIN DIRECT PC STREAM (EKSKLUSIF KONEKSI PC)", "DIRECT PC STREAM ENGINE (PC CONNECT EXCLUSIVE)"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -3662,9 +3662,9 @@ private fun MonitorAndUserGridModal(
                     }
                 }
 
-                // Grid Sesi User & Konsol Runner Windows
+                // Grid Session User & Konsol Runner Windows
                 Text(
-                    text = xy("GRID SESI WINDOWS: KONSOL RUNNER (/ADMIN) VS MULTI-USER", "WINDOWS SESSIONS: RUNNER CONSOLE (/ADMIN) VS MULTI-USER"),
+                    text = xy("WINDOWS SESSION GRID: RUNNER CONSOLE (/ADMIN) VS MULTI-USER", "WINDOWS SESSIONS: RUNNER CONSOLE (/ADMIN) VS MULTI-USER"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -3673,7 +3673,7 @@ private fun MonitorAndUserGridModal(
                 val isConsole = consoleAdminMode && !activeUsername.equals("XyDesk", ignoreCase = true)
                 val isVirtualUser = !isConsole
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Card 1: Sesi Konsol Runner (/admin)
+                    // Card 1: Session Konsol Runner (/admin)
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -3718,7 +3718,7 @@ private fun MonitorAndUserGridModal(
                                 maxLines = 1,
                             )
                             Text(
-                                text = xy("Sesi 1 Konsol (runneradmin)", "Session 1 Console (runneradmin)"),
+                                text = xy("Session 1 Konsol (runneradmin)", "Session 1 Console (runneradmin)"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 9.5.sp,
                                 maxLines = 1,
@@ -3726,7 +3726,7 @@ private fun MonitorAndUserGridModal(
                         }
                     }
 
-                    // Card 2: Sesi User RDP Virtual
+                    // Card 2: Session User RDP Virtual
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -3764,7 +3764,7 @@ private fun MonitorAndUserGridModal(
                                 )
                             }
                             Text(
-                                text = xy("Sesi Virtual Multi-User", "Multi-User Virtual Session"),
+                                text = xy("Session Virtual Multi-User", "Multi-User Virtual Session"),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -3772,7 +3772,7 @@ private fun MonitorAndUserGridModal(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = xy("Sesi 2 Terpisah (XyDesk)", "Separate Session 2 (XyDesk)"),
+                                text = xy("Session 2 Terpisah (XyDesk)", "Separate Session 2 (XyDesk)"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 9.5.sp,
                                 maxLines = 1,
@@ -3781,7 +3781,7 @@ private fun MonitorAndUserGridModal(
                     }
                 }
 
-                // Target Akun Cepat (Runneradmin vs XyDesk + Akun Tersimpan)
+                // Target Akun Cepat (Runneradmin vs XyDesk + Akun Tersave)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val isRunnerActive = activeUsername.equals("runneradmin", ignoreCase = true)
                     Box(
@@ -3839,7 +3839,7 @@ private fun MonitorAndUserGridModal(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = xy("Pindah ke Sesi Virtual 2", "Switch to Virtual Session 2"),
+                                text = xy("Pindah ke Session Virtual 2", "Switch to Virtual Session 2"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 9.5.sp,
                             )
@@ -3918,7 +3918,7 @@ private fun MonitorAndUserGridModal(
                             value = customUsername,
                             onValueChange = { customUsername = it },
                             label = xy("Username Windows", "Windows Username"),
-                            hint = "runneradmin / Administrator / XyDesk",
+                            hint = "runneradmin / Admthisstrator / XyDesk",
                         )
                         XyField(
                             value = customPassword,
@@ -3990,10 +3990,10 @@ private fun MonitorAndUserGridModal(
 /**
  * Badge "REC" + waktu berjalan selama perekaman aktif.
  *
- * Selalu tampil selama [recordingActive] benar, termasuk saat panel atau mode
- * pemetaan tombol terbuka, supaya pengguna tidak lupa rekaman masih jalan.
- * Komponen ini hanya digambar saat merekam, jadi `remember` di dalamnya mulai
- * dari nol tiap sesi rekaman baru.
+ * Selalu tampil selama [recordingActive] benar, tersign in saat panel or mode
+ * pemetaan tombol terbuka, so that user no lupa rekaman still jalan.
+ * Komponen this only digambar saat merekam, jadi `remember` di innya start
+ * from nol tiap session rekaman baru.
  */
 @Composable
 private fun RecordingIndicator(modifier: Modifier = Modifier) {
@@ -4041,9 +4041,9 @@ private fun RecordingIndicator(modifier: Modifier = Modifier) {
 }
 
 /**
- * Riwayat clipboard: 10 teks terakhir yang disalin di HP. Ketuk satu entri
- * untuk menyalinnya ulang; bila kanal clipboard sesi aktif, sinkronisasi
- * otomatis yang sudah ada langsung meneruskannya ke PC.
+ * Riwayat clipboard: 10 teks terakhir that disalin di HP. Ketuk satu entri
+ * for menyalinnya ulang; bila kanal clipboard session aktif, sinkronisasi
+ * otomatis that already available langsung meneruskannya ke PC.
  */
 @Composable
 private fun ClipboardHistoryBlock(clipboardSyncEnabled: Boolean) {
@@ -4062,7 +4062,7 @@ private fun ClipboardHistoryBlock(clipboardSyncEnabled: Boolean) {
     if (history.isEmpty()) {
         Text(
             xy(
-                "Belum ada yang tersalin. Salin teks di HP atau di PC, lalu daftar ini terisi sendiri (maksimal 10 entri terakhir).",
+                "Not yet available that tersalin. Salin teks di HP or di PC, lalu daftar this terisi sendiri (maksimal 10 entri terakhir).",
                 "Nothing copied yet. Copy text on the phone or the PC and this list fills itself (last 10 entries).",
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -4087,7 +4087,7 @@ private fun ClipboardHistoryBlock(clipboardSyncEnabled: Boolean) {
                         val ok = ClipboardHistory.copyToPhone(context, entry)
                         feedback = when {
                             !ok -> xyNow(
-                                "Tidak bisa menyalin ke clipboard HP.",
+                                "No can menyalin ke clipboard HP.",
                                 "Could not copy to the phone clipboard.",
                             )
                             clipboardSyncEnabled -> xyNow(
@@ -4142,7 +4142,7 @@ private fun ClipboardHistoryBlock(clipboardSyncEnabled: Boolean) {
         )
     }
     XyPillButton(
-        xy("Hapus semua riwayat", "Clear all history"),
+        xy("Delete semua riwayat", "Clear all history"),
         {
             ClipboardHistory.clear(context)
             feedback = null

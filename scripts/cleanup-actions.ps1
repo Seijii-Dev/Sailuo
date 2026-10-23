@@ -1,9 +1,9 @@
 # ============================================================================
-#  cleanup-actions.ps1 - Pembersihan Bertahap Run Lama (Aman untuk Akun Baru)
+#  cleanup-actions.ps1 - Gradual Cleanup of Old Runs (Safe for New Accounts)
 # ----------------------------------------------------------------------------
-#  Menyimpan KEEP_RUNS run terbaru (default 5) dan menghapus maksimal 3 run
-#  selesai paling lama per sesi dengan jeda sopan (1.2 detik) agar tidak
-#  memicu rate-limit atau deteksi anti-abuse pada akun GitHub baru.
+#  Keeps the newest KEEP_RUNS runs (default 5) and deletes at most 3
+#  oldest completed runs per session with a polite delay (1.2 seconds) so it
+#  does not trigger rate limits or anti-abuse detection on new GitHub accounts.
 # ============================================================================
 $ErrorActionPreference = 'Continue'
 function Log([string]$m) { Write-Host "[XyRDP:cleanup] $m" }
@@ -13,7 +13,7 @@ $wf   = $env:GH_WORKFLOW; if (-not $wf) { $wf = 'rdp-6h.yml' }
 $keep = [int]($env:KEEP_RUNS -replace '\D',''); if ($keep -lt 1) { $keep = 5 }
 $tok  = if ($env:CLEANUP_TOKEN) { $env:CLEANUP_TOKEN } else { $env:GITHUB_TOKEN }
 
-if (-not $repo -or -not $tok) { Log 'repo/token tidak diketahui - skip'; exit 0 }
+if (-not $repo -or -not $tok) { Log 'repo/token unknown - skip'; exit 0 }
 
 $hdrs = @{
   Authorization          = "Bearer $tok"
@@ -26,7 +26,7 @@ try {
   $runs = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/actions/workflows/$wf/runs?per_page=25" -Method Get -Headers $hdrs -TimeoutSec 25
   $list = @($runs.workflow_runs)
   if ($list.Count -le $keep) {
-    Log "Total run ($($list.Count)) masih dalam batas aman ($keep) - tidak ada yang dihapus."
+    Log "Total runs ($($list.Count)) still within the safe limit ($keep) - nothing deleted."
     exit 0
   }
   $old = @($list | Select-Object -Skip $keep | Where-Object { $_.status -notin @('in_progress', 'queued') } | Select-Object -Last 3)
@@ -38,8 +38,8 @@ try {
       $n++
     } catch {}
   }
-  Log "Pembersihan bertahap selesai: $n run lama dibersihkan."
+  Log "Gradual cleanup complete: $n old runs removed."
 } catch {
-  Log "Cleanup dilewati: $($_.Exception.Message)"
+  Log "Cleanup skipped: $($_.Exception.Message)"
 }
 exit 0

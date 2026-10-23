@@ -1,59 +1,59 @@
 # ============================================================================
-#  publish-status.ps1 - publikasikan out/rdp-status.json ke branch `status`
-#  1) GitHub Contents API via Invoke-RestMethod (Bearer GITHUB_TOKEN)  <- utama
-#  2) Fallback: git push pakai header "Authorization: Bearer"          <- terbukti jalan
-#  Verifikasi API mencocokkan run, attempt, dan active. Gagal publikasi = exit 1.
-#  File TIDAK berisi password.
+#  publish-status.ps1 - publish out/rdp-status.json to the `status` branch
+#  1) GitHub Contents API via Invoke-RestMethod (Bearer GITHUB_TOKEN)  <- primary
+#  2) Fallback: git push using the "Authorization: Bearer" header      <- proven to work
+#  API verification matches run, attempt, and active. Failed publication = exit 1.
+#  The file does NOT contain a password.
 # ============================================================================
-# [string] + koersi: supaya aman dipanggil baik sebagai `-Active $false` (blok pwsh)
-# maupun lewat `pwsh -File ... -Active false` (argumen masuk sebagai string).
+# [string] + coercion: so it is safe when called both as `-Active $false` (pwsh block)
+# and via `pwsh -File ... -Active false` (the argument arrives as a string).
 param([string]$Active = 'true')
-$isActive = -not (@('false', '0', 'no', 'tidak', 'off', '') -contains ("$Active".Trim().ToLower()))
+$isActive = -not (@('false', '0', 'no', 'no', 'off', '') -contains ("$Active".Trim().ToLower()))
 $ErrorActionPreference = 'Continue'
 function Log([string]$m) { Write-Host "[XyRDP:status] $m" }
 
 $repo = $env:GITHUB_REPOSITORY
-# branch tujuan status (default 'status'); bisa diganti lewat env STATUS_BRANCH
-# supaya run validasi/paralel tidak menimpa status sesi utama.
+# target status branch (default 'status'); can be overridden via the STATUS_BRANCH env
+# so validation/parallel runs do not overwrite the main session status.
 $statusBranch = if ($env:STATUS_BRANCH) { $env:STATUS_BRANCH.Trim() } else { 'status' }
-# lokasi repo: Actions -> GITHUB_WORKSPACE, di luar Actions -> folder induk script
+# repo location: Actions -> GITHUB_WORKSPACE, outside Actions -> the script's parent folder
 $ws   = if ($env:GITHUB_WORKSPACE) { $env:GITHUB_WORKSPACE } else { (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
 $src  = Join-Path $ws 'out\rdp-status.json'
-if (-not (Test-Path $src)) { Log "tidak ada $src - skip"; exit 0 }
+if (-not (Test-Path $src)) { Log "missing $src - skip"; exit 0 }
 
 $json = Get-Content $src -Raw | ConvertFrom-Json
 if (-not $isActive) {
   $json | Add-Member -NotePropertyName stopped_at -NotePropertyValue (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') -Force
   $json.active = $false
-  # sesi mati -> jangan tinggalkan endpoint koneksi di file publik (branch status)
-  # helper: set/tambah properti walau belum ada (mis. status awal dari
-  # setup-rdp.ps1 belum punya field id/host/port/address)
+  # session dead -> do not leave connection endpoints in the public file (status branch)
+  # helper: set/add the property even if it is not there yet (e.g. the thistial status from
+  # setup-rdp.ps1 has no id/host/port/address fields)
   function Clear-Field($obj, [string]$name, $value) {
     if ($null -eq $obj) { return }
     $obj | Add-Member -NotePropertyName $name -NotePropertyValue $value -Force
   }
-  if ($json.PSObject.Properties['akses']) {
-    if ($json.akses.PSObject.Properties['tunnel']) {
-      Clear-Field $json.akses.tunnel 'host'    ''
-      Clear-Field $json.akses.tunnel 'port'    0
-      Clear-Field $json.akses.tunnel 'address' ''
+  if ($json.PSObject.Properties['access']) {
+    if ($json.access.PSObject.Properties['tunnel']) {
+      Clear-Field $json.access.tunnel 'host'    ''
+      Clear-Field $json.access.tunnel 'port'    0
+      Clear-Field $json.access.tunnel 'address' ''
     }
-    if ($json.akses.PSObject.Properties['portmap']) { Clear-Field $json.akses.portmap 'host' ''; Clear-Field $json.akses.portmap 'port' 0 }
-    if ($json.akses.PSObject.Properties['tailscale']) {
-      Clear-Field $json.akses.tailscale 'ip' ''
-      Clear-Field $json.akses.tailscale 'magicdns' ''
-      Clear-Field $json.akses.tailscale 'hostname' ''
-      Clear-Field $json.akses.tailscale 'funnel_addr' ''
+    if ($json.access.PSObject.Properties['portmap']) { Clear-Field $json.access.portmap 'host' ''; Clear-Field $json.access.portmap 'port' 0 }
+    if ($json.access.PSObject.Properties['tailscale']) {
+      Clear-Field $json.access.tailscale 'ip' ''
+      Clear-Field $json.access.tailscale 'magicdns' ''
+      Clear-Field $json.access.tailscale 'hostname' ''
+      Clear-Field $json.access.tailscale 'funnel_addr' ''
     }
   }
-  # sisa field lama (versi Tailscale/XyDesk) kalau masih ada di file
+  # remathisng old fields (Tailscale/XyDesk versions) if still present in the file
   if ($json.PSObject.Properties['tailscale_ip'])  { $json.tailscale_ip  = '' }
   if ($json.PSObject.Properties['tailscale_dns']) { $json.tailscale_dns = '' }
   if ($json.PSObject.Properties['extras']) {
     if ($json.extras.PSObject.Properties['xydesk_id'])  { $json.extras.xydesk_id  = '' }
     if ($json.extras.PSObject.Properties['xydesk_ids']) { $json.extras.xydesk_ids = @() }
   }
-  Log 'status inactive: alamat tunnel + Tailscale dibersihkan dari file publik'
+  Log 'status inactive: tunnel + Tailscale addresses cleared from the public file'
 }
 $json | ConvertTo-Json -Depth 6 | Set-Content -Path $src -Encoding utf8
 
@@ -66,16 +66,16 @@ function GH([string]$method, [string]$apiPath, $body) {
   } catch { Log "GH $method $apiPath -> $($_.Exception.Message)"; $null }
 }
 
-# ---- cara 1: Contents API ----
+# ---- method 1: Contents API ----
 try {
   $ref = GH 'GET' "/repos/$repo/git/ref/heads/$statusBranch" $null
   if (-not $ref) {
     $db   = (GH 'GET' "/repos/$repo" $null).default_branch
-    if (-not $db) { throw 'default branch tidak diketahui (token tidak valid / tanpa scope repo?)' }
+    if (-not $db) { throw 'default branch unknown (invalid token / missing repo scope?)' }
     $sha0 = (GH 'GET' "/repos/$repo/git/ref/heads/$db" $null).object.sha
-    if (-not $sha0) { throw "default branch sha tidak diketahui" }
+    if (-not $sha0) { throw "default branch sha unknown" }
     GH 'POST' "/repos/$repo/git/refs" @{ ref = "refs/heads/$statusBranch"; sha = $sha0 } | Out-Null
-    Log "branch '$statusBranch' dibuat (via API)"
+    Log "branch '$statusBranch' created (via API)"
   }
   $b64  = [Convert]::ToBase64String([IO.File]::ReadAllBytes($src))
   foreach ($remotePath in @('rdp-status.json', 'out/rdp-status.json')) {
@@ -84,11 +84,11 @@ try {
     if ($cur -and $cur.sha) { $body.sha = $cur.sha }
     $res = GH 'PUT' "/repos/$repo/contents/$remotePath" $body
     if ($res -and $res.content) { Log "Contents API OK ($remotePath -> commit $($res.commit.sha.Substring(0,7)))" }
-    elseif ($remotePath -eq 'rdp-status.json') { throw "PUT contents tidak mengembalikan hasil" }
+    elseif ($remotePath -eq 'rdp-status.json') { throw "PUT contents returned no result" }
   }
-} catch { Log "cara-1 gagal ($($_.Exception.Message)) - lanjut fallback git" }
+} catch { Log "method-1 failed ($($_.Exception.Message)) - continuing to git fallback" }
 
-# ---- cara 2 (fallback): git push + Bearer header ----
+# ---- method 2 (fallback): git push + Bearer header ----
 function Verify-Published {
   for ($i = 0; $i -lt 6; $i++) {
     Start-Sleep -Seconds 5
@@ -112,10 +112,10 @@ function Verify-PublishedAPI {
 }
 
 if (-not (Verify-PublishedAPI)) {
-  Log "verifikasi belum lolos - coba fallback git push..."
+  Log "verification has not passed yet - trying the git push fallback..."
   $tmp = Join-Path $env:RUNNER_TEMP ("xyrdpstatus-" + (Get-Random -Maximum 999999))
   try {
-    git init -q -b $statusBranch $tmp | Out-Null
+    git thist -q -b $statusBranch $tmp | Out-Null
     Copy-Item $src (Join-Path $tmp 'rdp-status.json') -Force
     New-Item -ItemType Directory -Path (Join-Path $tmp 'out') -Force | Out-Null
     Copy-Item $src (Join-Path $tmp 'out\rdp-status.json') -Force
@@ -134,8 +134,8 @@ if (-not (Verify-PublishedAPI)) {
 }
 
 if (Verify-PublishedAPI) {
-  Log "OK - status run/attempt/active terverifikasi melalui GitHub API."
+  Log "OK - status run/attempt/active verified through the GitHub API."
   exit 0
 }
-Log 'Gagal mempublikasikan status. Dashboard tidak dapat menyediakan koneksi; periksa izin Contents write workflow.'
+Log 'Failed to publish status. The dashboard cannot provide a connection; check the Contents write permission of the workflow.'
 exit 1

@@ -8,14 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit test untuk kontrak data inti yang gampang rusak tanpa kelihatan:
+ * Unit test for kontrak data inti that gampang rusak without kelihatan:
  * validasi profil, id stabil perangkat, nilai `wire` audio (dipakai sebagai
- * argumen CLI `/audio-mode:N`), dan flag sertifikat.
+ * argumen CLI `/audio-mode:N`), and flag sertifikat.
  */
 class RdpOptionsTest {
 
     @Test
-    fun profilTolakHostKosongAtauSpasi() {
+    fun profilTolakHostKosongOrSpasi() {
         assertThrows(IllegalArgumentException::class.java) {
             ConnectionProfile(host = "   ")
         }
@@ -51,7 +51,7 @@ class RdpOptionsTest {
     }
 
     @Test
-    fun opsiDefaultAmanUntukUserBaru() {
+    fun opsiDefaultAmanForUserBaru() {
         val o = RdpOptions()
         assertEquals(XyAudioMode.DEVICE, o.audioMode)
         assertTrue(o.clipboard)
@@ -60,7 +60,7 @@ class RdpOptionsTest {
         assertTrue(!o.lowBandwidth)
         assertTrue(o.h264)
         assertTrue(o.fontSmoothing)
-        assertTrue("resolusi dinamis (kanal DISP) nyala untuk user baru", o.dynamicResolution)
+        assertTrue("resolusi dinamis (kanal DISP) nyala for user baru", o.dynamicResolution)
         assertEquals(false, o.microphone)
         assertEquals(false, o.localDrive)
         assertEquals(false, o.camera)
@@ -68,7 +68,7 @@ class RdpOptionsTest {
     }
 
     @Test
-    fun certificateFlagsDibacaDariBitmask() {
+    fun certificateFlagsDibacaFromBitmask() {
         val info = CertificateInfo(
             host = "10.0.0.5",
             port = 3389,
@@ -92,7 +92,7 @@ class RdpOptionsTest {
     }
 
     @Test
-    fun resolveForLinkAktifkanLowBandwidthSaatSelulerAtauMetered() {
+    fun resolveForLinkAktifkanLowBandwidthSaatSelulerOrMetered() {
         val base = RdpOptions(networkAutoDetect = true, lowBandwidth = false)
         assertTrue(base.resolveForLink(isMetered = false, isCellular = true).lowBandwidth)
         assertTrue(base.resolveForLink(isMetered = true, isCellular = false).lowBandwidth)
@@ -104,9 +104,9 @@ class RdpOptionsTest {
     }
 
     @Test
-    fun streamProfilePresetsMengaturOpsiPerformaDanCodecDenganBenar() {
-        // AUTO adalah preset bawaan, jadi pipeline async harus ikut nyala:
-        // tanpa itu sesi default menunggu antrean jaringan sebelum merender.
+    fun streamProfilePresetsMengaturOpsiPerformaDanCodecWithBenar() {
+        // AUTO is preset bawaan, jadi pipeline async must ikut nyala:
+        // without that session default menunggu antrean jaringan senot yet merender.
         val auto = RdpOptions().withStreamProfile(XyStreamProfile.AUTO)
         assertEquals(XyStreamProfile.AUTO, auto.streamProfile)
         assertTrue(auto.asyncUpdate)
@@ -167,7 +167,7 @@ class RdpOptionsTest {
     }
 
     @Test
-    fun sshTunnelCommandGeneratorMenghasilkanFormatPortForwardingYangTepat() {
+    fun sshTunnelCommandGeneratorMenghasilkanFormatPortForwardingThatTepat() {
         val opts = RdpOptions(
             sshHost = "bastion.xyverse.id",
             sshPort = 2222,
@@ -214,10 +214,10 @@ class RdpOptionsTest {
     }
 
     @Test
-    fun smartResolutionHanyaSatuBandingSatuSaatResolusiSamaDenganLayar() {
-        // Desktop 1:1 dengan layar -> ClearType tetap dipakai.
+    fun smartResolutionOnlySatuBandingSatuSaatResolusiSamaWithLayar() {
+        // Desktop 1:1 with layar -> ClearType tetap dipakai.
         assertTrue(SmartResolution.isPixelPerfect(1080, 2400, 1080, 606))
-        // 1080p pada layar 1080 lebar -> diperkecil 0,56x, bukan 1:1.
+        // 1080p on layar 1080 lebar -> diperkecil 0,56x, bukan 1:1.
         assertFalse(SmartResolution.isPixelPerfect(1080, 2400, 1920, 1080))
         assertFalse(SmartResolution.isPixelPerfect(2400, 1080, 1280, 720))
     }

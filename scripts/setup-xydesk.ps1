@@ -1,27 +1,27 @@
 # ============================================================================
-#  setup-xydesk.ps1 - HOST SETUP untuk XyDesk Remote (APK Android kamu)
+#  setup-xydesk.ps1 - HOST SETUP for XyDesk Remote (APK Android kamu)
 # ----------------------------------------------------------------------------
-#  Ini versi inline dari rdp.xydesk.my.id/host.ps1 (v0.5.34) + perbaikan font
-#  smoothing dari commit XyDesk-Remote v0.5.30, dijalankan langsung dari repo
-#  (tidak mengambil script dari internet).
+#  Ini versi inline from rdp.xydesk.my.id/host.ps1 (v0.5.34) + perbaikan font
+#  smoothing from commit XyDesk-Remote v0.5.30, dirun langsung from repo
+#  (no mengambil script from internet).
 #
-#  Isi (idempoten, best-effort - semua hasil dilaporkan apa adanya):
+#  Isi (idempoten, best-effort - semua hasil dilaporkan apa aandya):
 #    1) RDP: multi-session (fSingleSessionPerUser=0) + audio out & mic hidup
-#    2) Kebijakan grafis: AVC444 4:4:4 (preferred) + hardware encode + VGAdapter
+#    2) Kebijwill grafis: AVC444 4:4:4 (preferred) + hardware encode + VGAvailablepter
 #    3) Font smoothing: fNoFontSmoothing=0 + AllowFontAntiAlias=1 di
-#       WinStations\RDP-Tcp  (kunci ini yang BENAR-benar dibaca Windows;
+#       WinStations\RDP-Tcp  (kunci this that BENAR-benar dibaca Windows;
 #       fAllowFontAntiAlias di Policy no-op - temuan commit XyDesk-Remote v0.5.30)
 #    4) Firewall: TCP/UDP 3389 + UDP 4433 (audio bridge QUIC XyDesk)
-#    5) Layanan: TermService + Audiosrv dipastikan jalan
+#    5) Layanan: TermService + Audiosrv diensure jalan
 #
-#  PENTING soal jalur akses:
-#    - XyDesk Remote -> "Koneksi RDP Penuh": isi Host + Port dari dashboard
-#      (host = bore.pub / x.tcp.ngrok.io, port = angka tunnel). Semua fitur RDP
+#  PENTING soal jalur access:
+#    - XyDesk Remote -> "Koneksi RDP Penuh": isi Host + Port from dashboard
+#      (host = bore.pub / x.tcp.ngrok.io, port = angka tunnel). Semua fthatr RDP
 #      (AVC444, ClearType, audio rdpsnd, clipboard, keyboard) jalan lewat tunnel TCP.
-#    - Audio bridge QUIC XyDesk (UDP 4433) TIDAK bisa lewat tunnel TCP - port UDP
-#      dibuka di sini supaya siap kalau HP bisa reach UDP langsung (LAN/tailnet).
+#    - XyDesk audio bridge QUIC (UDP 4433) cannot go through the TCP tunnel - UDP port
+#      dibuka di sthis so that ready kalau HP can reach UDP langsung (LAN/tailnet).
 #      Lewat tunnel, klien otomatis fallback ke audio RDP.
-#    - Klien XyDesk akan probe QUIC 4433 lalu gagal (wajar) -> lanjut mode RDP.
+#    - Klien XyDesk will probe QUIC 4433 lalu failed (wajar) -> lanjut mode RDP.
 #
 #  Konfigurasi: assets/rdp-extras.json -> xydesk_host = true/false
 # ============================================================================
@@ -33,10 +33,10 @@ $cfg = Get-Cfg
 $skip = -not $cfg.xydesk_host
 if ($env:XYDESK) {
   $e = $env:XYDESK.Trim().ToLower()
-  if (@('tidak', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $skip = $true }
+  if (@('no', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $skip = $true }
 }
 if ($skip) {
-  Log 'host setup XyDesk dilewati (input xydesk=tidak atau xydesk_host=false di rdp-extras.json)'
+  Log 'host setup XyDesk skipped (input xydesk=no or xydesk_host=false di rdp-extras.json)'
   Update-Status @{ xydesk = @{ host = 'skip' } } | Out-Null
   exit 0
 }
@@ -47,32 +47,32 @@ $tsPol  = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\T
 $tsTcp  = "$tsRoot\WinStations\RDP-Tcp"
 
 # ---------- 0. Probe awal (RDP sehat?) ----------
-$rdpAlive0 = Probe-Rdp 'sebelum tweak xydesk'
+$rdpAlive0 = Probe-Rdp 'senot yet tweak xydesk'
 
-# ---------- 1. Multi-sesi: kunci root + kunci KEBIJAKAN saja ----------
+# ---------- 1. Multi-session: root key + POLICY key only ----------
 # PENTING (temuan validasi 2026-10-03): menulis nilai di
 #   HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
-# memaksa TermService membangun ulang listener RDP, dan di runner GitHub
-# listener 3389 tidak kembali sehat (probe: awal=True -> reg=False, tunnel mati).
-# Jadi kunci itu sekarang hanya DIBACA (audit), tidak ditulis.
+# memaksa TermService membangun ulang listener RDP, and di runner GitHub
+# listener 3389 no kembali sehat (probe: awal=True -> reg=False, tunnel mati).
+# Jadi kunci that sekarang only DIBACA (audit), no dthatlis.
 $okDeny  = Set-Reg $tsRoot 'fDenyTSConnections'   0 'DWord'
 $okMulti = Set-Reg $tsRoot 'fSingleSessionPerUser' 0 'DWord'
 Set-Reg $tsPol 'fDenyTSConnections'   0 'DWord' | Out-Null
 Set-Reg $tsPol 'fSingleSessionPerUser' 0 'DWord' | Out-Null
-Log "  RDP: denyTS=$okDeny multisesi=$okMulti"
-$rdpAlive1 = Probe-Rdp 'setelah setelan multi-sesi (root+policy)'
+Log "  RDP: denyTS=$okDeny multisession=$okMulti"
+$rdpAlive1 = Probe-Rdp 'setelah setelan multi-session (root+policy)'
 
-# ---------- 1b. Audio + font + wallpaper RDP: kebijakan (Policy override WinStations) ----------
-# Audio: aktifkan playback + mic via Policy (override WinStations tanpa tulis WinStations biar listener gak mati)
+# ---------- 1b. Audio + font + wallpaper RDP: kebijwill (Policy override WinStations) ----------
+# Audio: aktifkan playback + mic via Policy (override WinStations without tulis WinStations biar listener gak mati)
 $okAudioPol = Set-Reg $tsPol 'fDisableAudio' 0 'DWord'
 $okMicPol   = Set-Reg $tsPol 'fDisableAudioCapture' 0 'DWord'
-# Wallpaper RDP: jangan blok wallpaper saat RDP (hemat bandwidth -> hitam kalau 1)
+# Wallpaper RDP: do not blok wallpaper saat RDP (hemat bandwidth -> hitam kalau 1)
 $okWallPol  = Set-Reg $tsPol 'fNoRemoteDesktopWallpaper' 0 'DWord'
 # Audio Quality: 0=Dynamic, 2=High
 Set-Reg $tsPol 'AudioQualityMode' 2 'DWord' | Out-Null
-# Pastikan Windows Audio services hidup (Audiosrv + AudioEndpointBuilder)
+# Ensure Windows Audio services hidup (Audiosrv + AudioEndpointBuilder)
 try { Set-Service -Name 'AudioEndpointBuilder' -StartupType Automatic -ErrorAction SilentlyContinue; Start-Service -Name 'AudioEndpointBuilder' -ErrorAction SilentlyContinue } catch {}
-# Audit WinStations hanya untuk log (tidak ditulis, biar 3389 gak mati)
+# Audit WinStations only for log (no dthatlis, biar 3389 gak mati)
 $curAudio = Get-Reg $tsTcp 'fDisableAudio'
 $curMic   = Get-Reg $tsTcp 'fDisableAudioCapture'
 $curWall  = Get-Reg $tsTcp 'fNoRemoteDesktopWallpaper'
@@ -82,17 +82,17 @@ $polAudio = Get-Reg $tsPol 'fDisableAudio'
 $polMic   = Get-Reg $tsPol 'fDisableAudioCapture'
 $polWall  = Get-Reg $tsPol 'fNoRemoteDesktopWallpaper'
 Log "  policy: fDisableAudio=$polAudio fDisableAudioCapture=$polMic fNoRemoteDesktopWallpaper=$polWall (okAudioPol=$okAudioPol okMicPol=$okMicPol okWallPol=$okWallPol)"
-Log "  audit WinStations\RDP-Tcp (tanpa tulis): fDisableAudio=$curAudio fDisableAudioCapture=$curMic fNoRemoteDesktopWallpaper=$curWall fNoFontSmoothing=$curFs AllowFontAntiAlias=$curAa"
-# Policy 0 = aktif, jadi cek Policy dulu; WinStations hanya fallback
+Log "  audit WinStations\RDP-Tcp (without tulis): fDisableAudio=$curAudio fDisableAudioCapture=$curMic fNoRemoteDesktopWallpaper=$curWall fNoFontSmoothing=$curFs AllowFontAntiAlias=$curAa"
+# Policy 0 = aktif, jadi cek Policy dulu; WinStations only fallback
 $okAudio = ($polAudio -eq 0) -or (($null -eq $polAudio) -and ("$curAudio" -ne '1'))
 $okMic   = ($polMic -eq 0) -or (($null -eq $polMic) -and ("$curMic" -ne '1'))
 $okWall  = ($polWall -eq 0) -or (($null -eq $polWall) -and ("$curWall" -ne '1'))
-$rdpAlive2 = Probe-Rdp 'setelah kebijakan audio+wallpaper + audit WinStation'
+$rdpAlive2 = Probe-Rdp 'setelah kebijwill audio+wallpaper + audit WinStation'
 
-# ---------- 2. Kebijakan grafis XyDesk (AVC444 / hardware encode / 120 FPS DWM) ----------
+# ---------- 2. Kebijwill grafis XyDesk (AVC444 / hardware encode / 120 FPS DWM) ----------
 $okAvc  = Set-Reg $tsPol 'AVC444ModePreferred'       1 'DWord'
 $okAvc2 = Set-Reg $tsPol 'AVCHardwareEncodePreferred' 1 'DWord'
-Set-Reg $tsPol 'VGAdapter'            1 'DWord' | Out-Null
+Set-Reg $tsPol 'VGAvailablepter'            1 'DWord' | Out-Null
 Set-Reg $tsPol 'bEnumerateHWBeforeSW' 1 'DWord' | Out-Null
 Set-Reg $tsPol 'SelectTransport'      0 'DWord' | Out-Null
 Set-Reg $tsPol 'fAllowDesktopComposition' 1 'DWord' | Out-Null
@@ -115,12 +115,12 @@ try {
   Set-Reg $mmcss 'Scheduling Category' 'High' 'String' | Out-Null
   Set-Reg $mmcss 'SFIO Priority'       'High' 'String' | Out-Null
 } catch {}
-$avcTxt = if ($okAvc -and $okAvc2) { 'ok (120FPS DWMFRAMEINTERVAL=8 + TCPNoDelay=1)' } else { 'gagal' }
+$avcTxt = if ($okAvc -and $okAvc2) { 'ok (120FPS DWMFRAMEINTERVAL=8 + TCPNoDelay=1)' } else { 'failed' }
 Log "  grafis: AVC444ModePreferred+AVCHardwareEncodePreferred+120FPS -> $avcTxt"
-$rdpAlive3 = Probe-Rdp 'setelah kebijakan grafis (AVC444 + 120FPS)'
+$rdpAlive3 = Probe-Rdp 'setelah kebijwill grafis (AVC444 + 120FPS)'
 
 # ---------- 3. ClearType: lewat profil Default (per-user), bukan kunci WinStation ----------
-$fontTxt = 'gagal'
+$fontTxt = 'failed'
 if (Open-DefaultHive) {
   $dp = "$($script:DefReg)\Control Panel\Desktop"
   $f1 = Set-Reg $dp 'FontSmoothing'      '2' 'String'
@@ -128,19 +128,19 @@ if (Open-DefaultHive) {
   Set-Reg $dp 'FontSmoothingGamma'      1400 'DWord' | Out-Null
   Set-Reg $dp 'FontSmoothingOrientation'  1  'DWord' | Out-Null
   Close-DefaultHive
-  $fontTxt = if ($f1 -and $f2) { 'ok (ClearType profil Default)' } elseif ($f1 -or $f2) { 'sebagian' } else { 'gagal' }
-} else { $fontTxt = 'gagal (profil Default tak bisa di-load)' }
+  $fontTxt = if ($f1 -and $f2) { 'ok (ClearType profil Default)' } elseif ($f1 -or $f2) { 'sebagian' } else { 'failed' }
+} else { $fontTxt = 'failed (profil Default tak can di-load)' }
 Log "  ClearType: $fontTxt (FontSmoothing=2 + FontSmoothingType=2 di profil Default)"
 $rdpAlive4 = Probe-Rdp 'setelah ClearType profil Default'
 
-# ---------- 4. Firewall (dibuka di VM; dari luar tetap hanya via tunnel/P2P) ----------
+# ---------- 4. Firewall (dibuka di VM; from luar tetap only via tunnel/P2P) ----------
 function Add-FwRule([string]$Name, [string]$Proto, [string]$Ports) {
   try {
     Remove-NetFirewallRule -DisplayName $Name -ErrorAction SilentlyContinue | Out-Null
     New-NetFirewallRule -DisplayName $Name -Direction Inbound -Action Allow `
       -Protocol $Proto -LocalPort $Ports -RemoteAddress Any -Profile Any -ErrorAction Stop | Out-Null
     return $true
-  } catch { Log "  firewall '$Name' gagal: $($_.Exception.Message)"; return $false }
+  } catch { Log "  firewall '$Name' failed: $($_.Exception.Message)"; return $false }
 }
 $fwTcp  = Add-FwRule 'XyDesk Remote RDP TCP'  'TCP' '3389'
 $fwUdp  = Add-FwRule 'XyDesk Remote RDP UDP'  'UDP' '3389'
@@ -156,13 +156,13 @@ foreach ($svc in @('TermService', 'Audiosrv', 'AudioEndpointBuilder', 'UmRdpServ
     Set-Service -Name $svc -StartupType Automatic -ErrorAction Stop
     Start-Service -Name $svc -ErrorAction Stop
     if ($svc -in @('TermService', 'Audiosrv')) { $svcOk += $svc }
-  } catch { Log "  layanan $svc gagal: $($_.Exception.Message)" }
+  } catch { Log "  layanan $svc failed: $($_.Exception.Message)" }
 }
-$svcTxt = if ($svcOk.Count -eq 2) { 'ok' } elseif ($svcOk.Count -eq 1) { "sebagian ($($svcOk[0]) hidup)" } else { 'gagal' }
+$svcTxt = if ($svcOk.Count -eq 2) { 'ok' } elseif ($svcOk.Count -eq 1) { "sebagian ($($svcOk[0]) hidup)" } else { 'failed' }
 Log "  layanan: $svcTxt"
 $rdpAlive6 = Probe-Rdp 'setelah start layanan'
 
-# ---------- 6. Akses privat + Daemon UDP :4433 P2P Stream (`XYV1`) & RawInput (`XYI1`) ----------
+# ---------- 6. Access privat + Daemon UDP :4433 P2P Stream (`XYV1`) & RawInput (`XYI1`) ----------
 try {
   $daemonDir = 'C:\ProgramData\XyDesk'
   New-Item -ItemType Directory -Path $daemonDir -Force -ErrorAction SilentlyContinue | Out-Null
@@ -170,7 +170,7 @@ try {
   $daemonCode = @'
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
-Add-Type -TypeDefinition @"
+Add-Type -TypeDefthistion @"
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -438,42 +438,42 @@ public static class XyRawInputDaemon {
   $runKey = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
   Set-Reg $runKey 'XyDeskRawInputUDP' "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$daemonPs1`"" 'String' | Out-Null
   Log '  daemon RawInput Game FPS (UDP :4433 -> SendInput MOUSEEVENTF_MOVE) terdaftar di HKLM Run'
-} catch { Log "  daemon RawInput gagal didaftarkan: $($_.Exception.Message)" }
-Log 'Hubungkan HP dan Windows ke tailnet yang sama. RDP playback dan audio capture memakai kanal RDP; bridge UDP :4433 siap untuk RawInput Game FPS.'
+} catch { Log "  daemon RawInput failed didaftarkan: $($_.Exception.Message)" }
+Log 'Hubungkan HP and Windows ke tailnet that sama. RDP playback and audio capture memakai kanal RDP; bridge UDP :4433 ready for RawInput Game FPS.'
 
-# ---------- 6b. Verifikasi RDP masih hidup setelah tweak ----------
+# ---------- 6b. Verifikasi RDP still hidup setelah tweak ----------
 # CATATAN PENTING (validasi 2026-10-03): setelah tweak, listener 3389 di runner
-# ini sempat mati ~2 menit. Kita TIDAK me-restart TermService lagi (restart tidak
-# membantu, malah memperlama mati) - kita cukup mengukur dan melaporkan apa
-# adanya supaya setup-akses tahu harus menunggu berapa lama.
+# this briefly died for ~2 minutes. We do NOT restart TermService again (restart does not
+# membantu, malah memperlama mati) - kita cukup mengukur and melaporkan apa
+# aandya so that setup-access tahu must menunggu berapa lama.
 $rdpReadyAt = Wait-RdpReady -TimeoutSec 150
-if ($rdpReadyAt) { Log "  RDP masih sehat setelah tweak: $rdpReadyAt`:3389 (handshake X.224 OK)" }
-else { Log '  PERINGATAN: RDP belum menjawab handshake setelah tweak - setup-akses akan menunggu lagi' }
+if ($rdpReadyAt) { Log "  RDP still sehat setelah tweak: $rdpReadyAt`:3389 (handshake X.224 OK)" }
+else { Log '  PERINGATAN: RDP not yet menjawab handshake setelah tweak - setup-access will menunggu lagi' }
 
-# ---------- 7. Status (apa adanya, bukan asumsi) ----------
+# ---------- 7. Status (apa aandya, bukan asumsi) ----------
 $allOk = $okDeny -and $okMulti -and $okAudio -and $okMic -and $okWall -and $okAvc -and $okAvc2 -and ($fontTxt -like 'ok*')
 Update-Status @{ xydesk = [ordered]@{
     host          = if ($allOk) { 'ok' } else { 'sebagian' }
-    denyts        = if ($okDeny) { 'ok' } else { 'gagal' }
-    multisession  = if ($okMulti) { 'ok' } else { 'gagal' }
+    denyts        = if ($okDeny) { 'ok' } else { 'failed' }
+    multisession  = if ($okMulti) { 'ok' } else { 'failed' }
     avc444        = $avcTxt
     fontsmoothing = $fontTxt
-    audio_out     = if ($okAudio) { "ok (policy fDisableAudio=$polAudio, WinStations=$curAudio)" } else { "gagal (policy=$polAudio WinStations=$curAudio)" }
-    audio_mic     = if ($okMic) { "ok (policy fDisableAudioCapture=$polMic, WinStations=$curMic) - mic HP redirect aktif, Allow di HP" } else { "gagal (policy=$polMic WinStations=$curMic)" }
-    wallpaper_rdp = if ($okWall) { "ok (policy fNoRemoteDesktopWallpaper=$polWall) - wallpaper RDP tampil, cek client Experience->Wallpaper ON" } else { "gagal (policy=$polWall WinStations=$curWall) - RDP blok wallpaper" }
+    audio_out     = if ($okAudio) { "ok (policy fDisableAudio=$polAudio, WinStations=$curAudio)" } else { "failed (policy=$polAudio WinStations=$curAudio)" }
+    audio_mic     = if ($okMic) { "ok (policy fDisableAudioCapture=$polMic, WinStations=$curMic) - mic HP redirect aktif, Allow di HP" } else { "failed (policy=$polMic WinStations=$curMic)" }
+    wallpaper_rdp = if ($okWall) { "ok (policy fNoRemoteDesktopWallpaper=$polWall) - wallpaper RDP tampil, cek client Experience->Wallpaper ON" } else { "failed (policy=$polWall WinStations=$curWall) - RDP blok wallpaper" }
     firewall      = "tcp3389=$fwTcp udp3389=$fwUdp udp4433=$fw4433"
     services      = $svcTxt
-    rdp_ready     = if ($rdpReadyAt) { "$rdpReadyAt (handshake OK)" } else { 'belum' }
+    rdp_ready     = if ($rdpReadyAt) { "$rdpReadyAt (handshake OK)" } else { 'not yet' }
     rdp_probe     = "awal=$rdpAlive0 multi=$rdpAlive1 audio=$rdpAlive2 grafis=$rdpAlive3 clear=$rdpAlive4 fw=$rdpAlive5 svc=$rdpAlive6"
-    quic_udp4433  = 'dibuka di VM (tidak lewat tunnel TCP)'
-    akses         = if ($addr) { $addr } else { '(menyusul)' }
-    note          = if ($allOk) { 'Host siap dipakai klien XyDesk Remote mode Koneksi RDP (Host+Port tunnel). Kunci WinStations\RDP-Tcp sengaja TIDAK ditulis supaya listener 3389 tidak mati di runner GitHub.' }
-                    else { 'Sebagian setelan host gagal - sesi tetap jalan lewat RDP biasa; cek log step Host setup XyDesk' }
+    quic_udp4433  = 'dibuka di VM (no lewat tunnel TCP)'
+    access         = if ($addr) { $addr } else { '(menyusul)' }
+    note          = if ($allOk) { 'Host ready for the XyDesk Remote client in RDP connection mode (Host+Port tunnel). The WinStations\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner.' }
+                    else { 'Sebagian setelan host failed - session tetap jalan lewat RDP biasa; cek log step Host setup XyDesk' }
 } } | Out-Null
 
 if ($allOk) {
-  Log 'SELESAI - XyDesk host siap: AVC444 + ClearType + multi-session + audio/mic'
+  Log 'SELESAI - XyDesk host ready: AVC444 + ClearType + multi-session + audio/mic'
 } else {
-  Log "SELESAI (sebagian) - cek baris 'gagal' di atas; sesi tetap bisa dipakai lewat RDP biasa"
+  Log "SELESAI (sebagian) - cek baris 'failed' di atas; session tetap can dipakai lewat RDP biasa"
 }
 exit 0
