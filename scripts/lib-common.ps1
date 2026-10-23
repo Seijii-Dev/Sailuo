@@ -641,7 +641,7 @@ function New-SailuoAppIcon([string]$OutIcoPath, [string]$BadgeText, [int]$R1, [i
   }
 }
 
-function Ensure-SailuotopIcons {
+function Ensure-SailuoDesktopIcons {
   $icoDir = 'C:\Sailuo\icons'
   New-Item -ItemType Directory -Path $icoDir -Force -ErrorAction SilentlyContinue | Out-Null
   New-SailuoAppIcon "$icoDir\sailuo-dashboard.ico"   'XY'  2   132 199 15  23  42  'DASHBOARD' | Out-Null
