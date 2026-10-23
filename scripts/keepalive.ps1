@@ -19,7 +19,7 @@ $rdpUser = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { (Get-Cfg).rdp_user
 
 Log "ACTIVE SESSION - address: $addr | ends: $($exp.ToString('HH:mm')) UTC"
 $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-$icoDir = Ensure-SailuotopIcons
+$icoDir = Ensure-SailuoDesktopIcons
 
 function Sync-And-Heal-DesktopShortcuts {
   try {

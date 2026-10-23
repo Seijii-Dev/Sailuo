@@ -106,7 +106,7 @@ try {
 # will menganggap folder C:\Users\$u bentrok then membuat C:\Users\xyadmin.<hostname>,
 # sehingga semua file Downloads, Desktop & login Google di C:\Users\$u could not be read!
 $createdProfDir = Ensure-UserProfileCreated $u
-Ensure-SailuotopIcons | Out-Null
+Ensure-SailuoDesktopIcons | Out-Null
 if ($u.ToLower() -eq 'runneradmin') { Log "user '$u' (built-in runneradmin) ready: HIGHEST ADMIN without recreating (profile=$createdProfDir)" } else { Log "user '$u' ready: Administrators + Remote Desktop Users, password does not expire (HIGHEST, profile=$createdProfDir)" }
 
 

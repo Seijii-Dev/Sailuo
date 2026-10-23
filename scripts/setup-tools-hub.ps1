@@ -1,5 +1,5 @@
 # ============================================================================
-#  setup-tools-hub.ps1 - Build & Install "SailuoRemote Dashboard" (GUI Desktop)
+#  setup-tools-hub.ps1 - Build & Install "Sailuo Dashboard" (GUI Desktop)
 # ----------------------------------------------------------------------------
 #  Mengompilasi aplikasi GUI WinForms native (C:\Sailuo\tools\SailuoDashboard.exe)
 #  menggunwill C# compiler bawaan .NET Framework 4.x di Windows Server 2022/2025.
@@ -57,7 +57,7 @@ namespace SailuoTools
 
         public MainForm()
         {
-            this.Text = "SailuoRemote Dashboard - Pusat Kontrol, Installer, Anti-VM & Cloud Save";
+            this.Text = "Sailuo Dashboard - Pusat Kontrol, Installer, Anti-VM & Cloud Save";
             this.Size = new Size(880, 650);
             this.MinimumSize = new Size(840, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -72,7 +72,7 @@ namespace SailuoTools
 
             BuildLayout();
             LoadSampRegistryInfo();
-            AppendLog("Selamat datang di SailuoRemote Dashboard! Semua fitur Anti-VM, Gaming Boost 120 FPS & Auto Cloud-Save aktif.");
+            AppendLog("Welcome to the Sailuo Dashboard! Cloud Save auto-sync every 4 minutes is active.");
         }
 
         private void BuildLayout()
@@ -84,7 +84,7 @@ namespace SailuoTools
             header.Padding = new Padding(18, 10, 18, 8);
 
             Label title = new Label();
-            title.Text = "SailuoRemote Dashboard - Pusat Kelola RDP, Installer & Gaming Boost";
+            title.Text = "Sailuo Dashboard - RDP Management, Installer & Cloud Save";
             title.Font = new Font("Segoe UI Semibold", 13.5f, FontStyle.Bold);
             title.ForeColor = Color.FromArgb(56, 189, 248);
             title.AutoSize = true;
@@ -704,7 +704,7 @@ namespace SailuoTools
         public static void Main()
         {
             bool createdNew = false;
-            using (Mutex mutex = new Mutex(true, "Global\\SailuoRemoteDashboardSingleton", out createdNew))
+            using (Mutex mutex = new Mutex(true, "Global\\SailuoDashboardSingleton", out createdNew))
             {
                 if (!createdNew) return;
                 Application.EnableVisualStyles();
@@ -747,29 +747,29 @@ try {
         Remove-Item -LiteralPath (Join-Path $desk 'SailuoTools.exe') -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath (Join-Path $desk 'Sailuo Gaming & Tools Hub.lnk') -Force -ErrorAction SilentlyContinue
         $wsh = New-Object -ComObject WScript.Shell
-        $lnk = $wsh.CreateShortcut((Join-Path $desk 'SailuoRemote Dashboard.lnk'))
+        $lnk = $wsh.CreateShortcut((Join-Path $desk 'Sailuo Dashboard.lnk'))
         $lnk.TargetPath = $exePath
         $lnk.WorkingDirectory = $toolsDir
-        $lnk.Description = 'SailuoRemote Dashboard - Pusat Kelola Sistem, Installer, Anti-VM & Cloud Save'
+        $lnk.Description = 'Sailuo Dashboard - Pusat Kelola Sistem, Installer, Anti-VM & Cloud Save'
         $lnk.IconLocation = "$exePath,0"
         $lnk.Save()
       } catch {}
     }
 
-    # 2. Daftarkan Auto-Start agar SailuoRemote Dashboard OTOMATIS TERBUKA when pertama kali sign in Desktop RDP!
+    # 2. Daftarkan Auto-Start agar Sailuo Dashboard OTOMATIS TERBUKA when pertama kali sign in Desktop RDP!
     try {
-      Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' 'SailuoRemoteDashboard' "`"$exePath`"" 'String' | Out-Null
-      Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'SailuoRemoteDashboard' "`"$exePath`"" 'String' | Out-Null
+      Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' 'SailuoDashboard' "`"$exePath`"" 'String' | Out-Null
+      Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'SailuoDashboard' "`"$exePath`"" 'String' | Out-Null
       $commonStartup = 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp'
       if (Test-Path $commonStartup) {
         $wsh2 = New-Object -ComObject WScript.Shell
-        $sLnk = $wsh2.CreateShortcut((Join-Path $commonStartup 'SailuoRemote Dashboard.lnk'))
+        $sLnk = $wsh2.CreateShortcut((Join-Path $commonStartup 'Sailuo Dashboard.lnk'))
         $sLnk.TargetPath = $exePath
         $sLnk.WorkingDirectory = $toolsDir
         if (Test-Path $dashIco) { $sLnk.IconLocation = "$dashIco,0" }
         $sLnk.Save()
       }
-      Log 'SailuoRemote Dashboard didaftarkan di Auto-Start (otomatis terbuka when sign in RDP pertama kali).'
+      Log 'Sailuo Dashboard didaftarkan di Auto-Start (otomatis terbuka when sign in RDP pertama kali).'
     } catch {}
 
     Update-Status @{ tools_hub = @{ installed = $true; exe = $exePath; auto_start = $true } } | Out-Null
