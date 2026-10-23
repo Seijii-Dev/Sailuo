@@ -1,7 +1,7 @@
 import {parse} from "yaml";
 import {defaults,choices} from "./workflow";
 export function workflowCompatible(source:string):boolean {
- if(source.length>1_000_000||!/^# rdpfree-workflow-schema: 5\s*$/m.test(source))return false;
+ if(source.length>1_000_000||!/^# sailuo-workflow-schema: 5\s*$/m.test(source))return false;
  try {
   const doc=parse(source,{maxAliasCount:20});
   const inputs=doc?.on?.workflow_dispatch?.inputs;

@@ -1,9 +1,9 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';import {encode} from 'next-auth/jwt';
 const env=Object.fromEntries(fs.readFileSync('.env.local','utf8').trim().split('\n').map(l=>{const i=l.indexOf('=');return [l.slice(0,i),JSON.parse(l.slice(i+1))]}));
-const base='https://rdpfree.projectkal.my.id';
+const base='https://sailuo.projectkal.my.id';
 async function cookie(token){return '__Secure-next-auth.session-token='+await encode({secret:env.NEXTAUTH_SECRET,token,maxAge:120})}
-const admin=await cookie({authKind:'admin',credVersion:env.ADMIN_CREDENTIAL_VERSION,login:'Admin',sub:'rdpfree-admin',name:'Admin',email:env.ADMIN_EMAIL});
-const oldOwner=await cookie({authKind:'github',githubId:'297800307',role:'admin',login:'xykal',accessToken:env.ADMIN_GITHUB_TOKEN});
+const admin=await cookie({authKind:'admin',credVersion:env.ADMIN_CREDENTIAL_VERSION,login:'Admin',sub:'sailuo-admin',name:'Admin',email:env.ADMIN_EMAIL});
+const oldOwner=await cookie({authKind:'github',githubId:'297800307',role:'admin',login:'Seijii-Dev',accessToken:env.ADMIN_GITHUB_TOKEN});
 async function check(label,path,expected,options={}){const r=await fetch(base+path,{redirect:'manual',...options});const text=await r.text();assert.equal(r.status,expected,label+': '+text.slice(0,200));console.log('PASS',label,r.status);return text;}
 await check('Login public','/login',200);
 const pub=await check('Public HTML','/login',200);assert(!pub.includes('href="/admin/login"'));

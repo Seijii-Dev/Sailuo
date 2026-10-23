@@ -1,8 +1,8 @@
 # ============================================================================
-#  setup-xydesk.ps1 - HOST SETUP for XyDesk Remote (APK Android kamu)
+#  setup-sailuo.ps1 - HOST SETUP for Sailuo Remote (APK Android kamu)
 # ----------------------------------------------------------------------------
-#  Ini versi inline from rdp.xydesk.my.id/host.ps1 (v0.5.34) + perbaikan font
-#  smoothing from commit XyDesk-Remote v0.5.30, dirun langsung from repo
+#  Ini versi inline from rdp.sailuo.my.id/host.ps1 (v0.5.34) + perbaikan font
+#  smoothing from commit Sailuo-Remote v0.5.30, dirun langsung from repo
 #  (no mengambil script from internet).
 #
 #  Isi (idempoten, best-effort - semua hasil dilaporkan apa aandya):
@@ -10,44 +10,44 @@
 #    2) Kebijwill grafis: AVC444 4:4:4 (preferred) + hardware encode + VGAvailablepter
 #    3) Font smoothing: fNoFontSmoothing=0 + AllowFontAntiAlias=1 di
 #       WinStations\RDP-Tcp  (kunci this that BENAR-benar dibaca Windows;
-#       fAllowFontAntiAlias di Policy no-op - temuan commit XyDesk-Remote v0.5.30)
-#    4) Firewall: TCP/UDP 3389 + UDP 4433 (audio bridge QUIC XyDesk)
+#       fAllowFontAntiAlias di Policy no-op - temuan commit Sailuo-Remote v0.5.30)
+#    4) Firewall: TCP/UDP 3389 + UDP 4433 (audio bridge QUIC Sailuo)
 #    5) Layanan: TermService + Audiosrv diensure jalan
 #
 #  PENTING soal jalur access:
-#    - XyDesk Remote -> "Koneksi RDP Penuh": isi Host + Port from dashboard
+#    - Sailuo Remote -> "Koneksi RDP Penuh": isi Host + Port from dashboard
 #      (host = bore.pub / x.tcp.ngrok.io, port = angka tunnel). Semua fthatr RDP
 #      (AVC444, ClearType, audio rdpsnd, clipboard, keyboard) jalan lewat tunnel TCP.
-#    - XyDesk audio bridge QUIC (UDP 4433) cannot go through the TCP tunnel - UDP port
+#    - Sailuo audio bridge QUIC (UDP 4433) cannot go through the TCP tunnel - UDP port
 #      dibuka di sthis so that ready kalau HP can reach UDP langsung (LAN/tailnet).
 #      Lewat tunnel, klien otomatis fallback ke audio RDP.
-#    - Klien XyDesk will probe QUIC 4433 lalu failed (wajar) -> lanjut mode RDP.
+#    - Klien Sailuo will probe QUIC 4433 lalu failed (wajar) -> lanjut mode RDP.
 #
-#  Konfigurasi: assets/rdp-extras.json -> xydesk_host = true/false
+#  Konfigurasi: assets/sailuo-extras.json -> sailuo_host = true/false
 # ============================================================================
 
-$XyTag = 'XyRDP:xydesk'
+$SailuoTag = 'Sailuo:sailuo'
 . "$PSScriptRoot/lib-common.ps1"
 
 $cfg = Get-Cfg
-$skip = -not $cfg.xydesk_host
-if ($env:XYDESK) {
-  $e = $env:XYDESK.Trim().ToLower()
+$skip = -not $cfg.sailuo_host
+if ($env:SAILUO) {
+  $e = $env:SAILUO.Trim().ToLower()
   if (@('no', '0', 'false', 'no', 'off', 'skip', 'none') -contains $e) { $skip = $true }
 }
 if ($skip) {
-  Log 'host setup XyDesk skipped (input xydesk=no or xydesk_host=false di rdp-extras.json)'
-  Update-Status @{ xydesk = @{ host = 'skip' } } | Out-Null
+  Log 'host setup Sailuo skipped (input sailuo=no or sailuo_host=false di sailuo-extras.json)'
+  Update-Status @{ sailuo = @{ host = 'skip' } } | Out-Null
   exit 0
 }
 
-Log 'HOST SETUP XyDesk Remote (AVC444 + ClearType + multi-session + audio)...'
+Log 'HOST SETUP Sailuo Remote (AVC444 + ClearType + multi-session + audio)...'
 $tsRoot = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server'
 $tsPol  = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'
 $tsTcp  = "$tsRoot\WinStations\RDP-Tcp"
 
 # ---------- 0. Probe awal (RDP sehat?) ----------
-$rdpAlive0 = Probe-Rdp 'senot yet tweak xydesk'
+$rdpAlive0 = Probe-Rdp 'senot yet tweak sailuo'
 
 # ---------- 1. Multi-session: root key + POLICY key only ----------
 # PENTING (temuan validasi 2026-10-03): menulis nilai di
@@ -89,7 +89,7 @@ $okMic   = ($polMic -eq 0) -or (($null -eq $polMic) -and ("$curMic" -ne '1'))
 $okWall  = ($polWall -eq 0) -or (($null -eq $polWall) -and ("$curWall" -ne '1'))
 $rdpAlive2 = Probe-Rdp 'setelah kebijwill audio+wallpaper + audit WinStation'
 
-# ---------- 2. Kebijwill grafis XyDesk (AVC444 / hardware encode / 120 FPS DWM) ----------
+# ---------- 2. Kebijwill grafis Sailuo (AVC444 / hardware encode / 120 FPS DWM) ----------
 $okAvc  = Set-Reg $tsPol 'AVC444ModePreferred'       1 'DWord'
 $okAvc2 = Set-Reg $tsPol 'AVCHardwareEncodePreferred' 1 'DWord'
 Set-Reg $tsPol 'VGAvailablepter'            1 'DWord' | Out-Null
@@ -142,9 +142,9 @@ function Add-FwRule([string]$Name, [string]$Proto, [string]$Ports) {
     return $true
   } catch { Log "  firewall '$Name' failed: $($_.Exception.Message)"; return $false }
 }
-$fwTcp  = Add-FwRule 'XyDesk Remote RDP TCP'  'TCP' '3389'
-$fwUdp  = Add-FwRule 'XyDesk Remote RDP UDP'  'UDP' '3389'
-$fw4433 = Add-FwRule 'XyDesk Remote QUIC UDP' 'UDP' '4433'
+$fwTcp  = Add-FwRule 'Sailuo Remote RDP TCP'  'TCP' '3389'
+$fwUdp  = Add-FwRule 'Sailuo Remote RDP UDP'  'UDP' '3389'
+$fw4433 = Add-FwRule 'Sailuo Remote QUIC UDP' 'UDP' '4433'
 Enable-NetFirewallRule -DisplayGroup 'Remote Desktop' -ErrorAction SilentlyContinue | Out-Null
 Log "  firewall: TCP3389=$fwTcp UDP3389=$fwUdp UDP4433=$fw4433"
 $rdpAlive5 = Probe-Rdp 'setelah aturan firewall'
@@ -164,9 +164,9 @@ $rdpAlive6 = Probe-Rdp 'setelah start layanan'
 
 # ---------- 6. Access privat + Daemon UDP :4433 P2P Stream (`XYV1`) & RawInput (`XYI1`) ----------
 try {
-  $daemonDir = 'C:\ProgramData\XyDesk'
+  $daemonDir = 'C:\ProgramData\Sailuo'
   New-Item -ItemType Directory -Path $daemonDir -Force -ErrorAction SilentlyContinue | Out-Null
-  $daemonPs1 = Join-Path $daemonDir 'xydesk-rawinput-udp.ps1'
+  $daemonPs1 = Join-Path $daemonDir 'sailuo-rawinput-udp.ps1'
   $daemonCode = @'
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
@@ -310,17 +310,17 @@ public static class XyRawInputDaemon {
                     if (rx == null || rx.Length < 4) continue;
                     if (rx.Length >= 20 && rx[0] == (byte)'X' && rx[1] == (byte)'Y' && rx[2] == (byte)'D' && rx[3] == (byte)'E') {
                         string txt = Encoding.ASCII.GetString(rx);
-                        if (txt.StartsWith("XYDESK_QUIC_DISCOVER_V1")) {
+                        if (txt.StartsWith("SAILUO_QUIC_DISCOVER_V1")) {
                             string host = Environment.MachineName;
-                            string json = "{\"proto\":\"XYDESK-QUIC-1\",\"hostname\":\"" + host + "\",\"ip\":\"\",\"rdp_port\":3389,\"quic_port\":" + port + ",\"gpu\":\"XyRDP-Mesa3D\",\"encoder\":\"JPEG-120FPS\",\"pc_id\":\"" + host + "\",\"console_stream\":true}";
+                            string json = "{\"proto\":\"SAILUO-QUIC-1\",\"hostname\":\"" + host + "\",\"ip\":\"\",\"rdp_port\":3389,\"quic_port\":" + port + ",\"gpu\":\"Sailuo-Mesa3D\",\"encoder\":\"JPEG-120FPS\",\"pc_id\":\"" + host + "\",\"console_stream\":true}";
                             byte[] resp = Encoding.UTF8.GetBytes(json);
                             lock (sendLock) { udp.Send(resp, resp.Length, ep); }
                             continue;
                         }
-                        if (txt.StartsWith("XYDESK_QUIC_WALLPAPER_V1")) {
+                        if (txt.StartsWith("SAILUO_QUIC_WALLPAPER_V1")) {
                             try {
                                 string[] wallCandidates = new string[] {
-                                    @"C:\Windows\Web\Wallpaper\Windows\xyrdp-wallpaper.jpg",
+                                    @"C:\Windows\Web\Wallpaper\Windows\sailuo-wallpaper.jpg",
                                     Environment.ExpandEnvironmentVariables(@"%APPDATA%\Microsoft\Windows\Themes\TranscodedWallpaper"),
                                     @"C:\Windows\Web\Wallpaper\Windows\img0.jpg"
                                 };
@@ -357,9 +357,9 @@ public static class XyRawInputDaemon {
                     }
                     if (rx.Length > 47 && (rx[0] & 0xC0) == 0xC0) {
                         string payload = Encoding.ASCII.GetString(rx, 24, Math.Min(23, rx.Length - 24));
-                        if (payload.StartsWith("XYDESK_QUIC_DISCOVER_V1")) {
+                        if (payload.StartsWith("SAILUO_QUIC_DISCOVER_V1")) {
                             string host = Environment.MachineName;
-                            string ackJson = "XYDESK_QUIC_ACK_V1\0{\"proto\":\"XYDESK-QUIC-1\",\"hostname\":\"" + host + "\",\"rdp_port\":3389,\"quic_port\":" + port + ",\"console_stream\":true}";
+                            string ackJson = "SAILUO_QUIC_ACK_V1\0{\"proto\":\"SAILUO-QUIC-1\",\"hostname\":\"" + host + "\",\"rdp_port\":3389,\"quic_port\":" + port + ",\"console_stream\":true}";
                             byte[] ackPayload = Encoding.UTF8.GetBytes(ackJson);
                             byte[] resp = new byte[24 + ackPayload.Length];
                             Array.Copy(rx, 0, resp, 0, 24);
@@ -436,7 +436,7 @@ public static class XyRawInputDaemon {
 '@
   Set-Content -LiteralPath $daemonPs1 -Value $daemonCode -Encoding UTF8 -Force
   $runKey = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
-  Set-Reg $runKey 'XyDeskRawInputUDP' "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$daemonPs1`"" 'String' | Out-Null
+  Set-Reg $runKey 'SailuoRawInputUDP' "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$daemonPs1`"" 'String' | Out-Null
   Log '  daemon RawInput Game FPS (UDP :4433 -> SendInput MOUSEEVENTF_MOVE) terdaftar di HKLM Run'
 } catch { Log "  daemon RawInput failed didaftarkan: $($_.Exception.Message)" }
 Log 'Hubungkan HP and Windows ke tailnet that sama. RDP playback and audio capture memakai kanal RDP; bridge UDP :4433 ready for RawInput Game FPS.'
@@ -452,7 +452,7 @@ else { Log '  PERINGATAN: RDP not yet menjawab handshake setelah tweak - setup-a
 
 # ---------- 7. Status (apa aandya, bukan asumsi) ----------
 $allOk = $okDeny -and $okMulti -and $okAudio -and $okMic -and $okWall -and $okAvc -and $okAvc2 -and ($fontTxt -like 'ok*')
-Update-Status @{ xydesk = [ordered]@{
+Update-Status @{ sailuo = [ordered]@{
     host          = if ($allOk) { 'ok' } else { 'sebagian' }
     denyts        = if ($okDeny) { 'ok' } else { 'failed' }
     multisession  = if ($okMulti) { 'ok' } else { 'failed' }
@@ -467,12 +467,12 @@ Update-Status @{ xydesk = [ordered]@{
     rdp_probe     = "awal=$rdpAlive0 multi=$rdpAlive1 audio=$rdpAlive2 grafis=$rdpAlive3 clear=$rdpAlive4 fw=$rdpAlive5 svc=$rdpAlive6"
     quic_udp4433  = 'dibuka di VM (no lewat tunnel TCP)'
     access         = if ($addr) { $addr } else { '(menyusul)' }
-    note          = if ($allOk) { 'Host ready for the XyDesk Remote client in RDP connection mode (Host+Port tunnel). The WinStations\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner.' }
-                    else { 'Sebagian setelan host failed - session tetap jalan lewat RDP biasa; cek log step Host setup XyDesk' }
+    note          = if ($allOk) { 'Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner.' }
+                    else { 'Sebagian setelan host failed - session tetap jalan lewat RDP biasa; cek log step Host setup Sailuo' }
 } } | Out-Null
 
 if ($allOk) {
-  Log 'SELESAI - XyDesk host ready: AVC444 + ClearType + multi-session + audio/mic'
+  Log 'SELESAI - Sailuo host ready: AVC444 + ClearType + multi-session + audio/mic'
 } else {
   Log "SELESAI (sebagian) - cek baris 'failed' di atas; session tetap can dipakai lewat RDP biasa"
 }

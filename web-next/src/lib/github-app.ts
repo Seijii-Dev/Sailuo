@@ -2,7 +2,7 @@ import {createSign,randomBytes} from "node:crypto";
 import {db} from "./db";
 import {github,ApiError,hash} from "./api";
 import {sealPassword,openPassword} from "./vault";
-export const SITE="https://rdpfree.projectkal.my.id";
+export const SITE="https://sailuo.projectkal.my.id";
 export const APP_PERMISSIONS={contents:"read",actions:"write",secrets:"write",metavailableta:"read"};
 export const DELETE_PERMISSIONS={admthisstration:"write",metavailableta:"read"};
 export type AppConfig={id:number;slug:string;pem:string};
@@ -20,7 +20,7 @@ export async function installationToken(subject:string,repo?:string){const confi
 }
 export async function makeState(subject:string,kind:string,ttlMs=3600000){const value=randomBytes(32).toString("base64url");await db().prepare("INSERT INTO app_states(hash,subject,kind,expires) VALUES(?,?,?,?)").bind(hash(value),subject,kind,Date.now()+ttlMs).run();return value;}
 export async function consumeState(value:string,subject:string,kind:string){if(!/^[A-Za-z0-9_-]{43}$/.test(value))throw new ApiError(403,"State no valid");const result=await db().prepare("DELETE FROM app_states WHERE hash=? AND subject=? AND kind=? AND expires>? RETURNING hash").bind(hash(value),subject,kind,Date.now()).first();if(!result)throw new ApiError(403,"Permintaan already digunwill or kedaluwarsa. Start lagi from dashboard.");}
-export function manifest(){return {name:"RdpFree Repository",url:SITE,description:"Access repo pilihan for membaca workflow, menrun/menghentikan Actions, menyimpan Actions Secrets, serta mengdelete repo setelah konfirmasi pemilik. Login identitas terpisah.",public:true,redirect_url:SITE+"/api/admin/github-app/callback",setup_url:SITE+"/api/github-app/callback",setup_on_update:true,request_oauth_on_install:false,hook_attributes:{url:SITE+"/api/github-app/webhook",active:false},default_events:[],default_permissions:{...APP_PERMISSIONS,...DELETE_PERMISSIONS}};}
+export function manifest(){return {name:"Sailuo Repository",url:SITE,description:"Access repo pilihan for membaca workflow, menrun/menghentikan Actions, menyimpan Actions Secrets, serta mengdelete repo setelah konfirmasi pemilik. Login identitas terpisah.",public:true,redirect_url:SITE+"/api/admin/github-app/callback",setup_url:SITE+"/api/github-app/callback",setup_on_update:true,request_oauth_on_install:false,hook_attributes:{url:SITE+"/api/github-app/webhook",active:false},default_events:[],default_permissions:{...APP_PERMISSIONS,...DELETE_PERMISSIONS}};}
 
 // Destructive capability is never included in ordinary browser/device tokens.
 export async function deletionToken(subject:string,repo:string,accountId:string){

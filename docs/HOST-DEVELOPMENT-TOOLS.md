@@ -1,4 +1,4 @@
-# Host development tools — RdpFree / KallAncrit
+# Host development tools — Sailuo / 
 
 Every new rdp-6h workflow run installs/verifies the requested tools before the
 connection-ready summary. Existing live sessions are not modified remotely.
@@ -25,12 +25,12 @@ Installers have timeouts, and no automatic reboot is issued.
 
 ## Validation
 
-Windows Server 2022 run: https://github.com/xykal/XyRDP/actions/runs/38363805003
+Windows Server 2022 run: https://github.com/Seijii-Dev/Sailuo/actions/runs/38363805003
 Passed parsing, fresh installation, real executable checks, WinRAR archive test,
 and repeated setup. VC++ observed: 14.51.36247.0 for both architectures. XAMPP
 PHP 8.2.12 and MariaDB 10.4.32 executed successfully; Apache configuration check
 exited zero. Installer and runtime reports are written at
-C:\ProgramData\RdpFree\host-tools\report.json and included in private dashboard
+C:\ProgramData\Sailuo\host-tools\report.json and included in private dashboard
 status data as host_tools. No remote TCP/UDP reachability, Apache HTTP request,
 or database login has been tested. No RDP session started or stopped for this
 validation.

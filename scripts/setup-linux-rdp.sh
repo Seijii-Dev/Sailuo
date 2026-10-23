@@ -9,12 +9,12 @@ set -e
 STAGE_MODE="${1:---all}"
 
 log() {
-  printf "[%s UTC][XyRDP:linux] %s\n" "$(date -u +%H:%M:%S)" "$*"
+  printf "[%s UTC][Sailuo:linux] %s\n" "$(date -u +%H:%M:%S)" "$*"
 }
 
-if [ -f /tmp/xyrdp-linux.env ] && [ "$STAGE_MODE" != "--setup-only" ] && [ "$STAGE_MODE" != "--all" ]; then
+if [ -f /tmp/sailuo-linux.env ] && [ "$STAGE_MODE" != "--setup-only" ] && [ "$STAGE_MODE" != "--all" ]; then
   # shellcheck disable=SC1091
-  . /tmp/xyrdp-linux.env
+  . /tmp/sailuo-linux.env
 fi
 
 DUR="${DUR:-342}"
@@ -31,8 +31,8 @@ else
 fi
 
 RDP_USER="${RDP_USER:-xyadmin}"
-HOST_BASE="$(echo "${HOSTNAME:-rdpfree}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')"
-[ -z "$HOST_BASE" ] && HOST_BASE="rdpfree"
+HOST_BASE="$(echo "${HOSTNAME:-sailuo}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')"
+[ -z "$HOST_BASE" ] && HOST_BASE="sailuo"
 FULL_HOST="${FULL_HOST:-${HOST_BASE}-${GITHUB_RUN_NUMBER:-1}}"
 OS_NAME="${OS_NAME:-$(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-Ubuntu Linux}" || echo "Ubuntu Linux")}"
 
@@ -40,73 +40,73 @@ restore_linux_state() {
   if [ -z "${GITHUB_TOKEN:-}" ] || [ -z "${GITHUB_REPOSITORY:-}" ]; then return 0; fi
   local api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
   local asset_id
-  asset_id="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/xyrdp-state-latest" | jq -r '.assets[]? | select(.name=="xyrdp-linux-state.zip") | .id' | head -n1)"
+  asset_id="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/sailuo-state-latest" | jq -r '.assets[]? | select(.name=="sailuo-linux-state.zip") | .id' | head -n1)"
   if [ -n "$asset_id" ] && [ "$asset_id" != "null" ]; then
-    log "Restoring the Linux state from the xyrdp-state-latest release (asset $asset_id)..."
-    mkdir -p /tmp/xyrdp-restore
+    log "Restoring the Linux state from the sailuo-state-latest release (asset $asset_id)..."
+    mkdir -p /tmp/sailuo-restore
     if curl -sL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/octet-stream" \
-      "$api/releases/assets/${asset_id}" -o /tmp/xyrdp-restore/state.zip; then
-      7z x /tmp/xyrdp-restore/state.zip -o/tmp/xyrdp-restore/ext -y >/dev/null 2>&1 || true
+      "$api/releases/assets/${asset_id}" -o /tmp/sailuo-restore/state.zip; then
+      7z x /tmp/sailuo-restore/state.zip -o/tmp/sailuo-restore/ext -y >/dev/null 2>&1 || true
       for d in Desktop Documents Downloads .config/google-chrome .config/chromium .mozilla; do
-        if [ -d "/tmp/xyrdp-restore/ext/$d" ]; then
+        if [ -d "/tmp/sailuo-restore/ext/$d" ]; then
           mkdir -p "/home/${RDP_USER}/$d"
-          cp -rf "/tmp/xyrdp-restore/ext/$d/." "/home/${RDP_USER}/$d/" 2>/dev/null || true
+          cp -rf "/tmp/sailuo-restore/ext/$d/." "/home/${RDP_USER}/$d/" 2>/dev/null || true
         fi
       done
-      if [ -d "/tmp/xyrdp-restore/ext/_persist" ]; then
-        cp -rf "/tmp/xyrdp-restore/ext/_persist/." "/persist/" 2>/dev/null || true
+      if [ -d "/tmp/sailuo-restore/ext/_persist" ]; then
+        cp -rf "/tmp/sailuo-restore/ext/_persist/." "/persist/" 2>/dev/null || true
       fi
-      if [ -d "/tmp/xyrdp-restore/ext/_tailscale" ]; then
+      if [ -d "/tmp/sailuo-restore/ext/_tailscale" ]; then
         sudo mkdir -p /var/lib/tailscale
-        sudo cp -rf /tmp/xyrdp-restore/ext/_tailscale/. /var/lib/tailscale/ 2>/dev/null || true
+        sudo cp -rf /tmp/sailuo-restore/ext/_tailscale/. /var/lib/tailscale/ 2>/dev/null || true
       fi
       sudo chown -R "${RDP_USER}:${RDP_USER}" "/home/${RDP_USER}" "/persist"
       log "State Linux (tersign in session browser & file) succeeded direstore."
     fi
-    rm -rf /tmp/xyrdp-restore
+    rm -rf /tmp/sailuo-restore
   fi
 }
 
 persist_linux_state() {
   if [ -z "${GITHUB_TOKEN:-}" ] || [ -z "${GITHUB_REPOSITORY:-}" ]; then return 0; fi
-  mkdir -p /tmp/xyrdp-persist/stage
+  mkdir -p /tmp/sailuo-persist/stage
   for d in Desktop Documents Downloads .config/google-chrome .config/chromium .mozilla; do
     if [ -d "/home/${RDP_USER}/$d" ]; then
-      mkdir -p "/tmp/xyrdp-persist/stage/$d"
-      rsync -a --exclude='*Cache*' --exclude='*cache*' --exclude='*Crash*' "/home/${RDP_USER}/$d/" "/tmp/xyrdp-persist/stage/$d/" 2>/dev/null || cp -rf "/home/${RDP_USER}/$d/." "/tmp/xyrdp-persist/stage/$d/" 2>/dev/null || true
+      mkdir -p "/tmp/sailuo-persist/stage/$d"
+      rsync -a --exclude='*Cache*' --exclude='*cache*' --exclude='*Crash*' "/home/${RDP_USER}/$d/" "/tmp/sailuo-persist/stage/$d/" 2>/dev/null || cp -rf "/home/${RDP_USER}/$d/." "/tmp/sailuo-persist/stage/$d/" 2>/dev/null || true
     fi
   done
   if [ -d "/persist" ]; then
-    mkdir -p "/tmp/xyrdp-persist/stage/_persist"
-    cp -rf "/persist/." "/tmp/xyrdp-persist/stage/_persist/" 2>/dev/null || true
+    mkdir -p "/tmp/sailuo-persist/stage/_persist"
+    cp -rf "/persist/." "/tmp/sailuo-persist/stage/_persist/" 2>/dev/null || true
   fi
   if [ -d "/var/lib/tailscale" ]; then
-    mkdir -p "/tmp/xyrdp-persist/stage/_tailscale"
-    sudo cp -rf /var/lib/tailscale/*.state /tmp/xyrdp-persist/stage/_tailscale/ 2>/dev/null || true
+    mkdir -p "/tmp/sailuo-persist/stage/_tailscale"
+    sudo cp -rf /var/lib/tailscale/*.state /tmp/sailuo-persist/stage/_tailscale/ 2>/dev/null || true
   fi
-  rm -f /tmp/xyrdp-persist/xyrdp-linux-state.zip
-  (cd /tmp/xyrdp-persist/stage && 7z a -tzip -mx=1 -mmt=on /tmp/xyrdp-persist/xyrdp-linux-state.zip . >/dev/null 2>&1) || true
-  if [ ! -f /tmp/xyrdp-persist/xyrdp-linux-state.zip ]; then return 0; fi
+  rm -f /tmp/sailuo-persist/sailuo-linux-state.zip
+  (cd /tmp/sailuo-persist/stage && 7z a -tzip -mx=1 -mmt=on /tmp/sailuo-persist/sailuo-linux-state.zip . >/dev/null 2>&1) || true
+  if [ ! -f /tmp/sailuo-persist/sailuo-linux-state.zip ]; then return 0; fi
 
   local api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
   local rel_id
-  rel_id="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/xyrdp-state-latest" | jq -r '.id // empty')"
+  rel_id="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/sailuo-state-latest" | jq -r '.id // empty')"
   if [ -z "$rel_id" ]; then
     rel_id="$(curl -s -X POST -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
-      "$api/releases" -d '{"tag_name":"xyrdp-state-latest","name":"XyRDP Persistent Session State (Auto-Save)","prerelease":true}' | jq -r '.id // empty')"
+      "$api/releases" -d '{"tag_name":"sailuo-state-latest","name":"Sailuo Persistent Session State (Auto-Save)","prerelease":true}' | jq -r '.id // empty')"
   fi
   if [ -n "$rel_id" ]; then
     local old_asset
-    old_asset="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/xyrdp-state-latest" | jq -r '.assets[]? | select(.name=="xyrdp-linux-state.zip") | .id' | head -n1)"
+    old_asset="$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/tags/sailuo-state-latest" | jq -r '.assets[]? | select(.name=="sailuo-linux-state.zip") | .id' | head -n1)"
     if [ -n "$old_asset" ] && [ "$old_asset" != "null" ]; then
       curl -s -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" "$api/releases/assets/${old_asset}" >/dev/null 2>&1 || true
     fi
     curl -s -X POST -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Content-Type: application/zip" \
-      "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${rel_id}/assets?name=xyrdp-linux-state.zip" \
-      --data-binary @/tmp/xyrdp-persist/xyrdp-linux-state.zip >/dev/null 2>&1 || true
-    log "State Linux succeeded disave ke Release xyrdp-state-latest."
+      "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${rel_id}/assets?name=sailuo-linux-state.zip" \
+      --data-binary @/tmp/sailuo-persist/sailuo-linux-state.zip >/dev/null 2>&1 || true
+    log "State Linux succeeded disave ke Release sailuo-state-latest."
   fi
-  rm -rf /tmp/xyrdp-persist
+  rm -rf /tmp/sailuo-persist
 }
 
 publish_linux_status() {
@@ -221,20 +221,20 @@ publish_linux_status() {
           connect: ($connect_host + ":" + ($connect_port|tostring))
         }
       }
-    }' > out/rdp-status.json
+    }' > out/sailuo-status.json
 
-  local tmp_git="/tmp/xyrdp-status-branch"
+  local tmp_git="/tmp/sailuo-status-branch"
   rm -rf "$tmp_git"
   mkdir -p "$tmp_git/out"
-  cp out/rdp-status.json "$tmp_git/rdp-status.json"
-  cp out/rdp-status.json "$tmp_git/out/rdp-status.json"
+  cp out/sailuo-status.json "$tmp_git/sailuo-status.json"
+  cp out/sailuo-status.json "$tmp_git/out/sailuo-status.json"
   (
     cd "$tmp_git"
     git thist -q
     git config user.name "github-actions[bot]"
     git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
     git checkout -B status -q
-    git add rdp-status.json out/rdp-status.json
+    git add sailuo-status.json out/sailuo-status.json
     git commit -q -m "status: linux rdp (${LINUX_MODE}) update"
     git push -f -q "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" status:status || true
   )
@@ -287,8 +287,8 @@ fi
 echo "${RDP_USER}:${RDP_PASSWORD}" | sudo chpasswd
 echo "root:${RDP_PASSWORD}" | sudo chpasswd || true
 sudo usermod -aG sudo,adm,audio,video "$RDP_USER" || true
-echo "${RDP_USER} ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/xyrdp-${RDP_USER}" >/dev/null
-sudo chmod 0440 "/etc/sudoers.d/xyrdp-${RDP_USER}"
+echo "${RDP_USER} ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/sailuo-${RDP_USER}" >/dev/null
+sudo chmod 0440 "/etc/sudoers.d/sailuo-${RDP_USER}"
 sudo mkdir -p "/persist" "/home/${RDP_USER}/Desktop" "/home/${RDP_USER}/Documents" "/home/${RDP_USER}/Downloads"
 sudo chown -R "${RDP_USER}:${RDP_USER}" "/persist" "/home/${RDP_USER}"
 
@@ -305,7 +305,7 @@ if [ "$LINUX_MODE" = "polos" ]; then
     htop tmux screen python3 python3-pip net-tools iproute2 ca-certificates
 
   sudo mkdir -p /run/sshd /etc/ssh/sshd_config.d
-  cat << 'EOF' | sudo tee /etc/ssh/sshd_config.d/99-xyrdp.conf >/dev/null
+  cat << 'EOF' | sudo tee /etc/ssh/sshd_config.d/99-sailuo.conf >/dev/null
 Port 22
 Port 3389
 PasswordAuthentication yes
@@ -337,7 +337,7 @@ else
 
 
   sudo mkdir -p /run/sshd /etc/ssh/sshd_config.d
-  cat << 'EOF' | sudo tee /etc/ssh/sshd_config.d/99-xyrdp.conf >/dev/null
+  cat << 'EOF' | sudo tee /etc/ssh/sshd_config.d/99-sailuo.conf >/dev/null
 Port 22
 PasswordAuthentication yes
 KbdInteractiveAuthentication yes
@@ -348,12 +348,12 @@ EOF
   sudo systemctl restart ssh >/dev/null 2>&1 || sudo systemctl restart sshd >/dev/null 2>&1 || true
 
   sudo mkdir -p /etc/pulse/default.pa.d
-  cat << 'EOF' | sudo tee /etc/pulse/default.pa.d/xyrdp-onmic.pa >/dev/null
-load-module module-null-sink sink_name=XyDesk_Speaker sink_properties=device.description="XyDesk_Remote_Audio"
-load-module module-Null-sink sink_name=XyDesk_Mic_Backing sink_properties=device.description="XyDesk_Mic_Bus"
-load-module module-virtual-source source_name=XyDesk_Virtual_Mic master=XyDesk_Mic_Backing.monitor source_properties=device.description="XyDesk_OnMic_Input"
-set-default-sink XyDesk_Speaker
-set-default-source XyDesk_Virtual_Mic
+  cat << 'EOF' | sudo tee /etc/pulse/default.pa.d/sailuo-onmic.pa >/dev/null
+load-module module-null-sink sink_name=Sailuo_Speaker sink_properties=device.description="Sailuo_Remote_Audio"
+load-module module-Null-sink sink_name=Sailuo_Mic_Backing sink_properties=device.description="Sailuo_Mic_Bus"
+load-module module-virtual-source source_name=Sailuo_Virtual_Mic master=Sailuo_Mic_Backing.monitor source_properties=device.description="Sailuo_OnMic_Input"
+set-default-sink Sailuo_Speaker
+set-default-source Sailuo_Virtual_Mic
 EOF
 
   sudo adduser xrdp ssl-cert || true
@@ -398,7 +398,7 @@ START_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 EXP_EPOCH="$(( $(date -u +%s) + DUR * 60 ))"
 EXP_ISO="$(date -u -d "@${EXP_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)"
 
-cat << EOF > /tmp/xyrdp-linux.env
+cat << EOF > /tmp/sailuo-linux.env
 DUR="${DUR}"
 LINUX_MODE="${LINUX_MODE}"
 RDP_USER="${RDP_USER}"

@@ -1,5 +1,5 @@
 # ============================================================================
-#  persist-state.ps1 - Save XyRDP Session State (Auto-Save to GitHub Release)
+#  persist-state.ps1 - Save Sailuo Session State (Auto-Save to GitHub Release)
 # ----------------------------------------------------------------------------
 #  Saves:
 #    - C:\Persist (user's permanent folder)
@@ -10,14 +10,14 @@
 #      and SQLite WAL/SHM/LevelDB files using FileShare.ReadWrite
 #      so Google/YouTube/GitHub logins stay saved even while Chrome is open!
 #  Then encrypts the archive with AES-256-CBC (PBKDF2 from RDP_PASSWORD /
-#  GITHUB_TOKEN) and uploads it to the hidden Release `xyrdp-state-latest`
+#  GITHUB_TOKEN) and uploads it to the hidden Release `sailuo-state-latest`
 #  in the user's own repository.
 # ============================================================================
 param(
   [switch]$Checkpoint
 )
 
-$XyTag = if ($Checkpoint) { 'XyRDP:checkpoint' } else { 'XyRDP:persist' }
+$SailuoTag = if ($Checkpoint) { 'Sailuo:checkpoint' } else { 'Sailuo:persist' }
 . "$PSScriptRoot/lib-common.ps1"
 
 $cfg = Get-Cfg
@@ -26,10 +26,10 @@ if ($env:PERSIST_DATA -and @('no','0','false','no','off') -contains $env:PERSIST
   exit 0
 }
 
-# Fallback: read the environment from C:\XyRDP\tools\session-env.json when called from a background job / Dashboard
-if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:\XyRDP\tools\session-env.json')) {
+# Fallback: read the environment from C:\Sailuo\tools\session-env.json when called from a background job / Dashboard
+if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:\Sailuo\tools\session-env.json')) {
   try {
-    $sEnv = Get-Content 'C:\XyRDP\tools\session-env.json' -Raw | ConvertFrom-Json
+    $sEnv = Get-Content 'C:\Sailuo\tools\session-env.json' -Raw | ConvertFrom-Json
     if (-not $env:RDP_USER -and $sEnv.RDP_USER) { $env:RDP_USER = $sEnv.RDP_USER }
     if (-not $env:RDP_PASSWORD -and $sEnv.RDP_PASSWORD) { $env:RDP_PASSWORD = $sEnv.RDP_PASSWORD }
     if (-not $env:GITHUB_TOKEN -and $sEnv.GITHUB_TOKEN) { $env:GITHUB_TOKEN = $sEnv.GITHUB_TOKEN }
@@ -46,12 +46,12 @@ if (-not $ghToken -or -not $ghRepo) {
 
 $u = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { $cfg.rdp_user }
 $p = if ($env:RDP_PASSWORD) { $env:RDP_PASSWORD.Trim() } else { '' }
-$secretKey = if ($p.Length -ge 4) { "XyRDP-Persist-$u-$p" } else { "XyRDP-Persist-$ghRepo" }
+$secretKey = if ($p.Length -ge 4) { "Sailuo-Persist-$u-$p" } else { "Sailuo-Persist-$ghRepo" }
 
-$workDir  = 'C:\XyRDP\state-work'
+$workDir  = 'C:\Sailuo\state-work'
 $stageDir = Join-Path $workDir 'stage'
-$zipPath  = Join-Path $workDir 'xyrdp-state.7z'
-$encPath  = Join-Path $workDir 'xyrdp-state.bin'
+$zipPath  = Join-Path $workDir 'sailuo-state.7z'
+$encPath  = Join-Path $workDir 'sailuo-state.bin'
 
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
@@ -99,7 +99,7 @@ Copy-SafeFolder 'C:\Persist' (Join-Path $stageDir 'Persist') 1200
 try {
   $wpPersistenceDir = Join-Path $stageDir 'Persist\Config'
   New-Item -ItemType Directory -Path $wpPersistenceDir -Force -ErrorAction SilentlyContinue | Out-Null
-  $pubWpDir = 'C:\Users\Public\Pictures\XyRDP'
+  $pubWpDir = 'C:\Users\Public\Pictures\Sailuo'
   if (Test-Path $pubWpDir) {
     Get-ChildItem -Path $pubWpDir -Filter 'wallpaper.*' -File -ErrorAction SilentlyContinue | ForEach-Object {
       Copy-FileUnlocked $_.FullName (Join-Path $wpPersistenceDir $_.Name) | Out-Null
@@ -234,7 +234,7 @@ if ($fileCount -eq 0) {
 $totalBytes = ($allStagedFiles | Measure-Object -Property Length -Sum).Sum
 $latestTicks = ($allStagedFiles | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1).LastWriteTimeUtc.Ticks
 $stateSig = "$fileCount|$totalBytes|$latestTicks"
-$sigFile = 'C:\XyRDP\tools\last-checkpoint-sig.txt'
+$sigFile = 'C:\Sailuo\tools\last-checkpoint-sig.txt'
 if ($Checkpoint -and (Test-Path $sigFile)) {
   $prevSig = (Get-Content $sigFile -Raw -ErrorAction SilentlyContinue).Trim()
   if ($prevSig -eq $stateSig) {
@@ -249,7 +249,7 @@ $sevenZip = "${env:ProgramFiles}\7-Zip\7z.exe"
 if (Test-Path $sevenZip) {
   & $sevenZip a -t7z -mx=3 $zipPath "$stageDir\*" | Out-Null
 } else {
-  $zipPath = Join-Path $workDir 'xyrdp-state.zip'
+  $zipPath = Join-Path $workDir 'sailuo-state.zip'
   Compress-Archive -Path "$stageDir\*" -DestinationPath $zipPath -CompressionLevel Fastest -Force
 }
 
@@ -295,11 +295,11 @@ try {
   exit 0
 }
 
-$tag = 'xyrdp-state-latest'
+$tag = 'sailuo-state-latest'
 $hdrs = @{
   'Authorization' = "Bearer $ghToken"
   'Accept'        = 'application/vnd.github+json'
-  'User-Agent'    = 'XyRDP-State'
+  'User-Agent'    = 'Sailuo-State'
 }
 
 try {
@@ -311,7 +311,7 @@ try {
   if (-not $rel) {
     $body = @{
       tag_name   = $tag
-      name       = 'XyRDP Persistent State (Auto-Save)'
+      name       = 'Sailuo Persistent State (Auto-Save)'
       body       = 'AES-256 encrypted archive for saving files between RDP sessions.'
       draft      = $false
       prerelease = $true
@@ -319,9 +319,9 @@ try {
     $rel = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$ghRepo/releases" -Headers $hdrs -ContentType 'application/json' -Body $body -TimeoutSec 30
   }
 
-  $baseAssetName = if ($zipPath.EndsWith('.7z')) { 'xyrdp-state.7z.enc' } else { 'xyrdp-state.zip.enc' }
+  $baseAssetName = if ($zipPath.EndsWith('.7z')) { 'sailuo-state.7z.enc' } else { 'sailuo-state.zip.enc' }
   foreach ($a in @($rel.assets)) {
-    if ($a.name -like 'xyrdp-state.*') {
+    if ($a.name -like 'sailuo-state.*') {
       try {
         Invoke-RestMethod -Method Delete -Uri "https://api.github.com/repos/$ghRepo/releases/assets/$($a.id)" -Headers $hdrs -TimeoutSec 30 | Out-Null
       } catch {}
@@ -331,7 +331,7 @@ try {
   $upHdrs = @{
     'Authorization' = "Bearer $ghToken"
     'Content-Type'  = 'application/octet-stream'
-    'User-Agent'    = 'XyRDP-State'
+    'User-Agent'    = 'Sailuo-State'
   }
   $encLen = (Get-Item $encPath).Length
   $chunkMaxBytes = 1850L * 1024L * 1024L
@@ -370,10 +370,10 @@ try {
   }
 
   # Save the last state signature so the next checkpoint does not spam the API when nothing has changed
-  New-Item -ItemType Directory -Path 'C:\XyRDP\tools' -Force -ErrorAction SilentlyContinue | Out-Null
+  New-Item -ItemType Directory -Path 'C:\Sailuo\tools' -Force -ErrorAction SilentlyContinue | Out-Null
   Set-Content -Path $sigFile -Value $stateSig -Encoding ASCII -Force
 
-  # Record the last save time to display in the XyDeskRemote Dashboard
+  # Record the last save time to display in the SailuoRemote Dashboard
   New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
   @{
     last_saved_utc = [DateTime]::UtcNow.ToString('o')

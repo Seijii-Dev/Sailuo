@@ -1,5 +1,5 @@
 # ============================================================================
-#  optimize-storage.ps1 - XyRDP STORAGE BOOST
+#  optimize-storage.ps1 - Sailuo STORAGE BOOST
 # ----------------------------------------------------------------------------
 #  Problem: the windows-2022 runner shows "Disk C: 225 GB" but only ~70GB free
 #  because the GitHub image is already full of toolcache (Android, Haskell, CodeQL,
@@ -7,7 +7,7 @@
 #
 #  Solution: this script runs FIRST in the workflow (before RDP setup)
 #  to free an additional 45-75 GB. Everything is BEST-EFFORT; it does not stop
-#  the session on failure. Results are logged + written to out/rdp-status.json.
+#  the session on failure. Results are logged + written to out/sailuo-status.json.
 #
 #  Cleanup targets (ordered by largest weight):
 #    1) C:\hostedtoolcache  (Node/Python/Go/Ruby version cache - 8-12 GB)
@@ -29,7 +29,7 @@
 #    STORAGE_BOOST = yes/no (default yes). If "no" -> skip.
 # ============================================================================
 
-$XyTag = 'XyRDP:storage'
+$SailuoTag = 'Sailuo:storage'
 . "$PSScriptRoot/lib-common.ps1"
 
 $boost = $true
@@ -64,7 +64,7 @@ function Get-SizeGB([string]$path) {
 }
 function Remove-Tree([string]$path, [string]$label) {
   $normalized=[IO.Path]::GetFullPath($path).TrimEnd('\')
-  $protected=@("$env:SystemRoot", "$env:SystemRoot\WinSxS", "$env:SystemRoot\Installer", "$env:SystemRoot\System32", "$env:SystemRoot\SysWOW64", "$env:SystemRoot\Microsoft.NET", "$env:SystemRoot\Temp", "$env:ProgramFiles\dotnet\shared", "$env:ProgramFiles\Tailscale", 'C:\ProgramData\RdpFree')
+  $protected=@("$env:SystemRoot", "$env:SystemRoot\WinSxS", "$env:SystemRoot\Installer", "$env:SystemRoot\System32", "$env:SystemRoot\SysWOW64", "$env:SystemRoot\Microsoft.NET", "$env:SystemRoot\Temp", "$env:ProgramFiles\dotnet\shared", "$env:ProgramFiles\Tailscale", 'C:\ProgramData\Sailuo')
   foreach($safe in $protected) {
     if($normalized -ieq $safe -or ($safe -ine $env:SystemRoot -and $normalized.StartsWith($safe+'\',[StringComparison]::OrdinalIgnoreCase))) { Log "PROTECTED: $label"; return 0 }
   }
@@ -192,7 +192,7 @@ if ($env:DEBLOAT -eq 'no' -or $env:DEBLOAT -eq '0' -or $env:DEBLOAT -eq 'false')
 $cfgDeb = $null
 try { $cfgDeb = (Get-Cfg).PSObject.Properties['debloat'] } catch {}
 if ($cfgDeb -and $null -ne $cfgDeb.Value) {
-  # if rdp-extras.json has a debloat setting, use it when the input is not set explicitly
+  # if sailuo-extras.json has a debloat setting, use it when the input is not set explicitly
   if (-not $env:DEBLOAT) { $debloat = "$($cfgDeb.Value)".ToLower() }
 }
 Log "  Debloat mode: $debloat (no=skip, light=OneDrive/Xbox/Appx, full=+Edge+Unity+R+shortcuts ALL)"

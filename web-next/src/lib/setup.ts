@@ -3,7 +3,7 @@ import {loadSettings} from "./workflow";
 import {db} from "./db";
 import {workflowCompatible} from "./workflow-contract";
 
-export const TEMPLATE="xykal/XyRDP";
+export const TEMPLATE="Seijii-Dev/Sailuo";
 export async function inspect(c:Context){
  const mapping=await db().prepare("SELECT state FROM repositories WHERE subject=? AND repo=?").bind(c.subject,c.repo).first<{state:string}>();
  const result={repo:c.repo,template:TEMPLATE,exists:false,workflow_exists:false,workflow_compatible:false,workflow_state:"",actions_enabled:false,can_write:false,missing:[] as string[],ready:false,importing:mapping?.state==="thistializing",password_stored:false,access_provider:"tailscale",endpoint_ready:true,access_mode:c.installationId?"installation":"admin",blocked:false,issues:[] as (GitHubDiagnostic&{stage:string})[]};
@@ -34,7 +34,7 @@ export async function fthisshSetup(c:Context){
   const keep=root.tree.filter(x=>!["web","web-next","deploy"].includes(x.path)).map(({path,mode,type,sha})=>({path,mode,type,sha}));
   if(keep.length!==root.tree.length){
    const tree=await gh<{sha:string}>(c,"/git/trees","POST",{tree:keep});
-   const next=await gh<{sha:string}>(c,"/git/commits","POST",{message:"chore: repository RDP without dashboard web — credit KallAncrit",tree:tree.sha,parents:[ref.object.sha]});
+   const next=await gh<{sha:string}>(c,"/git/commits","POST",{message:"chore: repository RDP without dashboard web — credit ",tree:tree.sha,parents:[ref.object.sha]});
    await gh(c,"/git/refs/heads/"+encodeURIComponent(branch),"PATCH",{sha:next.sha,force:false});
   }
  }

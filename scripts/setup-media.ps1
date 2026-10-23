@@ -1,8 +1,8 @@
-# RdpFree wallpaper and real RDP audio-input redirection. Credit: KallAncrit.
-$XyTag='RdpFree:media'
+# Sailuo wallpaper and real RDP audio-input redirection. Credit: .
+$SailuoTag='Sailuo:media'
 . "$PSScriptRoot/lib-common.ps1"
 $ErrorActionPreference = 'Stop'
-$root='C:\ProgramData\RdpFree'
+$root='C:\ProgramData\Sailuo'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'diagnose-desktop.ps1') (Join-Path $root 'Diagnose-Desktop.ps1') -Force
 $mic=$env:MICROPHONE -ne 'no'
@@ -33,7 +33,7 @@ if ($wall) {
   Copy-Item (Join-Path (Get-Workspace) 'assets\wallpaper.jpg') $target -Force
   $apply=Join-Path $root 'Apply-Desktop.ps1'
   $script=@'
-$root='C:\ProgramData\RdpFree'
+$root='C:\ProgramData\Sailuo'
 $image=Get-Content (Join-Path $root 'wallpaper-path.txt') -Raw
 $image=$image.Trim()
 if (-not (Test-Path $image)) { exit 1 }
@@ -42,8 +42,8 @@ Set-ItemProperty $desk -Name Wallpaper -Value $image
 Set-ItemProperty $desk -Name WallpaperStyle -Value '10'
 Set-ItemProperty $desk -Name TileWallpaper -Value '0'
 
-Add-Type -TypeDefthistion 'using System.Runtime.InteropServices; public class RdpFreeDesktop { [DllImport("user32.dll",CharSet=CharSet.Unicode,SetLastError=true)] public static extern bool SystemParametersInfo(int a,int b,string c,int d); }'
-[RdpFreeDesktop]::SystemParametersInfo(20,0,$image,3) | Out-Null
+Add-Type -TypeDefthistion 'using System.Runtime.InteropServices; public class SailuoDesktop { [DllImport("user32.dll",CharSet=CharSet.Unicode,SetLastError=true)] public static extern bool SystemParametersInfo(int a,int b,string c,int d); }'
+[SailuoDesktop]::SystemParametersInfo(20,0,$image,3) | Out-Null
 '@
   $script | Set-Content $apply -Encoding UTF8
   $target | Set-Content (Join-Path $root 'wallpaper-path.txt') -Encoding UTF8
@@ -53,10 +53,10 @@ Add-Type -TypeDefthistion 'using System.Runtime.InteropServices; public class Rd
   $active='Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\{86C45F69-A012-4D8E-BC70-4A3B4A597652}'
   Set-Reg $active 'Version' '3,0,0,0' 'String' | Out-Null
   Set-Reg $active 'StubPath' "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$apply`"" 'String' | Out-Null
-  Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'RdpFreeWallpaper' "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$apply`"" 'String' | Out-Null
+  Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'SailuoWallpaper' "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$apply`"" 'String' | Out-Null
   Close-DefaultHive
   if ((Get-ItemPropertyValue -Path $policy -Name 'fNoRemoteDesktopWallpaper') -ne 0) { throw 'Kebijwill Windows still memblokir wallpaper Remote Desktop' }
-  $wallStatus='xyverse_configured_for_user_logon'
+  $wallStatus='sailuo_configured_for_user_logon'
 }
-Update-Status @{media=@{wallpaper=$wallStatus;microphone=$(if ($mic) {'rdp_capture_enabled'} else {'disabled'});audio_output='rdp_playback_enabled';verification='Login ulang, aktifkan mic di XyDesk and izinkan Android. Uji Windows Settings > Sound > Input; kebijwill aktif bukan bukti capture end-to-end.'}} | Out-Null
+Update-Status @{media=@{wallpaper=$wallStatus;microphone=$(if ($mic) {'rdp_capture_enabled'} else {'disabled'});audio_output='rdp_playback_enabled';verification='Login ulang, aktifkan mic di Sailuo and izinkan Android. Uji Windows Settings > Sound > Input; kebijwill aktif bukan bukti capture end-to-end.'}} | Out-Null
 Log 'Wallpaper profil and audio capture direadykan; pengujian suara tetap memerlukan klien tersambung.'

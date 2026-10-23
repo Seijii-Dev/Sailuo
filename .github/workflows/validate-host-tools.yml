@@ -26,5 +26,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: host-tools-verification
-          path: C:\ProgramData\RdpFree\host-tools\report.json
+          path: C:\ProgramData\Sailuo\host-tools\report.json
           if-no-files-found: ignore

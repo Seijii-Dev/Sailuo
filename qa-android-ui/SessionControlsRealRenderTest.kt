@@ -1,4 +1,4 @@
-package id.xydesk.remote.ui
+package id.sailuo.remote.ui
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -26,10 +26,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
-import id.xydesk.remote.core.SessionState
-import id.xydesk.remote.core.TelemetrySample
-import id.xydesk.remote.ui.components.rememberXyNotice
-import id.xydesk.remote.ui.theme.XyDeskTheme
+import id.sailuo.remote.core.SessionState
+import id.sailuo.remote.core.TelemetrySample
+import id.sailuo.remote.ui.components.rememberXyNotice
+import id.sailuo.remote.ui.theme.SailuoTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -72,9 +72,9 @@ class SessionControlsRealRenderTest {
         java.util.Locale.setDefault(java.util.Locale("id", "ID"))
         System.setProperty("roborazzi.test.record", "true")
         System.setProperty("robolectric.pixelCopyRenderMode", "hardware")
-        val outDirPath = System.getProperty("xyrdp.qa.outdir") ?: "/tmp/apk-ui-screenshots"
+        val outDirPath = System.getProperty("sailuo.qa.outdir") ?: "/tmp/apk-ui-screenshots"
         val outDir = File(outDirPath).apply { mkdirs() }
-        val bgPath = System.getProperty("xyrdp.qa.bg") ?: ""
+        val bgPath = System.getProperty("sailuo.qa.bg") ?: ""
         val bgBitmap = if (bgPath.isNotEmpty() && File(bgPath).exists()) {
             BitmapFactory.decodeFile(bgPath)
         } else {
@@ -90,14 +90,14 @@ class SessionControlsRealRenderTest {
             codecLabel = "H.264 AVC444 (Lively 60Hz)",
             udpActive = true,
             colorDepth = 32,
-            relayLabel = "XyRDP Zero-Lag",
+            relayLabel = "Sailuo Zero-Lag",
             networkLabel = "Wi-Fi 5GHz",
             frameIntervalMs = 16,
             pipelineLatencyMs = 4,
         )
 
         composeRule.setContent {
-            XyDeskTheme(dark = true) {
+            SailuoTheme(dark = true) {
                 var hudKeys by remember {
                     mutableStateOf(HudKey.presetLayout(HudProfilePreset.SAMP_GTA))
                 }
@@ -131,8 +131,8 @@ class SessionControlsRealRenderTest {
                     }
 
                     SessionControls(
-                        deviceId = "xyrdp-win2022-gaming",
-                        hostLabel = "XyRDP Windows Server 2022 (Gaming Suite)",
+                        deviceId = "sailuo-win2022-gaming",
+                        hostLabel = "Sailuo Windows Server 2022 (Gaming Suite)",
                         statusText = "Terhubung · Lively 60Hz Sync",
                         remoteSize = "1920 x 1080",
                         zoomPercent = 100,
@@ -170,7 +170,7 @@ class SessionControlsRealRenderTest {
                         onResolutionChange = {},
                         onOpenKeyboard = {},
                         onOpenHome = {},
-                        lastClipboard = "samp.xydeskremote.biz.id:7777",
+                        lastClipboard = "samp.sailuoremote.biz.id:7777",
                         clipboardSyncEnabled = true,
                         onSendText = {},
                         onSendRemoteClipboardText = { true },
@@ -180,7 +180,7 @@ class SessionControlsRealRenderTest {
                         rawInputUdpAlive = true,
                         voiceMicEnabled = true,
                         coreInfo = listOf(
-                            "Engine: XyRDP Zero-Lag 2.11 + AVC444",
+                            "Engine: Sailuo Zero-Lag 2.11 + AVC444",
                             "Lively Wallpaper: 60 FPS Continuous Sync (Anti-Stuck)",
                             "Audio: RDPSND + VB-Cable Virtual Sound",
                         ),

@@ -11,13 +11,13 @@ test('delete safeguards: exact confirmation, own personal repo, protected source
  validateDeleteTarget('owner/session',target,'7');
  assert.throws(()=>validateDeleteTarget('owner/session',target,'8'));
  assert.throws(()=>validateDeleteTarget('owner/other',target,'7'));
- assert.throws(()=>validateDeleteTarget('xykal/XyRDP',{...target,full_name:'xykal/XyRDP'},'7'));
+ assert.throws(()=>validateDeleteTarget('Seijii-Dev/Sailuo',{...target,full_name:'Seijii-Dev/Sailuo'},'7'));
  assert.throws(()=>validateDeleteConfirmation('owner/session',{confirmation:'owner/session',challenge:'a',acknowledge:false}));
  assert.throws(()=>validateDeleteConfirmation('owner/session',{confirmation:'session',challenge:'a',acknowledge:true}));
 });
 test('delete route requires browser owner, blocks running jobs/missing permission, deletes only after valid one-time confirmation',async()=>{
  const oldFetch=globalThis.fetch,oldSecret=process.env.NEXTAUTH_SECRET,oldURL=process.env.NEXTAUTH_URL;
- process.env.NEXTAUTH_SECRET='test-delete-only-secret';process.env.NEXTAUTH_URL='https://rdpfree.projectkal.my.id';
+ process.env.NEXTAUTH_SECRET='test-delete-only-secret';process.env.NEXTAUTH_URL='https://sailuo.projectkal.my.id';
  const {privateKey}=generateKeyPairSync('rsa',{modulusLength:2048});const config={id:123,slug:'test',pem:privateKey.export({type:'pkcs8',format:'pem'}).toString()};
  const states=new Map<string,string>();let running=false,permission=false,deletes=0,revokes=0;const cleanup:string[]=[];
  (globalThis as unknown as Record<symbol,unknown>)[Symbol.for('__cloudflare-context__')]={env:{DB:{prepare(sql:string){let args:unknown[]=[];return {bind(...v:unknown[]){args=v;return this},async first(){
@@ -36,7 +36,7 @@ test('delete route requires browser owner, blocks running jobs/missing permissio
  };
  try{
  const cookie='__Secure-next-auth.session-token='+await encode({secret:process.env.NEXTAUTH_SECRET,token:{authKind:'github',githubId:'7',login:'owner'},maxAge:300});
- const req=(data:unknown,extra:Record<string,string>={})=>new NextRequest('https://rdpfree.projectkal.my.id/api/github-app/delete-repository',{method:'POST',headers:{cookie,origin:'https://rdpfree.projectkal.my.id','Content-Type':'application/json',...extra},body:JSON.stringify(data)});
+ const req=(data:unknown,extra:Record<string,string>={})=>new NextRequest('https://sailuo.projectkal.my.id/api/github-app/delete-repository',{method:'POST',headers:{cookie,origin:'https://sailuo.projectkal.my.id','Content-Type':'application/json',...extra},body:JSON.stringify(data)});
  assert.equal((await POST(req({action:'prepare'},{authorization:'Bearer device'}))).status,403);
  assert.equal((await POST(req({action:'prepare'},{origin:'https://evil.example'}))).status,403);
  const prepared=await POST(req({action:'prepare'}));assert.equal(prepared.status,200);const d=await prepared.json();

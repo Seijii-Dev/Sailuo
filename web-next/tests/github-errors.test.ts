@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {inspect} from '../src/lib/setup';
-const context={token:'synthetic-test-token',repo:'testuser/XyRDP',subject:'test',kind:'user' as const};
+const context={token:'synthetic-test-token',repo:'testuser/Sailuo',subject:'test',kind:'user' as const};
 const store=globalThis as unknown as Record<symbol,unknown>;
 store[Symbol.for('__cloudflare-context__')]={env:{DB:{prepare:()=>({bind(){return this},async first(){return null}})}}};
 const original=globalThis.fetch;
@@ -18,7 +18,7 @@ test('GitHub failure diagnosis preserves setup state and never exposes token',as
  }
  globalThis.fetch=async input=>String(input).endsWith('/user')?Response.json({login:'testuser'}):Response.json({message:'Not Found'},{status:404});
  const missing=await inspect(context);assert.equal(missing.blocked,false);assert.equal(missing.exists,false);
- globalThis.fetch=async input=>{const p=String(input);if(p.endsWith('/user'))return Response.json({login:'testuser'});if(p.endsWith('/XyRDP'))return Response.json({permissions:{push:true}});if(p.includes('/contents/'))return Response.json({content:Buffer.from('old workflow').toString('base64')});if(p.endsWith('/rdp-6h.yml'))return Response.json({state:'active'});return Response.json({message:'Must have admin rights to Repository.'},{status:403})};
+ globalThis.fetch=async input=>{const p=String(input);if(p.endsWith('/user'))return Response.json({login:'testuser'});if(p.endsWith('/Sailuo'))return Response.json({permissions:{push:true}});if(p.includes('/contents/'))return Response.json({content:Buffer.from('old workflow').toString('base64')});if(p.endsWith('/rdp-6h.yml'))return Response.json({state:'active'});return Response.json({message:'Must have admin rights to Repository.'},{status:403})};
  const partial=await inspect(context);assert.equal(partial.exists,true);assert.equal(partial.workflow_exists,true);assert.equal(partial.issues[0].stage,'actions_permissions');
  }finally{globalThis.fetch=original}
 });

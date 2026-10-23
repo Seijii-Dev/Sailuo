@@ -1,4 +1,4 @@
-XYVERSE TECH - BRAND KIT (OFFICIAL ZIP)
+SAILUO TECH - BRAND KIT (OFFICIAL ZIP)
 Contents organized by usage. All logos are monochrome: black #0B0B0B / white #FFFFFF / dark #0D0D0D.
 
 01_main_logo/          Full logo (mark + wordmark using the proprietary font)

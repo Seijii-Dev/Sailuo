@@ -7,7 +7,7 @@ import json, sys, time, urllib.request, urllib.parse
 def get(url, tries=3):
     for i in range(tries):
         try:
-            req = urllib.request.Request(url, headers={'Accept':'application/json','User-Agent':'XyRDP-cek'})
+            req = urllib.request.Request(url, headers={'Accept':'application/json','User-Agent':'Sailuo-cek'})
             return json.loads(urllib.request.urlopen(req, timeout=30).read())
         except Exception as e:
             if i == tries-1: raise

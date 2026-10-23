@@ -31,7 +31,7 @@ jobs:
           function Log($m){Write-Host $m}
           $script:deletions=0
           function Remove-Item {$script:deletions++;throw 'Deletion disabled in validation'}
-          foreach($path in @("$env:SystemRoot", "$env:SystemRoot\System32", "$env:SystemRoot\WinSxS", "$env:SystemRoot\Installer", "$env:SystemRoot\Temp", "$env:ProgramFiles\Tailscale", 'C:\ProgramData\RdpFree')) {
+          foreach($path in @("$env:SystemRoot", "$env:SystemRoot\System32", "$env:SystemRoot\WinSxS", "$env:SystemRoot\Installer", "$env:SystemRoot\Temp", "$env:ProgramFiles\Tailscale", 'C:\ProgramData\Sailuo')) {
             if((Remove-Tree $path 'protected test') -ne 0){throw 'Protected target was not rejected'}
           }
           if($script:deletions){throw 'Deletion was attempted on protected path'}
@@ -39,7 +39,7 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/diagnose-desktop.ps1
-          $report=Get-ChildItem 'C:\ProgramData\RdpFree\Diagnostics\desktop-*.json' | Select-Object -Last 1
+          $report=Get-ChildItem 'C:\ProgramData\Sailuo\Diagnostics\desktop-*.json' | Select-Object -Last 1
           if(-not $report){throw 'Report missing'}
           $data=Get-Content $report -Raw | ConvertFrom-Json
           if(-not $data.os -or $data.runtimes.Count -lt 12){throw 'Report incomplete'}

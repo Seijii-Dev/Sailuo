@@ -1,7 +1,7 @@
 # ============================================================================
-#  restore-state.ps1 - Restore XyRDP Session State from GitHub Release
+#  restore-state.ps1 - Restore Sailuo Session State from GitHub Release
 # ----------------------------------------------------------------------------
-#  Downloads the encrypted archive from the `xyrdp-state-latest` Release in the
+#  Downloads the encrypted archive from the `sailuo-state-latest` Release in the
 #  user's repo, decrypts it with AES-256-CBC (PBKDF2 from RDP_PASSWORD /
 #  GITHUB_TOKEN), then extracts it back to:
 #    - C:\Persist
@@ -10,7 +10,7 @@
 #    - Wallpaper from the previous session
 # ============================================================================
 
-$XyTag = 'XyRDP:restore'
+$SailuoTag = 'Sailuo:restore'
 . "$PSScriptRoot/lib-common.ps1"
 
 $cfg = Get-Cfg
@@ -19,10 +19,10 @@ if ($env:PERSIST_DATA -and @('no','0','false','no','off') -contains $env:PERSIST
   exit 0
 }
 
-# Fallback: read the environment from C:\XyRDP\tools\session-env.json when called from the Dashboard
-if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:\XyRDP\tools\session-env.json')) {
+# Fallback: read the environment from C:\Sailuo\tools\session-env.json when called from the Dashboard
+if ((-not $env:GITHUB_TOKEN -or -not $env:GITHUB_REPOSITORY) -and (Test-Path 'C:\Sailuo\tools\session-env.json')) {
   try {
-    $sEnv = Get-Content 'C:\XyRDP\tools\session-env.json' -Raw | ConvertFrom-Json
+    $sEnv = Get-Content 'C:\Sailuo\tools\session-env.json' -Raw | ConvertFrom-Json
     if (-not $env:RDP_USER -and $sEnv.RDP_USER) { $env:RDP_USER = $sEnv.RDP_USER }
     if (-not $env:RDP_PASSWORD -and $sEnv.RDP_PASSWORD) { $env:RDP_PASSWORD = $sEnv.RDP_PASSWORD }
     if (-not $env:GITHUB_TOKEN -and $sEnv.GITHUB_TOKEN) { $env:GITHUB_TOKEN = $sEnv.GITHUB_TOKEN }
@@ -46,7 +46,7 @@ $readmePersist = 'C:\Persist\BACA-SAYA-ANTI-RESET.txt'
 if (-not (Test-Path $readmePersist)) {
   @(
     '===================================================================='
-    '  XyRDP PERMANENT FOLDER (C:\Persist) - ANTI RESET'
+    '  Sailuo PERMANENT FOLDER (C:\Persist) - ANTI RESET'
     '===================================================================='
     'Any file, installer, browser account, or document you save in:'
     '  1. C:\Persist'
@@ -65,11 +65,11 @@ if (-not $ghToken -or -not $ghRepo) {
   exit 0
 }
 
-$tag = 'xyrdp-state-latest'
+$tag = 'sailuo-state-latest'
 $hdrs = @{
   'Authorization' = "Bearer $ghToken"
   'Accept'        = 'application/vnd.github+json'
-  'User-Agent'    = 'XyRDP-State'
+  'User-Agent'    = 'Sailuo-State'
 }
 
 $rel = $null
@@ -80,21 +80,21 @@ try {
   exit 0
 }
 
-$asset = $rel.assets | Where-Object { $_.name -like 'xyrdp-state.*.enc' } | Select-Object -First 1
-$partAssets = @($rel.assets | Where-Object { $_.name -like 'xyrdp-state.*.enc.part*' } | Sort-Object -Property name)
+$asset = $rel.assets | Where-Object { $_.name -like 'sailuo-state.*.enc' } | Select-Object -First 1
+$partAssets = @($rel.assets | Where-Object { $_.name -like 'sailuo-state.*.enc.part*' } | Sort-Object -Property name)
 if (-not $asset -and $partAssets.Count -eq 0) {
   Log 'State asset not found in the release.'
   exit 0
 }
 
-$workDir = 'C:\XyRDP\restore-work'
+$workDir = 'C:\Sailuo\restore-work'
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $workDir -Force | Out-Null
 
 $dlHdrs = @{
   'Authorization' = "Bearer $ghToken"
   'Accept'        = 'application/octet-stream'
-  'User-Agent'    = 'XyRDP-State'
+  'User-Agent'    = 'Sailuo-State'
 }
 
 if ($partAssets.Count -gt 0) {
@@ -144,8 +144,8 @@ if (-not (Test-Path $encPath) -or (Get-Item $encPath).Length -lt 32) {
 
 # Try to decrypt with the current password-based key, then fall back to the repo-based key
 $keysToTry = @()
-if ($p.Length -ge 4) { $keysToTry += "XyRDP-Persist-$u-$p" }
-$keysToTry += "XyRDP-Persist-$ghRepo"
+if ($p.Length -ge 4) { $keysToTry += "Sailuo-Persist-$u-$p" }
+$keysToTry += "Sailuo-Persist-$ghRepo"
 
 $decrypted = $false
 foreach ($k in $keysToTry) {
@@ -211,7 +211,7 @@ if (Test-Path (Join-Path $extDir 'Persist')) {
 # Restore the wallpaper saved from the previous session
 $savedWpDir = 'C:\Persist\Config'
 if (Test-Path $savedWpDir) {
-  $pubWpDir = 'C:\Users\Public\Pictures\XyRDP'
+  $pubWpDir = 'C:\Users\Public\Pictures\Sailuo'
   New-Item -ItemType Directory -Path $pubWpDir -Force -ErrorAction SilentlyContinue | Out-Null
   Get-ChildItem -Path $savedWpDir -Filter 'wallpaper.*' -File -ErrorAction SilentlyContinue | ForEach-Object {
     Copy-FileUnlocked $_.FullName (Join-Path $pubWpDir $_.Name) | Out-Null

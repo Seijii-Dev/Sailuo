@@ -8,7 +8,7 @@ export type GitHubDiagnostic={provider:"github";status:number;endpoint:string;co
 export class ApiError extends Error {constructor(public status:number,message:string,public diagnostic?:GitHubDiagnostic){super(message)}}
 export const hash=(s:string)=>createHash("sha256").update(s).digest("hex");
 export const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"private, no-store"}});
-export function origin(req:NextRequest){if(req.headers.get("origin")!=="https://rdpfree.projectkal.my.id")throw new ApiError(403,"Origin not allowed");}
+export function origin(req:NextRequest){if(req.headers.get("origin")!=="https://sailuo.projectkal.my.id")throw new ApiError(403,"Origin not allowed");}
 export async function body(req:NextRequest){const raw=await req.text();if(raw.length>16384)throw new ApiError(413,"Payload too large");try{const d=JSON.parse(raw);if(!d||typeof d!=="object"||Array.isArray(d))throw Error();validateJsonKeys(d);return d as Record<string,unknown>;}catch{throw new ApiError(400,"Invalid JSON")}}
 async function selected(subject:string,fallback:string){const r=await db().prepare("SELECT repo FROM repositories WHERE subject=?").bind(subject).first<{repo:string}>();return r?.repo||fallback;}
 export async function context(req:NextRequest,browserOnly=false):Promise<Context>{
@@ -21,7 +21,7 @@ export async function context(req:NextRequest,browserOnly=false):Promise<Context
   const d=await decode({token:row.payload,secret:process.env.NEXTAUTH_SECRET!});
   if(!d||typeof d.repo!=="string")throw new ApiError(401,"Invalid device session");
   if(row.subject!=="admin"){
-   if(d.binding!=="github_app")throw new ApiError(401,"Legacy device tokens are no longer accepted. Connect the GitHub App, then create a new XyDesk token.");
+   if(d.binding!=="github_app")throw new ApiError(401,"Legacy device tokens are no longer accepted. Connect the GitHub App, then create a new Sailuo token.");
    const grant=await (await import("./github-app")).installationToken(row.subject,d.repo);
    return {...grant,repo:d.repo,subject:row.subject,kind:"device",deviceId:row.id};
   }
@@ -29,7 +29,7 @@ export async function context(req:NextRequest,browserOnly=false):Promise<Context
   return {token:d.accessToken,repo:d.repo,subject:row.subject,kind:"device",deviceId:row.id};
  }
  const t=await getToken({req,secret:process.env.NEXTAUTH_SECRET});
- if(t?.authKind==="admin"&&process.env.ADMIN_CREDENTIAL_VERSION&&t.credVersion===process.env.ADMIN_CREDENTIAL_VERSION&&process.env.ADMIN_GITHUB_TOKEN)return {kind:"admin",subject:"admin",token:process.env.ADMIN_GITHUB_TOKEN,repo:await selected("admin",process.env.ADMIN_REPO||"xykal/XyRDP")};
+ if(t?.authKind==="admin"&&process.env.ADMIN_CREDENTIAL_VERSION&&t.credVersion===process.env.ADMIN_CREDENTIAL_VERSION&&process.env.ADMIN_GITHUB_TOKEN)return {kind:"admin",subject:"admin",token:process.env.ADMIN_GITHUB_TOKEN,repo:await selected("admin",process.env.ADMIN_REPO||"Seijii-Dev/Sailuo")};
  if(t?.authKind==="github"&&typeof t.githubId==="string"&&/^\d+$/.test(t.githubId)&&typeof t.login==="string"){
   const subject="github:"+t.githubId;const mapping=await db().prepare("SELECT repo FROM repositories WHERE subject=?").bind(subject).first<{repo:string}>();
   if(!mapping)throw new ApiError(409,"Login succeeded. Install GitHub App and pilih repository terlebih dahulu.");
@@ -38,7 +38,7 @@ export async function context(req:NextRequest,browserOnly=false):Promise<Context
  throw new ApiError(401,"Silwill sign in kembali");
 }
 export async function github<T=Record<string,unknown>>(token:string,path:string,method="GET",data?:unknown):Promise<T>{
- const r=await fetch("https://api.github.com"+path,{method,headers:{Authorization:"Bearer "+token,"User-Agent":"RdpFree","Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(data?{"Content-Type":"application/json"}:{})},body:data?JSON.stringify(data):undefined,cache:"no-store",signal:AbortSignal.timeout(25000)});
+ const r=await fetch("https://api.github.com"+path,{method,headers:{Authorization:"Bearer "+token,"User-Agent":"Sailuo","Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(data?{"Content-Type":"application/json"}:{})},body:data?JSON.stringify(data):undefined,cache:"no-store",signal:AbortSignal.timeout(25000)});
  if(!r.ok){
   let message="GitHub menolak permintaan";try{const d=await r.json();if(typeof d.message==="string")message=d.message.slice(0,350)}catch{}
   message=redactSecrets(message);

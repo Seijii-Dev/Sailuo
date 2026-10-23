@@ -1,8 +1,8 @@
-# Creating or updating an RdpFree repository
+# Creating or updating an Sailuo repository
 
-Credit: KallAncrit. Follow the [active README](README.md).
+Credit: . Follow the [active README](README.md).
 
-1. Use the `xykal/XyRDP` template with a repository name of your choice.
+1. Use the `Seijii-Dev/Sailuo` template with a repository name of your choice.
 2. Enable Actions, then fill in `RDP_PASSWORD` and `TAILSCALE_AUTH_KEY` in Actions secrets or through dashboard Setup.
 3. Access is Tailscale only. Sign your phone or PC in to the same tailnet and allow TCP 3389 in the tailnet ACL.
 4. Choose the settings (`duration_minutes`, `access`, `windows10`, `extras`, `debloat`, `auto_renew`) and start a session. Never print or store the password as a public artifact.

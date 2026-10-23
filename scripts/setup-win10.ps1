@@ -16,11 +16,11 @@
 #    7) (opsional) label "Windows 10 Pro" di registry - kosmetik
 #
 #  Semua langkah BEST-EFFORT: failed satu does not stop session.
-#  Konfigurasi: assets/rdp-extras.json -> win10_look / win10_badge /
+#  Konfigurasi: assets/sailuo-extras.json -> win10_look / win10_badge /
 #  win10_wallpaper (can diubah from dashboard web).
 # ============================================================================
 
-$XyTag = 'XyRDP:win10'
+$SailuoTag = 'Sailuo:win10'
 . "$PSScriptRoot/lib-common.ps1"
 
 # ---------- 0. master switch ----------
@@ -29,7 +29,7 @@ if ($env:WINDOWS10) { $e = $env:WINDOWS10.Trim().ToLower(); if (@('no', '0', 'fa
 $cfg = Get-Cfg
 if (-not $cfg.win10_look) { $skip = $true }
 if ($skip) {
-  Log 'tweak Windows 10 skipped (input WIN10=no or win10_look=false di rdp-extras.json)'
+  Log 'tweak Windows 10 skipped (input WIN10=no or win10_look=false di sailuo-extras.json)'
   Update-Status @{ win10 = @{ look = 'skip' } } | Out-Null
   exit 0
 }
@@ -139,9 +139,9 @@ $wallStatus = 'skip'
 $wpFile = Get-Win10WallpaperFile
 if ($wpFile) {
   try {
-    New-Item -ItemType Directory -Path 'C:\XyRDP' -Force | Out-Null
+    New-Item -ItemType Directory -Path 'C:\Sailuo' -Force | Out-Null
     $ext = [IO.Path]::GetExtension($wpFile).TrimStart('.').ToLower(); if (-not $ext) { $ext = 'jpg' }
-    $local = "C:\XyRDP\wallpaper-win10.$ext"
+    $local = "C:\Sailuo\wallpaper-win10.$ext"
     Copy-Item $wpFile $local -Force
     # desktop wallpaper (profil Default + session sekarang)
     Set-RegBoth 'Control Panel\Desktop' 'Wallpaper'      $local 'String' | Out-Null

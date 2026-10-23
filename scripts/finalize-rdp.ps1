@@ -1,5 +1,5 @@
-# RdpFree: disconnect only its Tailscale/Portmap/Railway session, never kill unrelated SSH processes.
-$XyTag='RdpFree:finalize'
+# Sailuo: disconnect only its Tailscale/Portmap/Railway session, never kill unrelated SSH processes.
+$SailuoTag='Sailuo:finalize'
 . "$PSScriptRoot/lib-common.ps1"
 $exe="$env:ProgramFiles\Tailscale\tailscale.exe"
 if (Test-Path $exe) {
@@ -7,7 +7,7 @@ if (Test-Path $exe) {
 }
 Log 'Session stopped. The self-hosted machine is not deleted automatically.'
 
-$portmapRoot='C:\ProgramData\RdpFree\portmap'
+$portmapRoot='C:\ProgramData\Sailuo\portmap'
 foreach ($pf in @('pid.txt', 'railway-pid.txt')) {
   $pidFile = Join-Path $portmapRoot $pf
   if (Test-Path $pidFile) {
@@ -19,5 +19,5 @@ foreach ($pf in @('pid.txt', 'railway-pid.txt')) {
   }
 }
 Remove-Item (Join-Path $portmapRoot 'client.ovpn'), (Join-Path $portmapRoot 'pid.txt'), (Join-Path $portmapRoot 'railway-pid.txt') -Force -ErrorAction SilentlyContinue
-Remove-NetFirewallRule -DisplayName 'RdpFree Portmap RDP' -ErrorAction SilentlyContinue
+Remove-NetFirewallRule -DisplayName 'Sailuo Portmap RDP' -ErrorAction SilentlyContinue
 Log 'Tunnel session this dthattup; konfigurasi privat lokal dibersihkan.'

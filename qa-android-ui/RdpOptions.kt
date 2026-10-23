@@ -1,4 +1,4 @@
-package id.xydesk.remote.core
+package id.sailuo.remote.core
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -213,7 +213,7 @@ data class RdpOptions(
     /**
      * Kirim suara PC langsung ke HP lewat UDP/QUIC :4433 (WASAPI Loopback
      * di Host Agent) sehingga audio tetap terdengar walau `Remote Audio`
-     * RDP dimatikan demi VB-CABLE / XyDesk Virtual Microphone.
+     * RDP dimatikan demi VB-CABLE / Sailuo Virtual Microphone.
      */
     val quicAudio: Boolean = true,
     /** DSP mic HP: gain pre-amp in dB (-12..+24). */
@@ -710,7 +710,7 @@ data class RdpOptions(
     }
 
     companion object {
-        private const val FILE = "xydesk.rdp.options"
+        private const val FILE = "sailuo.rdp.options"
 
         private val KEYS = listOf(
             "pc_mode", "pc_engine", "pc_fps", "pc_bitrate", "raw_mouse",

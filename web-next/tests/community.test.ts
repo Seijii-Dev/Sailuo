@@ -9,11 +9,11 @@ test('public community response includes aggregates and opted-in profiles only, 
  const result=await publicCommunity(10000000);assert.equal(threshold,10000000-ONLINE_WINDOW_MS);assert.equal(result.total,3);assert.equal(result.online,1);assert.equal(result.profiles.length,1);assert(!JSON.stringify(result).includes('last_seen'));assert(!JSON.stringify(result).includes('subject'));
 });
 test('presence is session-bound, deduplicated and legacy heartbeat stays private; prior privacy preference persists',async()=>{
- process.env.NEXTAUTH_SECRET='community-test-only';process.env.NEXTAUTH_URL='https://rdpfree.projectkal.my.id';
+ process.env.NEXTAUTH_SECRET='community-test-only';process.env.NEXTAUTH_URL='https://sailuo.projectkal.my.id';
  let calls=0;const members=new Map<string,{show_profile:number}>();
  (globalThis as unknown as Record<symbol,unknown>)[Symbol.for('__cloudflare-context__')]={env:{DB:{prepare(sql:string){let args:unknown[]=[];return {bind(...v:unknown[]){args=v;return this},async first(){if(sql.includes('rate_limits'))return {count:1};calls++;assert.equal(args[0],'github:7');assert.equal(args[1],'7');const current=members.get(String(args[0]));const row={show_profile:current&&args[6]!==1?current.show_profile:Number(args[5])};members.set(String(args[0]),row);return row}}}}}};
  const token=await encode({secret:process.env.NEXTAUTH_SECRET,token:{authKind:'github',githubId:'7',login:'test-owner'},maxAge:300});
- const req=(data:unknown,extra:Record<string,string>={})=>new NextRequest('https://rdpfree.projectkal.my.id/api/community/presence',{method:'POST',headers:{origin:'https://rdpfree.projectkal.my.id',cookie:'__Secure-next-auth.session-token='+token,...extra},body:JSON.stringify(data)});
+ const req=(data:unknown,extra:Record<string,string>={})=>new NextRequest('https://sailuo.projectkal.my.id/api/community/presence',{method:'POST',headers:{origin:'https://sailuo.projectkal.my.id',cookie:'__Secure-next-auth.session-token='+token,...extra},body:JSON.stringify(data)});
  assert.equal((await POST(req({}, {origin:'https://evil.example'}))).status,403);assert.equal((await POST(req({}, {authorization:'Bearer token'}))).status,403);assert.equal((await POST(req({login:'someone-else'}))).status,400);assert.equal(calls,0);
  assert.equal((await (await POST(req({}))).json()).show_profile,false);
  assert.equal((await (await POST(req({show_profile:true}))).json()).show_profile,true);

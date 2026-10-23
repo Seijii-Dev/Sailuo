@@ -1,4 +1,4 @@
-package id.xydesk.remote.ui
+package id.sailuo.remote.ui
 
 import android.Manifest
 import android.content.Context
@@ -46,8 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.freerdp.freerdpcore.application.GlobalApp
-import id.xydesk.remote.ui.components.XyIcons
-import id.xydesk.remote.ui.components.XyPillButton
+import id.sailuo.remote.ui.components.XyIcons
+import id.sailuo.remote.ui.components.XyPillButton
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,10 +82,10 @@ internal data class LiveRdpScreenShareState(
 
 /**
  * Engine Global ala Discord for Multi-User Voice Party + Live RDP Screen Share.
- * Tetap hidup saat user berpindah antara Session XyRDP, Chat Global, and Beranda.
+ * Tetap hidup saat user berpindah antara Session Sailuo, Chat Global, and Beranda.
  */
 internal object XyDiscordVoiceStageManager {
-    private const val ENDPOINT = "https://api.xydeskremote.biz.id/api/voice-stage"
+    private const val ENDPOINT = "https://api.sailuoremote.biz.id/api/voice-stage"
     private const val SAMPLE_RATE = 8000
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -178,14 +178,14 @@ internal object XyDiscordVoiceStageManager {
             scope.launch {
                 sendStageAction(appCtx, "stop_screen", JSONObject())
             }
-            Toast.makeText(appCtx, "Share Screen Session XyRDP dihentikan", Toast.LENGTH_SHORT).show()
+            Toast.makeText(appCtx, "Share Screen Session Sailuo dihentikan", Toast.LENGTH_SHORT).show()
             return
         }
         if (!_joined.value) {
             joinVoiceParty(appCtx, startWithMic = false)
         }
         _sharingMyRdp.value = true
-        Toast.makeText(appCtx, "LIVE: Share Screen Session XyRDP distart ke Voice Room!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(appCtx, "LIVE: Share Screen Session Sailuo distart ke Voice Room!", Toast.LENGTH_SHORT).show()
         screenShareJob?.cancel()
         screenShareJob = scope.launch {
             while (isActive && _sharingMyRdp.value) {
@@ -201,12 +201,12 @@ internal object XyDiscordVoiceStageManager {
                         val bos = ByteArrayOutputStream(32768)
                         scaled.compress(Bitmap.CompressFormat.JPEG, 70, bos)
                         val b64 = Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP)
-                        val hostTitle = session.openUri?.host?.takeIf { it.isNotBlank() } ?: "XyRDP Desktop"
+                        val hostTitle = session.openUri?.host?.takeIf { it.isNotBlank() } ?: "Sailuo Desktop"
                         sendStageAction(
                             appCtx,
                             "screen_frame",
                             JSONObject()
-                                .put("title", "Live Session XyRDP ($hostTitle)")
+                                .put("title", "Live Session Sailuo ($hostTitle)")
                                 .put("frame_b64", b64)
                                 .put("width", bmp.width)
                                 .put("height", bmp.height)
@@ -327,7 +327,7 @@ internal object XyDiscordVoiceStageManager {
 
     private fun myIdentity(context: Context): Pair<String, String> {
         val gh = getVerifiedGitHubLogin(context)?.trim().orEmpty()
-        val prefs = context.getSharedPreferences("xydesk.global.chat", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("sailuo.global.chat", Context.MODE_PRIVATE)
         val nick = prefs.getString("nickname", null)?.trim().orEmpty().ifBlank { gh.ifBlank { "XyUser" } }
         return nick to gh
     }
@@ -429,7 +429,7 @@ internal object XyDiscordVoiceStageManager {
                     streamerKey = scr.optString("streamer_key"),
                     streamerName = scr.optString("streamer_name", "User"),
                     githubLogin = scr.optString("github_login"),
-                    title = scr.optString("title", "Live Session XyRDP"),
+                    title = scr.optString("title", "Live Session Sailuo"),
                     width = scr.optInt("width", 1280),
                     height = scr.optInt("height", 720),
                     fps = scr.optInt("fps", 60),
@@ -822,7 +822,7 @@ internal fun XyDiscordVoiceStageBar(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = xy("Loading live XyRDP screen stream…", "Loading live XyRDP screen stream…"),
+                                    text = xy("Loading live Sailuo screen stream…", "Loading live Sailuo screen stream…"),
                                     fontSize = 11.sp,
                                     color = Color(0xFFB2B2B8),
                                 )

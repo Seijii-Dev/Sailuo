@@ -1,4 +1,4 @@
-# RdpFree / KallAncrit. Local diagnostics only; no credentials, uploads or reboot.
+# Sailuo / . Local diagnostics only; no credentials, uploads or reboot.
 param([switch]$RestartExplorer)
 $ErrorActionPreference='Stop'
 $session=(Get-Process -Id $PID).SessionId
@@ -8,7 +8,7 @@ if($RestartExplorer){
   Start-Process explorer.exe
   Write-Host 'Explorer for this session restarted. No logout, reboot, or RDP service restart was performed.'
 }
-$root='C:\ProgramData\RdpFree\Diagnostics'
+$root='C:\ProgramData\Sailuo\Diagnostics'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 $os=Get-CimInstance Win32_OperatingSystem
 $apps=foreach($key in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')){

@@ -1,6 +1,6 @@
 # Portmap access (workflow schema 5)
 
-Credit: KallAncrit. Updated 2026-10-12.
+Credit: . Updated 2026-10-12.
 
 OpenVPN runs on the Windows runner only. Clients use the public mapping hostname and allocated TCP port with an RDP client. This is public RDP exposure, not a private tailnet.
 
@@ -21,12 +21,12 @@ Portmap connection status means the VPN and local listener were prepared. It doe
 
 ## This owner's setup and tests
 
-- Applied only to `xykal/XyRDP`, as explicitly selected. Configuration is stored as a sealed GitHub Actions Secret, not in Git.
+- Applied only to `Seijii-Dev/Sailuo`, as explicitly selected. Configuration is stored as a sealed GitHub Actions Secret, not in Git.
 - Public mapping: `kallxycrigi-41858.portmap.host:41858` -> Windows TCP 3389.
 - Existing RDP password retained; no passwords printed.
 - Real handshake-only validation `38266310125` succeeded on Windows Server 2022; it did not open public RDP, then disconnected and removed the private local config.
 - Live admin Setup reports compatible/ready with provider portmap and no missing secrets.
-- Attempt to select XyRDP through the user's GitHub App was rejected by GitHub with 422: the parent installation lacks access to XyRDP. Existing selected repo remains unchanged. Owner must add XyRDP through GitHub installed-app settings, then select it in the dashboard. No permission restriction was bypassed.
+- Attempt to select Sailuo through the user's GitHub App was rejected by GitHub with 422: the parent installation lacks access to Sailuo. Existing selected repo remains unchanged. Owner must add Sailuo through GitHub installed-app settings, then select it in the dashboard. No permission restriction was bypassed.
 - 21 web tests passed, including hostname/port status validation and stale-session rejection. Full phone RDP login has not been verified.
 
 ## Community join and domains
@@ -37,7 +37,7 @@ Portmap's managed custom-domain feature is advertised in its paid plan. A plain 
 
 ## 2026-10-12: default provider and DNS test
 
-Tailscale remains the default in workflow_dispatch and dashboard defaults. Owner XyRDP saved settings have been explicitly restored to Tailscale; the Portmap configuration is retained. Settings checks the Portmap secret metavailableta without reading its value. The Portmap dropdown option is disabled unless the secret exists and a valid hostname/port are present. Unknown secret-check status fails closed for Portmap without hiding Tailscale. Settings PUT independently rejects incomplete Portmap configuration; dispatch still verifies provider secrets.
+Tailscale remains the default in workflow_dispatch and dashboard defaults. Owner Sailuo saved settings have been explicitly restored to Tailscale; the Portmap configuration is retained. Settings checks the Portmap secret metavailableta without reading its value. The Portmap dropdown option is disabled unless the secret exists and a valid hostname/port are present. Unknown secret-check status fails closed for Portmap without hiding Tailscale. Settings PUT independently rejects incomplete Portmap configuration; dispatch still verifies provider secrets.
 
 Created only the previously unused DNS-only CNAME rdp.projectkal.my.id to kallxycrigi-41858.portmap.host, TTL 300. Both names resolved to the same address from the test resolver. Port 41858 remains necessary. Owner stored settings and the PORTMAP_HOST repository variable use this alias. This verifies DNS resolution only, not an end-to-end RDP login, provider policy, certificate identity, or latency. No session was started or stopped in this update.
 

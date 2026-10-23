@@ -1,4 +1,4 @@
-# KallAncrit - Explorer preferences. No Explorer termination or RDP disconnect.
+#  - Explorer preferences. No Explorer termination or RDP disconnect.
 param([switch]$CurrentUserOnly)
 $ErrorActionPreference = 'Stop'
 $preferences = @(
@@ -9,10 +9,10 @@ $roots = @('Registry::HKEY_CURRENT_USER')
 $loadedDefault = $false
 try {
   if (-not $CurrentUserOnly) {
-    & reg.exe load 'HKU\RdpFreeExplorerDefault' "$env:SystemDrive\Users\Default\NTUSER.DAT" | Out-Null
+    & reg.exe load 'HKU\SailuoExplorerDefault' "$env:SystemDrive\Users\Default\NTUSER.DAT" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Could not load Default profile preferences; no success reported.' }
     $loadedDefault = $true
-    $roots += 'Registry::HKEY_USERS\RdpFreeExplorerDefault'
+    $roots += 'Registry::HKEY_USERS\SailuoExplorerDefault'
   }
   foreach ($root in $roots) {
     foreach ($group in $preferences) {
@@ -29,7 +29,7 @@ try {
 } finally {
   if ($loadedDefault) {
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
-    & reg.exe unload 'HKU\RdpFreeExplorerDefault' | Out-Null
+    & reg.exe unload 'HKU\SailuoExplorerDefault' | Out-Null
     if ($LASTEXITCODE -ne 0) { Write-Warning 'Default profile hive could not be unloaded.' }
   }
 }

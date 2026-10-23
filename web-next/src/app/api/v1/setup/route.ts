@@ -15,7 +15,7 @@ export async function POST(req:NextRequest){return guarded(async()=>{
  if(data.action==="create"){
   if(data.confirm!==true)throw new ApiError(400,"Konfirmasi pembuatan repository diperlukan");
   if(!await rateLimit("create-repo:"+c.subject,3,3600))throw new ApiError(429,"Maksimum 3 percobaan buat repository per jam");
-  const r=await github<{full_name:string}>(c.token,"/repos/"+TEMPLATE+"/generate","POST",{owner:who.login,name,private:data.private===true,include_all_branches:false,description:"RdpFree Windows workflow — credit KallAncrit"});
+  const r=await github<{full_name:string}>(c.token,"/repos/"+TEMPLATE+"/generate","POST",{owner:who.login,name,private:data.private===true,include_all_branches:false,description:"Sailuo Windows workflow — credit "});
   if(r.full_name.toLowerCase()!==repo.toLowerCase())throw new ApiError(502,"Repository hasil template no per");
   await db().prepare("INSERT INTO repositories(subject,repo,state,updated) VALUES(?,?,'thistializing',?) ON CONFLICT(subject) DO UPDATE SET repo=excluded.repo,state=excluded.state,updated=excluded.updated").bind(c.subject,r.full_name,Date.now()).run();
   await db().prepare("INSERT INTO settings(repo,inputs,updated) VALUES(?,?,?) ON CONFLICT(repo) DO NOTHING").bind(r.full_name,JSON.stringify({...defaults,access:"tailscale"}),Date.now()).run();

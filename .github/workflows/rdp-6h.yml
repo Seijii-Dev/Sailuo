@@ -1,5 +1,5 @@
-# rdpfree-workflow-schema: 6
-name: RdpFree — 6-Hour RDP
+# sailuo-workflow-schema: 6
+name: Sailuo — 6-Hour RDP
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
       hostname:
         description: 'VM hostname prefix'
         required: false
-        default: 'rdpfree'
+        default: 'sailuo'
         type: string
       rdp_user:
         description: 'RDP username (3-20 characters)'
@@ -52,8 +52,8 @@ on:
         options:
           - 'yes'
           - 'no'
-      xydesk:
-        description: 'Enable XyDesk Remote host tuning (AVC444 + ClearType + audio)'
+      sailuo:
+        description: 'Enable Sailuo Remote host tuning (AVC444 + ClearType + audio)'
         required: false
         default: 'yes'
         type: choice
@@ -120,7 +120,7 @@ permissions:
   actions: write
 
 concurrency:
-  group: rdpfree-active-session
+  group: sailuo-active-session
   cancel-in-progress: false
 
 jobs:
@@ -130,7 +130,7 @@ jobs:
     timeout-minutes: 360
     env:
       DURATION_MINUTES: ${{ inputs.duration_minutes || '360' }}
-      HOSTNAME: ${{ inputs.hostname || 'rdpfree' }}
+      HOSTNAME: ${{ inputs.hostname || 'sailuo' }}
       RDP_USER: ${{ inputs.rdp_user || 'xyadmin' }}
       RDP_PASSWORD: ${{ secrets.RDP_PASSWORD }}
       ACCESS: ${{ inputs.access || 'tailscale' }}
@@ -141,7 +141,7 @@ jobs:
       STORAGE_BOOST: ${{ inputs.storage_boost || 'yes' }}
       DEBLOAT: ${{ inputs.debloat || 'light' }}
       WINDOWS10: ${{ inputs.windows10 || 'yes' }}
-      XYDESK: ${{ inputs.xydesk || 'yes' }}
+      SAILUO: ${{ inputs.sailuo || 'yes' }}
       EXTRAS: ${{ inputs.extras || 'yes' }}
       LINUX_MODE: ${{ inputs.linux_mode || 'desktop' }}
       MICROPHONE: ${{ inputs.microphone || 'yes' }}
@@ -223,11 +223,11 @@ jobs:
         continue-on-error: true
         run: ./scripts/setup-extras.ps1
 
-      - name: XyDesk Remote host setup
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.xydesk || 'yes') != 'no' }}
+      - name: Sailuo Remote host setup
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.sailuo || 'yes') != 'no' }}
         shell: pwsh
         continue-on-error: true
-        run: ./scripts/setup-xydesk.ps1
+        run: ./scripts/setup-sailuo.ps1
 
       - name: Set up Tailscale access (enabled last, once everything is ready)
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.access || 'tailscale') == 'tailscale' }}
@@ -261,8 +261,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: xyrdp-state
-          path: C:\XyRDP\persist\xyrdp-state.zip
+          name: sailuo-state
+          path: C:\Sailuo\persist\sailuo-state.zip
           retention-days: 30
           if-no-files-found: ignore
 
@@ -281,7 +281,7 @@ jobs:
             Authorization          = "Bearer $($env:GITHUB_TOKEN)"
             Accept                 = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent'           = 'XyRDP-AutoRenew'
+            'User-Agent'           = 'Sailuo-AutoRenew'
           }
           $body = @{
             ref    = 'main'
@@ -293,7 +293,7 @@ jobs:
               storage_boost    = "$($env:STORAGE_BOOST)"
               debloat          = "$($env:DEBLOAT)"
               windows10        = "$($env:WINDOWS10)"
-              xydesk           = "$($env:XYDESK)"
+              sailuo           = "$($env:SAILUO)"
               extras           = "$($env:EXTRAS)"
               runner           = "${{ inputs.runner || 'windows-2022' }}"
               linux_mode       = "$($env:LINUX_MODE)"

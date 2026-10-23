@@ -1,11 +1,11 @@
-# RdpFree native API v1
+# Sailuo native API v1
 
-Base URL: `https://rdpfree.projectkal.my.id/api/v1`
+Base URL: `https://sailuo.projectkal.my.id/api/v1`
 
 ## Authentication
 
-1. Log in on the website. Open `/dashboard/devices` (XyDesk menu).
-2. Create a device token. Copy it once into XyDesk Remote.
+1. Log in on the website. Open `/dashboard/devices` (Sailuo menu).
+2. Create a device token. Copy it once into Sailuo Remote.
 3. Every native request sends `Authorization: Bearer <device-token>`.
 4. Store the token in Android Keystore-backed CredentialVault. Do not log it, put it in an intent/URL, or store it in ordinary preferences.
 5. Tokens expire after 30 days. Create a replacement in the website. Revoke lost devices from the same page or use POST `/device/revoke` to revoke self.
@@ -35,11 +35,11 @@ Browser-only `/devices`: GET lists device metavailableta, POST `{name}` issues a
 
 ```json
 {
-  "repo": "xykal/XyRDP",
+  "repo": "Seijii-Dev/Sailuo",
   "phase": "ready",
   "active": true,
-  "run": { "id": 123, "status": "in_progress", "html_url": "https://github.com/xykal/XyRDP/actions/runs/123" },
-  "session": { "hostname": "rdpfree", "started_at": "2026-10-10T18:00:00Z", "expires_at": "2026-10-10T18:30:00Z", "username": "xyadmin" },
+  "run": { "id": 123, "status": "in_progress", "html_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/123" },
+  "session": { "hostname": "sailuo", "started_at": "2026-10-10T18:00:00Z", "expires_at": "2026-10-10T18:30:00Z", "username": "xyadmin" },
   "connection": { "host": "example.invalid", "port": 3389, "username": "xyadmin", "password_required": true, "transport": "tunnel" },
   "server_time": "2026-10-10T18:05:00Z"
 }
@@ -47,12 +47,12 @@ Browser-only `/devices`: GET lists device metavailableta, POST `{name}` issues a
 
 `phase` is `stopped`, `preparing`, or `ready`. Connection is null unless the status file's run ID matches a live run and the session has not expired. Poll every 15 seconds while the screen is active; back off on errors. Recheck status before connecting. `ready` means a current workflow published connection data, not that this API has independently tested RDP reachability.
 
-RDP_PASSWORD is a GitHub Actions secret and **cannot be retrieved**. Prompt for it in the app. Do not publish it in status JSON. API HTTPS is the control plane, not a TCP relay. XyDesk connects to the returned host/port; a Tailscale connection also requires the appropriate network client.
+RDP_PASSWORD is a GitHub Actions secret and **cannot be retrieved**. Prompt for it in the app. Do not publish it in status JSON. API HTTPS is the control plane, not a TCP relay. Sailuo connects to the returned host/port; a Tailscale connection also requires the appropriate network client.
 
 ## Settings
 
 Fields mirror `.github/workflows/rdp-6h.yml`:
-`durasi_menit`, `hostname`, `rdp_user`, `access`, `tunnel_provider`, `storage_boost`, `debloat`, `samp`, `samp_extra`, `gta_sa_url`, `win10`, `xydesk`, `ekstra`, `grafis`, `wallpaper_url`.
+`durasi_menit`, `hostname`, `rdp_user`, `access`, `tunnel_provider`, `storage_boost`, `debloat`, `samp`, `samp_extra`, `gta_sa_url`, `win10`, `sailuo`, `ekstra`, `grafis`, `wallpaper_url`.
 
 Get allowed choice values from `/settings`, do not invent input names. Default user `xyadmin`; optional `runneradmin` is accepted. Workflow job timeout is 360 minutes including setup, so a requested 360-minute session is not a guarantee of 360 minutes of usable desktop time. Settings do not alter already running jobs.
 
@@ -73,9 +73,9 @@ Never automatically retry POST `/runs` after an ambiguous network error. Refresh
 
 ## Repository onboarding update
 
-`GET /setup` exposes selected repository readiness. When no repository/workflow exists, `/status` returns HTTP 200 with `phase: "setup_required"`, `active: false`, null run/connection, and a `setup` object. Direct the user to `https://rdpfree.projectkal.my.id/dashboard/setup`; do not start a workflow in this state.
+`GET /setup` exposes selected repository readiness. When no repository/workflow exists, `/status` returns HTTP 200 with `phase: "setup_required"`, `active: false`, null run/connection, and a `setup` object. Direct the user to `https://sailuo.projectkal.my.id/dashboard/setup`; do not start a workflow in this state.
 
-Browser-only `POST /setup` actions: `create` (`name`, `private`, `confirm:true`), `connect` (`name`), `fthissh`. `fthissh` is independently retryable while GitHub template generation propagates. The selected repo is persisted server-side and no longer assumes `/XyRDP`. Existing native tokens retain their originally granted repo; token issuance now requires a ready repository.
+Browser-only `POST /setup` actions: `create` (`name`, `private`, `confirm:true`), `connect` (`name`), `fthissh`. `fthissh` is independently retryable while GitHub template generation propagates. The selected repo is persisted server-side and no longer assumes `/Sailuo`. Existing native tokens retain their originally granted repo; token issuance now requires a ready repository.
 
 Browser-only POST `/secrets` and POST/DELETE `/credentials` do not accept bearer device tokens. Native clients never receive the dashboard's stored password copy; prompt locally for RDP_PASSWORD. Website password controls support show/hide/copy and optional encrypted storage.
 
@@ -83,11 +83,11 @@ Browser-only POST `/secrets` and POST/DELETE `/credentials` do not accept bearer
 
 Identity login and repository authorization are now separate. Users must complete GitHub App installation and choose a permitted personal-account repo at `/dashboard/connection` before issuing a device token. A 409 response can mean the dashboard identity is valid but repository installation/selection is incomplete; do not treat it as a lost login cookie.
 
-Previously issued non-admin device tokens carrying OAuth grants are no longer accepted. Ask the user to complete app connection and create a replacement token. New tokens remain pinned to the chosen repo and exchange server-side for short-lived, repo-restricted installation tokens on each call. Admin-issued device grants are unchanged. No API exposes GitHub OAuth tokens, app private keys or installation access tokens to XyDesk.
+Previously issued non-admin device tokens carrying OAuth grants are no longer accepted. Ask the user to complete app connection and create a replacement token. New tokens remain pinned to the chosen repo and exchange server-side for short-lived, repo-restricted installation tokens on each call. Admin-issued device grants are unchanged. No API exposes GitHub OAuth tokens, app private keys or installation access tokens to Sailuo.
 
 ## Schema 2: Tailscale, media, game preparation
 
-Only `tailscale` is accepted for `access`; `tunnel_provider` is removed. Persisted old settings migrate on read. `runner` is `github` or `self-hosted`; game preparation is rejected on hosted dispatch. New yes/no fields: `wallpaper`, `microphone`, `roblox`, `minecraft_java`, `minecraft_bedrock`. Existing `samp`, `gta_sa_url`, `samp_extra` remain. Self-hosted machine must be dedicated/disposable with labels `self-hosted`, `Windows`, `X64`, `rdpfree`.
+Only `tailscale` is accepted for `access`; `tunnel_provider` is removed. Persisted old settings migrate on read. `runner` is `github` or `self-hosted`; game preparation is rejected on hosted dispatch. New yes/no fields: `wallpaper`, `microphone`, `roblox`, `minecraft_java`, `minecraft_bedrock`. Existing `samp`, `gta_sa_url`, `samp_extra` remain. Self-hosted machine must be dedicated/disposable with labels `self-hosted`, `Windows`, `X64`, `sailuo`.
 
 Status optionally includes `games`, `media`, `game_environment` only for the matching active, unexpired run. Connection always uses Tailscale IP + port 3389. Media reports configuration, not verified end-to-end functionality; game status reports preparation, not playability. No API for launching/stopping desktop game processes exists yet. Settings affect the next workflow run, not the active desktop.
 
@@ -98,10 +98,10 @@ Dispatch checks workflow schema 2 and returns 409 for old source. Repository own
 
 Urutan user: login identitas → buat repo from template → izinkan GitHub App mengaccess repo that → pilih repo → isi secrets → start session. Tombol “Repo saya already dibuat” only navigasi guide, bukan verifikasi server. Pemilihan repo memverifikasi workflow melalui GitHub.
 
-Fthatr delete tersedia di `/dashboard/connection` for session browser pemilik repository akun pribadi, bukan login admin layanan or token XyDesk. Konfirmasi server berlaku 5 menit, terikat subject + repo + ID GitHub, sekali pakai; user wajib mengetik nama lengkap and menyetujui dampaknya. Workflow aktif/antre memblokir delete. Repo sumber layanan dilindungi. Setelah GitHub mengonfirmasi pengdeletean, mapping, settings, vault repo and semua token XyDesk user dibersihkan; login/App installation tetap available. No available repository nyata that didelete selama pengujian; tes destructive API menggunwill mock.
+Fthatr delete tersedia di `/dashboard/connection` for session browser pemilik repository akun pribadi, bukan login admin layanan or token Sailuo. Konfirmasi server berlaku 5 menit, terikat subject + repo + ID GitHub, sekali pakai; user wajib mengetik nama lengkap and menyetujui dampaknya. Workflow aktif/antre memblokir delete. Repo sumber layanan dilindungi. Setelah GitHub mengonfirmasi pengdeletean, mapping, settings, vault repo and semua token Sailuo user dibersihkan; login/App installation tetap available. No available repository nyata that didelete selama pengujian; tes destructive API menggunwill mock.
 
 **Perubahan izin:** keterangan lama “no meminta Admthisstration” berlaku for versi senot yet fthatr delete. Manifest baru meminta Admthisstration write selain izin senot yetnya. For App that already terdaftar, owner must menambahkan Admthisstration: Read and write di Permissions & events, lalu pemilik instalasi menyetujui pembaruannya. GitHub no menyediwill izin delete-only; Admthisstration mencakup kewenangan pengelolaan repo lain also. Gunwill Only select repositories. Token operasi biasa tetap only Contents/Metavailableta read, Actions/Secrets write; Admthisstration only diminta on token sementara that dibatasi ke satu repo saat operasi delete and dicabut sealreadynya. Contents tetap read: fthatr this no menambah kemampuan menulis source.
 
-### Schema 3 / automatic XyVerse wallpaper
+### Schema 3 / automatic Sailuo wallpaper
 
-The host now always uses the original `assets/wallpaper.jpg` anime XyVerse image. `wallpaper` and `wallpaper_url` are removed from settings and workflow dispatch; legacy client values are ignored. Sync workflow + scripts + assets together. Host policy permits wallpaper, but the RDP client must also negotiate `+wallpaper`. Existing connected sessions need disconnect/reconnect and existing desktop profiles may need sign out/sign in. A configuration or CLI test is not a Windows/Android visual acceptance test.
+The host now always uses the original `assets/wallpaper.jpg` anime Sailuo image. `wallpaper` and `wallpaper_url` are removed from settings and workflow dispatch; legacy client values are ignored. Sync workflow + scripts + assets together. Host policy permits wallpaper, but the RDP client must also negotiate `+wallpaper`. Existing connected sessions need disconnect/reconnect and existing desktop profiles may need sign out/sign in. A configuration or CLI test is not a Windows/Android visual acceptance test.

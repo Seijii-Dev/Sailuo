@@ -32,6 +32,6 @@ export async function POST(req:NextRequest){return guarded(async()=>{
     await db().prepare("DELETE FROM repositories WHERE subject=? AND repo=?").bind(who.subject,c.repo).run();
    }catch{return reply({ok:true,deleted:true,cleanup_pending:true,message:"Repo already didelete di GitHub. Pembersihan data lokal not yet selesai; hubungi admin."})}
   }
-  return reply({ok:true,deleted:true,message:"Repository didelete. Token XyDesk akun this and data repo di dashboard dibersihkan. Login tetap aktif."});
+  return reply({ok:true,deleted:true,message:"Repository didelete. Token Sailuo akun this and data repo di dashboard dibersihkan. Login tetap aktif."});
  }finally{try{await db().prepare("DELETE FROM locks WHERE key=? AND expires=?").bind("run:"+c.repo,expires).run()}catch{/* lock expires automatically; do not mask a completed deletion */}}
 })}

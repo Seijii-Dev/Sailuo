@@ -1,13 +1,13 @@
 # Windows, dependencies and dashboard synchronization
 
-Credit: KallAncrit · Updated 2026-10-11
+Credit:  · Updated 2026-10-11
 
 ## What actually changed
 
 - Workflow schema 6 matches the dashboard input names and allowed choices: `duration_minutes`, `access`, `windows10`, `extras`, `debloat` and `auto_renew`. Toggles take `yes`/`no`, `debloat` takes `light`/`full`/`none`, and Linux mode takes `desktop`/`plain`.
 - Standard x64 images: `windows-2022`, `windows-2025`, `windows-latest`. These are Windows Server images, not renamed Windows 7/10/11 desktops.
 - The dashboard always targets GitHub-hosted images. Existing saved legacy runner labels migrate to `windows-2022`; saving does not start a job.
-- Connection setup, the original XyVerse wallpaper and status publication precede optional downloads/debloat. Fast defaults skip storage boost, theme changes and desktop extras. Queue time and download latency are not guaranteed.
+- Connection setup, the original Sailuo wallpaper and status publication precede optional downloads/debloat. Fast defaults skip storage boost, theme changes and desktop extras. Queue time and download latency are not guaranteed.
 - RAM/CPU are allocated by GitHub, not selectable upgrades. Actual CPU threads/RAM/free C: disk at setup are reported for new sessions. Storage cleanup does not enlarge the disk.
 - Legacy Windows dependencies are installed and verified only: official signed Microsoft June 2010 DirectX, VC++ x86/x64 and VC++ 2013 x86. DirectPlay/.NET 3.5 report their actual feature state or unavailable/source-required; failures are not relabeled successful.
 - Both System32 and SysWOW64 are checked for d3dx9_25, d3dx9_43, d3dcompiler_43 and xinput1_3. A newer OS DirectX version does not imply the legacy 32-bit libraries exist.
@@ -19,7 +19,7 @@ Credit: KallAncrit · Updated 2026-10-11
 - Actions dependency validation `38153317641` passed full dependency installation and a repeated DirectX check on both Windows Server 2022 and 2025. It did not launch RDP.
 - Tailscale installer validation `38109266815` passed previously. Windows Temp directory/ACL preservation fixes an installer prerequisite that the old storage cleanup removed.
 - Web dispatch contract/auth/duplicate guards are covered by automated tests. Live web readback sees actual GitHub runs and steps. A duplicate start was rejected without stopping the existing session.
-- Owner's GitHub App selected `xykal/gor`, thistially on schema 2, not the main template repository. Its template-owned workflow/scripts were synced to schema 4 at `8115958`. Its **RDP_PASSWORD and TAILSCALE_AUTH_KEY are absent**: owner must fill them in dashboard Setup before a real run can start. Repository secrets cannot be read or copied back from GitHub.
+- Owner's GitHub App selected `Seijii-Dev/gor`, thistially on schema 2, not the main template repository. Its template-owned workflow/scripts were synced to schema 4 at `8115958`. Its **RDP_PASSWORD and TAILSCALE_AUTH_KEY are absent**: owner must fill them in dashboard Setup before a real run can start. Repository secrets cannot be read or copied back from GitHub.
 
 ## Updating an existing repository
 

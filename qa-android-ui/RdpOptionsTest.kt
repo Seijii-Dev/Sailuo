@@ -1,4 +1,4 @@
-package id.xydesk.remote.core
+package id.sailuo.remote.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -169,13 +169,13 @@ class RdpOptionsTest {
     @Test
     fun sshTunnelCommandGeneratorMenghasilkanFormatPortForwardingThatTepat() {
         val opts = RdpOptions(
-            sshHost = "bastion.xyverse.id",
+            sshHost = "bastion.sailuo.id",
             sshPort = 2222,
             sshUser = "devops",
             sshLocalPort = 13389,
         )
         assertEquals(
-            "ssh -N -L 13389:10.10.0.25:3389 devops@bastion.xyverse.id -p 2222",
+            "ssh -N -L 13389:10.10.0.25:3389 devops@bastion.sailuo.id -p 2222",
             WakeOnLan.buildSshTunnelCommand("10.10.0.25", 3389, opts),
         )
         assertNull(WakeOnLan.buildSshTunnelCommand("10.10.0.25", 3389, RdpOptions()))

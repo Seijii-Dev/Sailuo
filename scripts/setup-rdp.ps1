@@ -2,7 +2,7 @@
 #  setup-rdp.ps1 - MODE DASAR (v2: without Tailscale)
 #  1) buat user admin (Admthisstrators + Remote Desktop Users, password tetap)
 #  2) aktifkan Remote Desktop port 3389 (setting standar Windows)
-#  3) catat info session ke out/rdp-status.json (without password)
+#  3) catat info session ke out/sailuo-status.json (without password)
 #
 # Access sign in:
 #    - tunnel TCP ke port 3389 (pinggy/bore/ngrok/localhost.run/serveo) -> scripts/setup-access.ps1
@@ -11,7 +11,7 @@
 #  no punya inbound publik); only ditembus lewat tunnel/Tailscale.
 # ============================================================================
 
-$XyTag = 'XyRDP:rdp'
+$SailuoTag = 'Sailuo:rdp'
 . "$PSScriptRoot/lib-common.ps1"
 
 # ---------- 0. Validasi ----------
@@ -26,7 +26,7 @@ if ($u -notmatch '^[A-Za-z0-9][A-Za-z0-9_-]{2,19}$' -or $reservedUsers -contains
   exit 1
 }
 $cfg = Get-Cfg
-$hostBase = ($env:HOSTNAME -replace '[^a-zA-Z0-9-]', '').ToLower().Trim('-'); if (-not $hostBase) { $hostBase = 'xyrdp' }
+$hostBase = ($env:HOSTNAME -replace '[^a-zA-Z0-9-]', '').ToLower().Trim('-'); if (-not $hostBase) { $hostBase = 'sailuo' }
 if ($hostBase.Length -gt 30) { $hostBase = $hostBase.Substring(0, 30) }
 $hostName = "$hostBase-$env:GITHUB_RUN_NUMBER"
 
@@ -46,7 +46,7 @@ if ($u.ToLower() -eq 'runneradmin') {
   try { Set-LocalUser -Name $u -PasswordNeverExpires $true -AccountNeverExpires -ErrorAction SilentlyContinue } catch {}
 } else {
   if (Get-LocalUser -Name $u -ErrorAction SilentlyContinue) { Remove-LocalUser -Name $u }
-  New-LocalUser -Name $u -Password $sp -FullName 'XyRDP Admin' -PasswordNeverExpires -AccountNeverExpires -Description 'XyRDP remote user' | Out-Null
+  New-LocalUser -Name $u -Password $sp -FullName 'Sailuo Admin' -PasswordNeverExpires -AccountNeverExpires -Description 'Sailuo remote user' | Out-Null
 }
 Add-LocalGroupMember -Group 'Admthisstrators'         -Member $u -ErrorAction SilentlyContinue
 Add-LocalGroupMember -Group 'Remote Desktop Users'   -Member $u -ErrorAction SilentlyContinue
@@ -106,7 +106,7 @@ try {
 # will menganggap folder C:\Users\$u bentrok lalu membuat C:\Users\xyadmin.<hostname>,
 # sehingga semua file Downloads, Desktop & login Google di C:\Users\$u could not be read!
 $createdProfDir = Ensure-UserProfileCreated $u
-Ensure-XyDesktopIcons | Out-Null
+Ensure-SailuotopIcons | Out-Null
 if ($u.ToLower() -eq 'runneradmin') { Log "user '$u' (built-in runneradmin) ready: HIGHEST ADMIN without recreating (profile=$createdProfDir)" } else { Log "user '$u' ready: Administrators + Remote Desktop Users, password does not expire (HIGHEST, profile=$createdProfDir)" }
 
 
@@ -220,8 +220,8 @@ foreach ($aSvc in @('AudioEndpointBuilder', 'Audiosrv')) {
 
 Enable-NetFirewallRule -DisplayGroup 'Remote Desktop' -ErrorAction SilentlyContinue | Out-Null
 try {
-  New-NetFirewallRule -DisplayName 'XyRDP-TCP-3389' -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow -ErrorAction SilentlyContinue | Out-Null
-  New-NetFirewallRule -DisplayName 'XyRDP-UDP-3389' -Direction Inbound -Protocol UDP -LocalPort 3389 -Action Allow -ErrorAction SilentlyContinue | Out-Null
+  New-NetFirewallRule -DisplayName 'Sailuo-TCP-3389' -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow -ErrorAction SilentlyContinue | Out-Null
+  New-NetFirewallRule -DisplayName 'Sailuo-UDP-3389' -Direction Inbound -Protocol UDP -LocalPort 3389 -Action Allow -ErrorAction SilentlyContinue | Out-Null
 } catch {}
 
 # ensure layanan RDP (TermService & UmRdpService) jalan and port 3389 benar-benar LISTEN
@@ -240,7 +240,7 @@ if ((Get-RdpListenerState 3389) -eq 'NO listener') {
 }
 # tunggu sampai RDP BENAR-BENAR menjawab handshake X.224 (maks 120 detik).
 # "port LISTENING" saja no cukup: di runner nyata listener 3389 sempat hidup
-# lalu hilang/kosong ~2 menit setelah tweak XyDesk (validasi 2026-10-03).
+# lalu hilang/kosong ~2 menit setelah tweak Sailuo (validasi 2026-10-03).
 $rdpReadyAt = Wait-RdpReady -TimeoutSec 120
 $listen = Get-RdpListenerState 3389
 if ($rdpReadyAt) { $listen = "$listen + handshake ok via $rdpReadyAt" } else { $listen = "$listen + handshake NOT OK" }
@@ -276,7 +276,7 @@ $status = [ordered]@{
 }
 $outDir = Join-Path (Get-Workspace) 'out'
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-$status | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 -Path (Join-Path $outDir 'rdp-status.json')
+$status | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 -Path (Join-Path $outDir 'sailuo-status.json')
 $now.ToString('s') | Set-Content -Path (Join-Path $outDir 'started.txt')
 $status | ConvertTo-Json -Depth 8 | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
 

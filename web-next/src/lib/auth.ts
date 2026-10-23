@@ -15,21 +15,21 @@ export const authOptions: NextAuthOptions = {
   const bucket=createHash("sha256").update(ip).digest("hex");
   if(!await rateLimit("admin:"+bucket,5,900))return null;
   const r=await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",{method:"POST",body:new URLSearchParams({secret:process.env.TURNSTILE_SECRET_KEY,response:c.turnstile,remoteip:ip}),signal:AbortSignal.timeout(10000)});
-  const check=await r.json();if(!check.success||check.hostname!=="rdpfree.projectkal.my.id"||check.action!=="admin_login")return null;
+  const check=await r.json();if(!check.success||check.hostname!=="sailuo.projectkal.my.id"||check.action!=="admin_login")return null;
   const [salt,expected]=process.env.ADMIN_PASSWORD_HASH.split(":");
   if(!salt||!expected)return null;
   const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(c.password),"PBKDF2",false,["deriveBits"]);
   const result=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:100000,hash:"SHA-256"},key,256);
   const a=Buffer.from(result),z=Buffer.from(expected,"hex");
   if(a.length!==z.length||!timingSafeEqual(a,z)||c.email.trim().toLowerCase()!==process.env.ADMIN_EMAIL.toLowerCase())return null;
-  return {id:"rdpfree-admin",name:"Admin",email:process.env.ADMIN_EMAIL};
+  return {id:"sailuo-admin",name:"Admin",email:process.env.ADMIN_EMAIL};
  }})],
  session: {strategy: "jwt", maxAge: 30*24*60*60},
  pages: {signIn: "/login"},
  callbacks: {
   async jwt({token,account,profile,user}) {
    if(account?.provider === "github") {const avatar=(profile as {avatar_url?:string})?.avatar_url;token.picture=typeof avatar==="string"&&/^https:\/\/avatars\.githubusercontent\.com\//.test(avatar)?avatar:null;delete token.accessToken;token.login=(profile as {login?:string})?.login;token.githubId=account.providerAccountId;token.authKind="github";delete token.credVersion;try{await recordCommunityLogin(account.providerAccountId,String(token.login||""))}catch{console.warn("Community login count unavailable; authentication continues");}}
-   if(account?.provider === "credentials"&&user?.id==="rdpfree-admin"){token.authKind="admin";token.credVersion=process.env.ADMIN_CREDENTIAL_VERSION;token.login="Admin";delete token.accessToken;delete token.githubId;}
+   if(account?.provider === "credentials"&&user?.id==="sailuo-admin"){token.authKind="admin";token.credVersion=process.env.ADMIN_CREDENTIAL_VERSION;token.login="Admin";delete token.accessToken;delete token.githubId;}
    if(token.authKind==="github")delete token.accessToken;
    token.role=token.authKind==="admin"&&!!process.env.ADMIN_CREDENTIAL_VERSION&&token.credVersion===process.env.ADMIN_CREDENTIAL_VERSION?"admin":"user";
    return token;

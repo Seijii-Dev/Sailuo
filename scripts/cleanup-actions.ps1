@@ -6,7 +6,7 @@
 #  does not trigger rate limits or anti-abuse detection on new GitHub accounts.
 # ============================================================================
 $ErrorActionPreference = 'Continue'
-function Log([string]$m) { Write-Host "[XyRDP:cleanup] $m" }
+function Log([string]$m) { Write-Host "[Sailuo:cleanup] $m" }
 
 $repo = $env:GITHUB_REPOSITORY
 $wf   = $env:GH_WORKFLOW; if (-not $wf) { $wf = 'rdp-6h.yml' }
@@ -18,7 +18,7 @@ if (-not $repo -or -not $tok) { Log 'repo/token unknown - skip'; exit 0 }
 $hdrs = @{
   Authorization          = "Bearer $tok"
   Accept                 = 'application/vnd.github+json'
-  'User-Agent'           = 'XyRDP-Workspace'
+  'User-Agent'           = 'Sailuo-Workspace'
   'X-GitHub-Api-Version' = '2022-11-28'
 }
 

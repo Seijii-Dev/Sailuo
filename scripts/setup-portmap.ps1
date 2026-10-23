@@ -13,11 +13,11 @@
 #       tersedia, otomatis beralih ke Tailscale agar session tetap berjalan.
 # ============================================================================
 param([switch]$ValidateOnly)
-$XyTag = 'RdpFree:portmap'
+$SailuoTag = 'Sailuo:portmap'
 . "$PSScriptRoot/lib-common.ps1"
 $ErrorActionPreference = 'Stop'
 
-$root = 'C:\ProgramData\RdpFree\portmap'
+$root = 'C:\ProgramData\Sailuo\portmap'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 & icacls.exe $root /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 
@@ -196,9 +196,9 @@ try {
   Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1
   Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name SecurityLayer -Value 2
   Get-NetFirewallRule -Name 'RemoteDesktop-*' -ErrorAction SilentlyContinue | Disable-NetFirewallRule -ErrorAction SilentlyContinue
-  Get-NetFirewallRule -DisplayName 'XyDesk Remote*' -ErrorAction SilentlyContinue | Disable-NetFirewallRule -ErrorAction SilentlyContinue
-  Remove-NetFirewallRule -DisplayName 'RdpFree Portmap RDP' -ErrorAction SilentlyContinue
-  New-NetFirewallRule -DisplayName 'RdpFree Portmap RDP' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -InterfaceAlias $availablepter.Name -Profile Any | Out-Null
+  Get-NetFirewallRule -DisplayName 'Sailuo Remote*' -ErrorAction SilentlyContinue | Disable-NetFirewallRule -ErrorAction SilentlyContinue
+  Remove-NetFirewallRule -DisplayName 'Sailuo Portmap RDP' -ErrorAction SilentlyContinue
+  New-NetFirewallRule -DisplayName 'Sailuo Portmap RDP' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389 -InterfaceAlias $availablepter.Name -Profile Any | Out-Null
   Update-Status @{
     access = @{
       mode    = 'portmap'

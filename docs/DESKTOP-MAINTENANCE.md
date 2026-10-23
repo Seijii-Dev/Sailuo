@@ -15,7 +15,7 @@
 - Added manual Windows-2022 validation for parsing and repeat Lightshot installation;
   it does not start an RDP session.
 
-Validation result: Windows-2022 run 38359540094 (https://github.com/xykal/XyRDP/actions/runs/38359540094)
+Validation result: Windows-2022 run 38359540094 (https://github.com/Seijii-Dev/Sailuo/actions/runs/38359540094)
 passed script parsing, disabled legacy transparency config, vendor Lightshot
 installation, executable discovery, and repeat installation. Interactive screenshot
 capture under xyadmin has not been tested. No RDP session

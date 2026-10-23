@@ -1,8 +1,8 @@
-# RdpFree / KallAncrit - verified tools for development, not a public relay.
-$XyTag='RdpFree:host-tools'
+# Sailuo /  - verified tools for development, not a public relay.
+$SailuoTag='Sailuo:host-tools'
 . "$PSScriptRoot/lib-common.ps1"
 $ErrorActionPreference='Stop'
-$root='C:\ProgramData\RdpFree\host-tools'
+$root='C:\ProgramData\Sailuo\host-tools'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 $report=[ordered]@{winrar='pending';vcredist='pending';xampp='pending';firewall7777='pending';errors=@();public_port=$false}
 function Fetch-Pinned($Url,$File,$Hash) {
@@ -33,7 +33,7 @@ try {
   if (-not (Test-Path $winrar)) { throw 'WinRAR.exe missing after installation' }
   $version=(Get-Item $winrar).VersionInfo.FileVersion
   if ([version]([regex]::Match($version,'\d+(\.\d+)+').Value) -lt [version]'7.23') { throw 'WinRAR version older than requested' }
-  $sample=Join-Path $root 'archive-test.txt'; 'RdpFree archive verification' | Set-Content $sample
+  $sample=Join-Path $root 'archive-test.txt'; 'Sailuo archive verification' | Set-Content $sample
   $archive=Join-Path $root 'archive-test.rar'
   Check-Command "$env:ProgramFiles\WinRAR\Rar.exe" @('a','-idq',"`"$archive`"","`"$sample`"")
   Check-Command "$env:ProgramFiles\WinRAR\Rar.exe" @('t','-idq',"`"$archive`"")
@@ -85,9 +85,9 @@ try {
 } catch { $report.xampp='failed';$report.errors+="XAMPP: $($_.Exception.Message)" }
 try {
   foreach ($protocol in @('TCP','UDP')) {
-    $name="RdpFree-TestHost-7777-$protocol"
+    $name="Sailuo-TestHost-7777-$protocol"
     Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue | Remove-NetFirewallRule
-    New-NetFirewallRule -Name $name -DisplayName "RdpFree test host $protocol 7777" -Direction Inbound -Action Allow -Protocol $protocol -LocalPort 7777 -Profile Any | Out-Null
+    New-NetFirewallRule -Name $name -DisplayName "Sailuo test host $protocol 7777" -Direction Inbound -Action Allow -Protocol $protocol -LocalPort 7777 -Profile Any | Out-Null
     $rule=Get-NetFirewallRule -Name $name
     $port=$rule | Get-NetFirewallPortFilter
     if ($rule.Enabled -ne 'True' -or $rule.Action -ne 'Allow' -or $port.LocalPort -ne '7777' -or "$($port.Protocol)" -notin @($protocol,$(if($protocol -eq 'TCP'){'6'}else{'17'}))) { throw "Firewall verification failed: $protocol" }

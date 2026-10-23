@@ -1,12 +1,12 @@
 # ============================================================================
-#  lib-common.ps1 - shared helpers for all XyRDP scripts (v2: Win10-style,
+#  lib-common.ps1 - shared helpers for all Sailuo scripts (v2: Win10-style,
 #  private Tailscale access). Dot-source it like this:
 #
-#      $XyTag = 'XyRDP:access'
+#      $SailuoTag = 'Sailuo:access'
 #      . "$PSScriptRoot/lib-common.ps1"
 #
-#  Contains: logger, registry helper, configuration reader (assets/rdp-extras.json),
-#  Default-profile hive manager, out/rdp-status.json reader/writer.
+#  Contains: logger, registry helper, configuration reader (assets/sailuo-extras.json),
+#  Default-profile hive manager, out/sailuo-status.json reader/writer.
 # ============================================================================
 
 $ErrorActionPreference = 'Continue'
@@ -15,7 +15,7 @@ try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::
 
 # ---------- log ----------
 function Log([string]$m) {
-  $tag = if ($script:XyTag) { $script:XyTag } else { 'XyRDP' }
+  $tag = if ($script:SailuoTag) { $script:SailuoTag } else { 'Sailuo' }
   Write-Host ("[{0:HH:mm:ss} UTC][{1}] {2}" -f [DateTime]::UtcNow,$tag,$m)
 }
 
@@ -120,15 +120,15 @@ function Get-Reg([string]$Path, [string]$Name) {
   try { return (Get-ItemProperty -Path $psPath -Name $Name -ErrorAction Stop).$Name } catch { return $null }
 }
 
-# ---------- konfigurasi (assets/rdp-extras.json) ----------
-$script:XyCfgDefaults = [ordered]@{
+# ---------- konfigurasi (assets/sailuo-extras.json) ----------
+$script:SailuoCfgDefaults = [ordered]@{
   lightshot        = $false           # do not run the background app unless requested
   wallpaper        = $true
   wallpaper_file   = 'wallpaper.jpg'
   win10_look       = $true            # all Windows 10 visual tweaks
   win10_badge      = $true            # "Windows 10 Pro" label in the registry (cosmetic)
   win10_wallpaper  = $true            # use the Windows 10 style wallpaper
-  xydesk_host      = $true            # host setup for the XyDesk Remote client (AVC444/ClearType/audio)
+  sailuo_host      = $true            # host setup for the Sailuo Remote client (AVC444/ClearType/audio)
   dark_theme       = $true            # dark application and system theme
   lightweight_mode = $true            # stop only non-essential background services
   vscode           = $false           # optional extra IDE
@@ -154,18 +154,18 @@ function Get-CfgStr([object]$o, [string]$n, [string]$d) {
 # Get-Cfg -> pscustomobject contathisng all settings (defaults + repo contents)
 function Get-Cfg {
   $j = $null
-  $path = Join-Path (Get-Workspace) 'assets\rdp-extras.json'
+  $path = Join-Path (Get-Workspace) 'assets\sailuo-extras.json'
   if (Test-Path $path) {
-    try { $j = Get-Content $path -Raw | ConvertFrom-Json; Log 'configuration: assets/rdp-extras.json' }
-    catch { Log "rdp-extras.json could not be read ($($_.Exception.Message)) - use defaults" }
-  } else { Log 'assets/rdp-extras.json is missing - use defaults' }
+    try { $j = Get-Content $path -Raw | ConvertFrom-Json; Log 'configuration: assets/sailuo-extras.json' }
+    catch { Log "sailuo-extras.json could not be read ($($_.Exception.Message)) - use defaults" }
+  } else { Log 'assets/sailuo-extras.json is missing - use defaults' }
 
   $c = [pscustomobject]@{}
-  foreach ($k in $script:XyCfgDefaults.Keys) {
-    $c | Add-Member -NotePropertyName $k -NotePropertyValue $script:XyCfgDefaults[$k] -Force
+  foreach ($k in $script:SailuoCfgDefaults.Keys) {
+    $c | Add-Member -NotePropertyName $k -NotePropertyValue $script:SailuoCfgDefaults[$k] -Force
   }
   if ($j) {
-    foreach ($k in @('lightshot','wallpaper','win10_look','win10_badge','win10_wallpaper','xydesk_host','dark_theme','lightweight_mode','vscode','notepadpp','storage_boost')) {
+    foreach ($k in @('lightshot','wallpaper','win10_look','win10_badge','win10_wallpaper','sailuo_host','dark_theme','lightweight_mode','vscode','notepadpp','storage_boost')) {
       $c.$k = Get-CfgBool $j $k $c.$k
     }
         $c.debloat          = (Get-CfgStr $j 'debloat' $c.debloat).ToLower()
@@ -181,9 +181,9 @@ function Get-Workspace {
   return (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 }
 
-# ---------- status file (out/rdp-status.json) ----------
+# ---------- status file (out/sailuo-status.json) ----------
 function Get-StatusPath {
-  return (Join-Path (Get-Workspace) 'out\rdp-status.json')
+  return (Join-Path (Get-Workspace) 'out\sailuo-status.json')
 }
 
 function Read-Status {
@@ -208,9 +208,9 @@ function Update-Status([hashtable]$Pairs) {
 }
 
 # ---------- hive profil Default (setting ikut user RDP saat login pertama) ----------
-$script:DefHiveKey = 'XyRDP_Def'
-$script:DefHive    = 'HKU\XyRDP_Def'
-$script:DefReg     = 'Registry::HKEY_USERS\XyRDP_Def'
+$script:DefHiveKey = 'Sailuo_Def'
+$script:DefHive    = 'HKU\Sailuo_Def'
+$script:DefReg     = 'Registry::HKEY_USERS\Sailuo_Def'
 $script:HiveLoaded = $false
 
 function Open-DefaultHive {
@@ -263,7 +263,7 @@ function Get-PrimaryIPv4 {
 # ---------------------------------------------------------------------------
 #  RDP readiness (lesson from the 2026-10-03 validation on a real runner):
 #   - "port 3389 LISTENING" is NOT enough: the listener briefly disappeared for ~2 minutes
-#     setelah tweak XyDesk, and koneksi ke 127.0.0.1 can ditolak sementara
+#     setelah tweak Sailuo, and koneksi ke 127.0.0.1 can ditolak sementara
 #     the VM's main IP receives. So we wait until RDP really answers
 #     handshake X.224 senot yet tunnel diarahkan ke sana.
 # ---------------------------------------------------------------------------
@@ -336,7 +336,7 @@ function Wait-RdpReady([int]$TimeoutSec = 240, [int]$Port = 3389) {
     # CATATAN: restart TermService SENGAJA no dilakukan lagi - on runner
     # GitHub, a restart does not bring listener 3389 back (proven on
     # validasi 2026-10-03: menunggu 240s + 150s tetap mati). Kita cukup menunggu
-    # and reported what is there; the cause is already mentioned in setup-xydesk.
+    # and reported what is there; the cause is already mentioned in setup-sailuo.
     Start-Sleep -Seconds 8
   }
   Log "  RDP not yet menjawab handshake setelah ${TimeoutSec}s"
@@ -367,7 +367,7 @@ function Get-OutsideReach([string]$HostName, [int]$Port, [int]$TimeoutSec = 90) 
     $req = $null
     foreach ($coba in 1..3) {
       try {
-        $req = Invoke-RestMethod -Uri $u -Headers @{ 'Accept' = 'application/json'; 'User-Agent' = 'XyRDP' } -TimeoutSec 30
+        $req = Invoke-RestMethod -Uri $u -Headers @{ 'Accept' = 'application/json'; 'User-Agent' = 'Sailuo' } -TimeoutSec 30
         if ($req.request_id) { break }
       } catch {
         # 403 = check-host membatasi laju (bukan bukti tunnel mati!) -> do not
@@ -385,7 +385,7 @@ function Get-OutsideReach([string]$HostName, [int]$Port, [int]$TimeoutSec = 90) 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     Start-Sleep -Seconds 6
     while ((Get-Date) -lt $deadline) {
-      $r = Invoke-RestMethod -Uri "https://check-host.net/check-result/$rid" -Headers @{ 'Accept' = 'application/json'; 'User-Agent' = 'XyRDP' } -TimeoutSec 30
+      $r = Invoke-RestMethod -Uri "https://check-host.net/check-result/$rid" -Headers @{ 'Accept' = 'application/json'; 'User-Agent' = 'Sailuo' } -TimeoutSec 30
       $vals = @($r.PSObject.Properties | ForEach-Object { $_.Value })
       if ($vals.Count -gt 0 -and -not ($vals | Where-Object { $null -eq $_ })) {
         $ok = 0; $all = 0
@@ -429,9 +429,9 @@ function Get-File([string]$Url, [string]$OutFile, [int]$TimeoutSec = 120) {
 # Use GITHUB_TOKEN to avoid the 403 rate limit (a real case on the runner:
 # shared GitHub-hosted IP often already exhausted the anonymous API quota).
 function Get-GhAssetUrl([string]$Repo, [string]$NameRegex) {
-  $hdrs = @{ 'User-Agent' = 'XyRDP' }
+  $hdrs = @{ 'User-Agent' = 'Sailuo' }
   if ($env:GITHUB_TOKEN) { $hdrs['Authorization'] = "Bearer $($env:GITHUB_TOKEN)" }
-  foreach ($h in @($hdrs, @{ 'User-Agent' = 'XyRDP' })) {
+  foreach ($h in @($hdrs, @{ 'User-Agent' = 'Sailuo' })) {
     try {
       $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers $h -TimeoutSec 60
       $a = $rel.assets | Where-Object { $_.name -match $NameRegex } | Select-Object -First 1
@@ -565,7 +565,7 @@ function Copy-TreeUnlocked([string]$SourceDir, [string]$DestDir) {
 }
 
 # ---------- 11. Generator Ikon Unik Desktop (.ico 64x64 ARGB Berwarna) ----------
-function New-XyAppIcon([string]$OutIcoPath, [string]$BadgeText, [int]$R1, [int]$G1, [int]$B1, [int]$R2, [int]$G2, [int]$B2, [string]$SubText = '') {
+function New-SailuoAppIcon([string]$OutIcoPath, [string]$BadgeText, [int]$R1, [int]$G1, [int]$B1, [int]$R2, [int]$G2, [int]$B2, [string]$SubText = '') {
   try {
     if (Test-Path -LiteralPath $OutIcoPath) { return $OutIcoPath }
     $dir = Split-Path -Path $OutIcoPath -Parent
@@ -641,13 +641,13 @@ function New-XyAppIcon([string]$OutIcoPath, [string]$BadgeText, [int]$R1, [int]$
   }
 }
 
-function Ensure-XyDesktopIcons {
-  $icoDir = 'C:\XyRDP\icons'
+function Ensure-SailuotopIcons {
+  $icoDir = 'C:\Sailuo\icons'
   New-Item -ItemType Directory -Path $icoDir -Force -ErrorAction SilentlyContinue | Out-Null
-  New-XyAppIcon "$icoDir\xydesk-dashboard.ico"   'XY'  2   132 199 15  23  42  'DASHBOARD' | Out-Null
-  New-XyAppIcon "$icoDir\cloud-save.ico"         'CLD' 56  189 248 3   105 161 'SAVE'      | Out-Null
-  New-XyAppIcon "$icoDir\persist-folder.ico"     'DIR' 234 179 8   161 98  7   'PERSIST'   | Out-Null
-  New-XyAppIcon "$icoDir\bluestacks.ico"         'BS5' 59  130 246 29  78  216 'ANDROID'   | Out-Null
+  New-SailuoAppIcon "$icoDir\sailuo-dashboard.ico"   'XY'  2   132 199 15  23  42  'DASHBOARD' | Out-Null
+  New-SailuoAppIcon "$icoDir\cloud-save.ico"         'CLD' 56  189 248 3   105 161 'SAVE'      | Out-Null
+  New-SailuoAppIcon "$icoDir\persist-folder.ico"     'DIR' 234 179 8   161 98  7   'PERSIST'   | Out-Null
+  New-SailuoAppIcon "$icoDir\bluestacks.ico"         'BS5' 59  130 246 29  78  216 'ANDROID'   | Out-Null
   return $icoDir
 }
 

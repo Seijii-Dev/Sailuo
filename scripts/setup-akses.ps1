@@ -1,9 +1,9 @@
-# RdpFree: private Tailscale access only. Credit: KallAncrit.
+# Sailuo: private Tailscale access only. Credit: .
 param([switch]$InstallOnly)
-$XyTag = 'RdpFree:access'
+$SailuoTag = 'Sailuo:access'
 . "$PSScriptRoot/lib-common.ps1"
 $ErrorActionPreference = 'Stop'
-$work = 'C:\ProgramData\RdpFree\access'
+$work = 'C:\ProgramData\Sailuo\access'
 New-Item -ItemType Directory -Path $work -Force | Out-Null
 function Run-Bounded([string]$File, [string[]]$ArgsList, [int]$Seconds=90) {
   $out = Join-Path $work ([guid]::NewGuid().ToString('N')+'.out')
@@ -49,7 +49,7 @@ try {
   Start-Service Tailscale -ErrorAction Stop
   if ($InstallOnly) { $version=Run-Bounded $exe @('version') 30; if ($version.code -ne 0) { throw 'Tailscale CLI verification failed' }; Log "Install-only validation OK: $($version.text.Trim())"; return }
   $hostName=("$env:HOSTNAME-$env:GITHUB_RUN_NUMBER" -replace '[^a-zA-Z0-9-]','').Trim('-')
-  if (-not $hostName) { $hostName='rdpfree' }; if ($hostName.Length -gt 60) { $hostName=$hostName.Substring(0,60) }
+  if (-not $hostName) { $hostName='sailuo' }; if ($hostName.Length -gt 60) { $hostName=$hostName.Substring(0,60) }
   $up=Run-Bounded $exe @('up',"--auth-key=$env:TAILSCALE_AUTH_KEY","--hostname=$hostName",'--accept-dns=false','--accept-routes=false','--timeout=90s') 120
   if ($up.code -ne 0) { throw 'Tailscale rejected the connection. Check the auth key validity and device approval in the tailnet.' }
   $state=Run-Bounded $exe @('status','--json') 30
@@ -78,7 +78,7 @@ try {
   if (-not $listener) { throw 'Tailscale is connected but the RDP listener 3389 is not active yet; check setup-rdp.' }
   # Restrict known RDP rules to the private tailnet address space.
   Get-NetFirewallRule -Name 'RemoteDesktop-*' -ErrorAction SilentlyContinue | Set-NetFirewallRule -RemoteAddress '100.64.0.0/10' -ErrorAction SilentlyContinue
-  Get-NetFirewallRule -DisplayName 'XyDesk Remote*' -ErrorAction SilentlyContinue | Set-NetFirewallRule -RemoteAddress '100.64.0.0/10' -ErrorAction SilentlyContinue
+  Get-NetFirewallRule -DisplayName 'Sailuo Remote*' -ErrorAction SilentlyContinue | Set-NetFirewallRule -RemoteAddress '100.64.0.0/10' -ErrorAction SilentlyContinue
   Update-Status @{
     access = @{
       mode      = 'tailscale'

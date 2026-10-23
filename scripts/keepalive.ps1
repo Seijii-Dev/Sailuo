@@ -3,13 +3,13 @@
 # ----------------------------------------------------------------------------
 #  1. Keeps TermService, UmRdpService, Audiosrv & listener 3389 alive
 #  2. Ensures Desktop shortcuts have unique names & icons (anti-swap)
-#  3. Automatically opens the XyDeskRemote Dashboard on the user's first RDP login
+#  3. Automatically opens the SailuoRemote Dashboard on the user's first RDP login
 #  4. Runs a cross-session Auto-Checkpoint every 4 minutes to GitHub Release
 #     so Google logins and files in Downloads and Desktop stay safe
 #     even if the runner is forcibly stopped at any time.
 # ============================================================================
 
-$XyTag = 'XyRDP:keepalive'
+$SailuoTag = 'Sailuo:keepalive'
 . "$PSScriptRoot/lib-common.ps1"
 
 $s   = Read-Status
@@ -19,15 +19,15 @@ $rdpUser = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { (Get-Cfg).rdp_user
 
 Log "ACTIVE SESSION - address: $addr | ends: $($exp.ToString('HH:mm')) UTC"
 $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-$icoDir = Ensure-XyDesktopIcons
+$icoDir = Ensure-SailuotopIcons
 
 function Sync-And-Heal-DesktopShortcuts {
   try {
     $u = $rdpUser
     New-Item -ItemType Directory -Path 'C:\Persist' -Force -ErrorAction SilentlyContinue | Out-Null
 
-    $dashExe      = 'C:\XyRDP\tools\XyDeskDashboard.exe'
-    $dashIco      = Join-Path $icoDir 'xydesk-dashboard.ico'
+    $dashExe      = 'C:\Sailuo\tools\SailuoDashboard.exe'
+    $dashIco      = Join-Path $icoDir 'sailuo-dashboard.ico'
     $persistIco   = Join-Path $icoDir 'persist-folder.ico'
     $cloudSaveIco = Join-Path $icoDir 'cloud-save.ico'
     $persistPs1   = Join-Path $PSScriptRoot 'persist-state.ps1'
@@ -44,14 +44,14 @@ function Sync-And-Heal-DesktopShortcuts {
         Remove-Item -LiteralPath (Join-Path $desk $oldItem) -Force -ErrorAction SilentlyContinue
       }
 
-      # 1. XyDeskRemote Dashboard shortcut (blue-cyan 'XY DASHBOARD' icon)
+      # 1. SailuoRemote Dashboard shortcut (blue-cyan 'XY DASHBOARD' icon)
       if (Test-Path $dashExe) {
-        $lnkDash = Join-Path $desk 'XyDeskRemote Dashboard.lnk'
+        $lnkDash = Join-Path $desk 'SailuoRemote Dashboard.lnk'
         if (-not (Test-Path $lnkDash)) {
           $sc = $wsh.CreateShortcut($lnkDash)
           $sc.TargetPath = $dashExe
-          $sc.WorkingDirectory = 'C:\XyRDP\tools'
-          $sc.Description = 'XyDeskRemote Dashboard - System Management & Cloud Save Hub'
+          $sc.WorkingDirectory = 'C:\Sailuo\tools'
+          $sc.Description = 'SailuoRemote Dashboard - System Management & Cloud Save Hub'
           if (Test-Path $dashIco) { $sc.IconLocation = "$dashIco,0" }
           $sc.Save()
         }
@@ -75,7 +75,7 @@ function Sync-And-Heal-DesktopShortcuts {
           $sc3 = $wsh.CreateShortcut($lnkSave)
           $sc3.TargetPath = 'powershell.exe'
           $sc3.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$persistPs1`" -Checkpoint"
-          $sc3.WorkingDirectory = 'C:\XyRDP\scripts'
+          $sc3.WorkingDirectory = 'C:\Sailuo\scripts'
           $sc3.Description = 'Instant backup of Browser Logins (Chrome/Edge), Downloads & Desktop to the Cloud'
           if (Test-Path $cloudSaveIco) { $sc3.IconLocation = "$cloudSaveIco,0" }
           else { $sc3.IconLocation = 'shell32.dll,167' }
@@ -115,20 +115,20 @@ while ([DateTime]::UtcNow -lt $exp) {
     }
   } catch {}
 
-  # 1b. Auto-open XyDeskRemote Dashboard as soon as the user reaches the RDP Desktop for the first time!
-  if (-not $dashboardAutoOpened -and (Test-Path 'C:\XyRDP\tools\XyDeskDashboard.exe')) {
+  # 1b. Auto-open SailuoRemote Dashboard as soon as the user reaches the RDP Desktop for the first time!
+  if (-not $dashboardAutoOpened -and (Test-Path 'C:\Sailuo\tools\SailuoDashboard.exe')) {
     try {
-      $dashRunning = Get-Process -Name 'XyDeskDashboard' -ErrorAction SilentlyContinue
+      $dashRunning = Get-Process -Name 'SailuoDashboard' -ErrorAction SilentlyContinue
       if ($dashRunning) {
         $dashboardAutoOpened = $true
       } else {
         # Check whether explorer.exe is running in the user's interactive RDP session
         $expProcs = @(Get-Process -Name 'explorer' -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -ge 1 })
         if ($expProcs.Count -gt 0) {
-          & schtasks.exe /Create /TN "XyAutoOpenDashboard" /TR "`"C:\XyRDP\tools\XyDeskDashboard.exe`"" /SC ONCE /ST 00:00 /RU $rdpUser /IT /RL HIGHEST /F 2>&1 | Out-Null
+          & schtasks.exe /Create /TN "XyAutoOpenDashboard" /TR "`"C:\Sailuo\tools\SailuoDashboard.exe`"" /SC ONCE /ST 00:00 /RU $rdpUser /IT /RL HIGHEST /F 2>&1 | Out-Null
           & schtasks.exe /Run /TN "XyAutoOpenDashboard" 2>&1 | Out-Null
           $dashboardAutoOpened = $true
-          Log "XyDeskRemote Dashboard opened automatically in user '$rdpUser' Desktop session."
+          Log "SailuoRemote Dashboard opened automatically in user '$rdpUser' Desktop session."
         }
       }
     } catch {}
@@ -147,7 +147,7 @@ while ([DateTime]::UtcNow -lt $exp) {
       $tsState = if ($tsObj) { [string]$tsObj.BackendState } else { '' }
       if ($tsState -and $tsState -ne 'Running' -and $env:TAILSCALE_AUTH_KEY) {
         Log "Tailscale state '$tsState' detected - restoring the tunnel connection automatically..."
-        $hn = if ($s -and $s.hostname) { [string]$s.hostname } else { "xyrdp-$env:GITHUB_RUN_NUMBER" }
+        $hn = if ($s -and $s.hostname) { [string]$s.hostname } else { "sailuo-$env:GITHUB_RUN_NUMBER" }
         & $tsExe up --authkey="$($env:TAILSCALE_AUTH_KEY.Trim())" --hostname=$hn --unattended --accept-routes --accept-dns=false --reset 2>&1 | Out-Null
       }
     } catch {}
@@ -180,7 +180,7 @@ while ([DateTime]::UtcNow -lt $exp) {
     Log "heartbeat #$i | $rem minutes left | RDP=$listen | tailscale=$tsIp"
   }
 
-  # 4. Every 4 minutes: run the cross-session Auto-Checkpoint in the background (non-blocking) to Release 'xyrdp-state-latest'
+  # 4. Every 4 minutes: run the cross-session Auto-Checkpoint in the background (non-blocking) to Release 'sailuo-state-latest'
   if (($now - $lastCheckpointUtc).TotalMinutes -ge 4 -and $rem -gt 2) {
     $canRun = $true
     if ($checkpointJob) {

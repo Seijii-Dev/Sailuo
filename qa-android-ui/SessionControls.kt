@@ -1,7 +1,7 @@
-package id.xydesk.remote.ui
+package id.sailuo.remote.ui
 
-import id.xydesk.remote.core.SessionState
-import id.xydesk.remote.ui.input.XyStickMode
+import id.sailuo.remote.core.SessionState
+import id.sailuo.remote.ui.input.XyStickMode
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -81,20 +81,20 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
-import id.xydesk.remote.core.RdpOptions
-import id.xydesk.remote.core.SmartResolution
-import id.xydesk.remote.ui.components.XyGlassTile
-import id.xydesk.remote.ui.components.XyDialog
-import id.xydesk.remote.ui.components.XyField
-import id.xydesk.remote.ui.components.XyIcons
-import id.xydesk.remote.ui.components.XyNoticeState
-import id.xydesk.remote.ui.components.XyOverlay
-import id.xydesk.remote.ui.components.XyPillButton
-import id.xydesk.remote.ui.components.XySegmented
-import id.xydesk.remote.ui.components.XySlider
-import id.xydesk.remote.ui.components.XyToggleRow
-import id.xydesk.remote.ui.components.xyGlass
-import id.xydesk.remote.ui.theme.XyPill
+import id.sailuo.remote.core.RdpOptions
+import id.sailuo.remote.core.SmartResolution
+import id.sailuo.remote.ui.components.XyGlassTile
+import id.sailuo.remote.ui.components.XyDialog
+import id.sailuo.remote.ui.components.XyField
+import id.sailuo.remote.ui.components.XyIcons
+import id.sailuo.remote.ui.components.XyNoticeState
+import id.sailuo.remote.ui.components.XyOverlay
+import id.sailuo.remote.ui.components.XyPillButton
+import id.sailuo.remote.ui.components.XySegmented
+import id.sailuo.remote.ui.components.XySlider
+import id.sailuo.remote.ui.components.XyToggleRow
+import id.sailuo.remote.ui.components.xyGlass
+import id.sailuo.remote.ui.theme.XyPill
 import kotlin.math.roundToInt
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -133,7 +133,7 @@ fun SessionControls(
     remoteSize: String,
     zoomPercent: Int,
     remoteDpi: Int,
-    telemetry: id.xydesk.remote.core.TelemetrySample = id.xydesk.remote.core.TelemetrySample.EMPTY,
+    telemetry: id.sailuo.remote.core.TelemetrySample = id.sailuo.remote.core.TelemetrySample.EMPTY,
     pointerScreen: Offset,
     pointerVisible: Boolean,
     remoteCursor: RemoteCursor? = null,
@@ -376,7 +376,7 @@ fun SessionControls(
             lines += "Antrean flush: rata-rata %.1f, puncak %d".format(telemetry.queueDepth, telemetry.queuePeak)
         }
         cm?.setPrimaryClip(
-            ClipData.newPlainText("XyDesk Remote", lines.joinToString("\n"))
+            ClipData.newPlainText("Sailuo Remote", lines.joinToString("\n"))
         )
         notice.show(xyNow("Info teknis tersalin", "Technical info copied"))
     }
@@ -391,7 +391,7 @@ fun SessionControls(
     fun exportHudLayoutToClipboard() {
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         val json = HudKey.exportLayoutJson(keys)
-        cm?.setPrimaryClip(ClipData.newPlainText("XyDesk HUD Layout", json))
+        cm?.setPrimaryClip(ClipData.newPlainText("Sailuo HUD Layout", json))
         notice.show(xyNow("Layout tombol JSON disalin ke clipboard", "Button layout JSON copied to clipboard"))
     }
 
@@ -638,7 +638,7 @@ fun SessionControls(
                             transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.85f),
                         ),
                 ) {
-                    val railOpts = remember(deviceId, railMenuOpen) { id.xydesk.remote.core.RdpOptions.of(context, deviceId) }
+                    val railOpts = remember(deviceId, railMenuOpen) { id.sailuo.remote.core.RdpOptions.of(context, deviceId) }
                     var livelySyncEnabled by remember(railOpts) {
                         mutableStateOf(railOpts.desktopWallpaper && railOpts.desktopComposition)
                     }
@@ -1417,7 +1417,7 @@ fun SessionControls(
 
 @Composable
 private fun LiveTelemetryPill(
-    telemetry: id.xydesk.remote.core.TelemetrySample,
+    telemetry: id.sailuo.remote.core.TelemetrySample,
     modifier: Modifier = Modifier,
 ) {
     val rtt = telemetry.rttMs
@@ -1462,8 +1462,8 @@ private fun LiveTelemetryPill(
         Triple("UI/s", "${telemetry.fps}", fpsColor),
         Triple("LATENCY", rttLabel, rttColor),
         Triple("RESOLUSI", resLabel, Color(0xFFF2F2F4)),
-        Triple("ENCODE", telemetry.codecLabel.replace("FreeRDP", "XyRDP"), Color(0xFFF2F2F4)),
-        Triple("RELAY", telemetry.relayLabel.replace("FreeRDP", "XyRDP"), Color(0xFFE4E4E8)),
+        Triple("ENCODE", telemetry.codecLabel.replace("FreeRDP", "Sailuo"), Color(0xFFF2F2F4)),
+        Triple("RELAY", telemetry.relayLabel.replace("FreeRDP", "Sailuo"), Color(0xFFE4E4E8)),
         Triple("NETWORK", telemetry.networkLabel, netColor),
     )
 
@@ -2343,7 +2343,7 @@ private fun InputTab(
                         )
                     }
                 }
-                id.xydesk.remote.ui.components.XySwitch(
+                id.sailuo.remote.ui.components.XySwitch(
                     checked = swapMouseButtons,
                     onCheckedChange = onSwapMouseButtonsChange,
                 )
@@ -2415,8 +2415,8 @@ private fun InputTab(
         val reconnPrefs = remember { SessionPrefs(reconnContext) }
         PanelHint(
             xy(
-                "XyDesk mencoba sambung ulang selama durasi this, tersign in di latar. Setelah lewat, retry berhenti.",
-                "XyDesk keeps retrying for this window, even in background. After it ends, retries stop.",
+                "Sailuo mencoba sambung ulang selama durasi this, tersign in di latar. Setelah lewat, retry berhenti.",
+                "Sailuo keeps retrying for this window, even in background. After it ends, retries stop.",
             ),
         )
         var windowHours by remember { mutableStateOf(reconnPrefs.autoReconnectHours) }
@@ -2462,7 +2462,7 @@ private fun InputTab(
         fun refreshNotif() {
             runCatching {
                 notifContext.startService(
-                    android.content.Intent(notifContext, id.xydesk.remote.XySessionService::class.java),
+                    android.content.Intent(notifContext, id.sailuo.remote.XySessionService::class.java),
                 )
             }
         }
@@ -2690,7 +2690,7 @@ private fun ButtonsTab(
 @Composable
 private fun SessionTab(
     deviceId: String,
-    notice: id.xydesk.remote.ui.components.XyNoticeState,
+    notice: id.sailuo.remote.ui.components.XyNoticeState,
     onScreenshot: () -> Unit,
     onLockRemotePc: () -> Unit,
     onActivatePrivacyCurtain: () -> Unit,
@@ -2736,8 +2736,8 @@ private fun SessionTab(
     section("perekaman-lokal-pc-ke-hp",xy("Perekaman lokal · PC ke HP", "Local recording · PC to phone"), advanced = true) {
             PanelHint(
                 xy(
-                    "Desktop PC + audio direkam ke MP4 di Movies/XyDesk. Layar HP no pernah ikut terekam.",
-                    "PC desktop + audio are recorded to one MP4 in Movies/XyDesk. Your phone screen is never captured.",
+                    "Desktop PC + audio direkam ke MP4 di Movies/Sailuo. Layar HP no pernah ikut terekam.",
+                    "PC desktop + audio are recorded to one MP4 in Movies/Sailuo. Your phone screen is never captured.",
                 ),
             )
             XyPillButton(
@@ -2760,7 +2760,7 @@ private fun SessionTab(
 
     section("utilitas-pro-makro-antiafk",xy("Utilitas Pro: Anti-AFK, Makro RP & Optimasi Engine", "Pro Utilities: Anti-AFK, RP Macros & Engine Boost")) {
             val proCtx = LocalContext.current
-            val proPrefs = remember(proCtx) { proCtx.getSharedPreferences("xydesk.pro.session.engine", Context.MODE_PRIVATE) }
+            val proPrefs = remember(proCtx) { proCtx.getSharedPreferences("sailuo.pro.session.engine", Context.MODE_PRIVATE) }
             var antiAfkActive by remember { mutableStateOf(proPrefs.getBoolean("anti_afk_$deviceId", false)) }
             var availableptiveFramePacing by remember { mutableStateOf(proPrefs.getBoolean("availableptive_pacing", true)) }
             var zeroLagCursorBoost by remember { mutableStateOf(proPrefs.getBoolean("zero_lag_cursor", true)) }
@@ -3387,11 +3387,11 @@ private fun MonitorAndUserGridModal(
 ) {
     val context = LocalContext.current
     var pcOptions by remember(deviceId) { mutableStateOf(RdpOptions.of(context, deviceId)) }
-    val repo = remember { id.xydesk.remote.sessions.SessionsRepository(context) }
+    val repo = remember { id.sailuo.remote.sessions.SessionsRepository(context) }
     val allFavorites by repo.favorites().collectAsState(thistial = emptyList())
     val savedAccounts = remember(allFavorites) {
         allFavorites
-            .filter { !it.username.isNullOrBlank() && !it.username.equals("XyDesk", ignoreCase = true) }
+            .filter { !it.username.isNullOrBlank() && !it.username.equals("Sailuo", ignoreCase = true) }
             .distinctBy { "${it.domain.orEmpty().lowercase()}\\${it.username.orEmpty().lowercase()}" }
     }
     var customUserOpen by remember { mutableStateOf(false) }
@@ -3508,7 +3508,7 @@ private fun MonitorAndUserGridModal(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.1.sp,
                 )
-                id.xydesk.remote.core.XyPcStreamEngine.entries.chunked(2).forEach { row ->
+                id.sailuo.remote.core.XyPcStreamEngine.entries.chunked(2).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { engine ->
                             val isActive = pcOptions.pcStreamEngine == engine
@@ -3670,7 +3670,7 @@ private fun MonitorAndUserGridModal(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.1.sp,
                 )
-                val isConsole = consoleAdminMode && !activeUsername.equals("XyDesk", ignoreCase = true)
+                val isConsole = consoleAdminMode && !activeUsername.equals("Sailuo", ignoreCase = true)
                 val isVirtualUser = !isConsole
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Card 1: Session Konsol Runner (/admin)
@@ -3772,7 +3772,7 @@ private fun MonitorAndUserGridModal(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = xy("Session 2 Terpisah (XyDesk)", "Separate Session 2 (XyDesk)"),
+                                text = xy("Session 2 Terpisah (Sailuo)", "Separate Session 2 (Sailuo)"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 9.5.sp,
                                 maxLines = 1,
@@ -3781,7 +3781,7 @@ private fun MonitorAndUserGridModal(
                     }
                 }
 
-                // Target Akun Cepat (Runneradmin vs XyDesk + Akun Tersave)
+                // Target Akun Cepat (Runneradmin vs Sailuo + Akun Tersave)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val isRunnerActive = activeUsername.equals("runneradmin", ignoreCase = true)
                     Box(
@@ -3814,7 +3814,7 @@ private fun MonitorAndUserGridModal(
                             )
                         }
                     }
-                    val isXyDeskActive = activeUsername.equals("XyDesk", ignoreCase = true)
+                    val isSailuoActive = activeUsername.equals("Sailuo", ignoreCase = true)
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -3822,18 +3822,18 @@ private fun MonitorAndUserGridModal(
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
                             .border(
                                 1.dp,
-                                if (isXyDeskActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                if (isSailuoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                                 RoundedCornerShape(10.dp),
                             )
                             .clickable {
                                 RdpOptions.of(context, deviceId).copy(consoleAdmin = false).write(context, deviceId)
-                                onSwitchUserSession("XyDesk", null, null)
+                                onSwitchUserSession("Sailuo", null, null)
                             }
                             .padding(9.dp),
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = "XyDesk (Multi-User)",
+                                text = "Sailuo (Multi-User)",
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -3918,7 +3918,7 @@ private fun MonitorAndUserGridModal(
                             value = customUsername,
                             onValueChange = { customUsername = it },
                             label = xy("Username Windows", "Windows Username"),
-                            hint = "runneradmin / Admthisstrator / XyDesk",
+                            hint = "runneradmin / Admthisstrator / Sailuo",
                         )
                         XyField(
                             value = customPassword,

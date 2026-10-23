@@ -1,21 +1,21 @@
 # ============================================================================
-#  setup-extras.ps1 - MODE EKSTRA (v2: Win10-style, without Tailscale/XyDesk)
+#  setup-extras.ps1 - MODE EKSTRA (v2: Win10-style, without Tailscale/Sailuo)
 # ----------------------------------------------------------------------------
 #  Dirun SETELAH setup-rdp.ps1 (+ setup-win10.ps1). Semua langkah
 #  BEST-EFFORT: satu failed does not stop session.
 #
-#    1) baca konfigurasi from repo: assets/rdp-extras.json (ubah from dashboard)
+#    1) baca konfigurasi from repo: assets/sailuo-extras.json (ubah from dashboard)
 #    2) LIGHTSHOT   - install otomatis (winget -> installer vendor), auto-run
 #    3) TranslucentTB disabled
 #    4) WALLPAPER   - assets/wallpaper.* di repo (or WALLPAPER_URL)
 #    5) VERIFIKASI  - user RDP diensure anggota grup Admthisstrators
-#    6) rangkum hasil -> out/rdp-status.json (dibaca dashboard web)
+#    6) rangkum hasil -> out/sailuo-status.json (dibaca dashboard web)
 #
 #  Note: VM sekali-pakai. Setting per-user dthatlis ke profil Default
 #  (C:\Users\Default\NTUSER.DAT) so that otomatis aktif saat user RDP login.
 # ============================================================================
 
-$XyTag = 'XyRDP:ekstra'
+$SailuoTag = 'Sailuo:ekstra'
 . "$PSScriptRoot/lib-common.ps1"
 
 $u = if ($env:RDP_USER) { $env:RDP_USER } else { 'xyadmin' }
@@ -180,7 +180,7 @@ function Set-WallpaperLive([string]$imgPath) {
 $resWall = 'skip'; $wallName = ''
 if ($cfg.wallpaper) {
   Log 'WALLPAPER: readykan gambar...'
-  $wpDir = 'C:\XyRDP'
+  $wpDir = 'C:\Sailuo'
   $wpFile = $null; $srcUsed = ''
 
   # urutan sumber: input workflow -> session snapshot senot yetnya (C:\Persist\Config) -> file di repo (checkout) -> raw github
@@ -234,9 +234,9 @@ if ($cfg.wallpaper) {
     Log "  wallpaper: $wpFile (sumber: $srcUsed)"
     try {
       $ext = [IO.Path]::GetExtension($wpFile)
-      New-Item -ItemType Directory -Path 'C:\Users\Public\Pictures\XyRDP' -Force -ErrorAction SilentlyContinue | Out-Null
+      New-Item -ItemType Directory -Path 'C:\Users\Public\Pictures\Sailuo' -Force -ErrorAction SilentlyContinue | Out-Null
       New-Item -ItemType Directory -Path 'C:\Persist\Config' -Force -ErrorAction SilentlyContinue | Out-Null
-      Copy-Item -LiteralPath $wpFile -Destination "C:\Users\Public\Pictures\XyRDP\wallpaper$ext" -Force -ErrorAction SilentlyContinue
+      Copy-Item -LiteralPath $wpFile -Destination "C:\Users\Public\Pictures\Sailuo\wallpaper$ext" -Force -ErrorAction SilentlyContinue
       Copy-Item -LiteralPath $wpFile -Destination "C:\Persist\Config\wallpaper$ext" -Force -ErrorAction SilentlyContinue
     } catch {}
     Set-RegBoth 'Control Panel\Desktop' 'Wallpaper'      $wpFile 'String' | Out-Null

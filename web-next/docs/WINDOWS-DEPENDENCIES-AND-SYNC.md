@@ -1,13 +1,13 @@
 # Windows, dependencies and dashboard synchronization
 
-Credit: KallAncrit · Updated 2026-10-11
+Credit:  · Updated 2026-10-11
 
 ## What actually changed
 
 - Workflow schema 4 matches dashboard input names and allowed choices.
 - Standard x64 images: `windows-2022`, `windows-2025`, `windows-latest`. These are Windows Server images, not renamed Windows 7/10/11 desktops.
 - No self-hosted selection is required in the dashboard. Existing saved legacy runner labels migrate to `windows-2022`; saving does not start a job.
-- Connection setup, the original XyVerse wallpaper and status publication precede optional downloads/debloat. Fast defaults skip storage boost, theme changes and desktop extras. Queue time and download latency are not guaranteed.
+- Connection setup, the original Sailuo wallpaper and status publication precede optional downloads/debloat. Fast defaults skip storage boost, theme changes and desktop extras. Queue time and download latency are not guaranteed.
 - RAM/CPU are allocated by GitHub, not selectable upgrades. Actual CPU threads/RAM/free C: disk at setup are reported for new sessions. Storage cleanup does not enlarge the disk.
 - No game runtimes, anti-cheat bypasses or VM spoofing are installed. Previous game-related settings are removed and ignored.
 
@@ -17,7 +17,7 @@ Credit: KallAncrit · Updated 2026-10-11
 - Actions dependency validation `38153317641` passed full dependency installation and a repeated DirectX check on both Windows Server 2022 and 2025. It did not launch RDP or install/play games.
 - Tailscale installer validation `38109266815` passed previously. Windows Temp directory/ACL preservation fixes an installer prerequisite that the old storage cleanup removed.
 - Web dispatch contract/auth/duplicate guards are covered by automated tests. Live web readback sees actual GitHub runs and steps. A duplicate start was rejected without stopping the existing session.
-- Owner's GitHub App selected `xykal/gor`, thistially on schema 2, not the main template repository. Its template-owned workflow/scripts were synced to schema 4 at `8115958`. Its **RDP_PASSWORD and TAILSCALE_AUTH_KEY are absent**: owner must fill them in dashboard Setup before a real run can start. Repository secrets cannot be read or copied back from GitHub.
+- Owner's GitHub App selected `Seijii-Dev/gor`, thistially on schema 2, not the main template repository. Its template-owned workflow/scripts were synced to schema 4 at `8115958`. Its **RDP_PASSWORD and TAILSCALE_AUTH_KEY are absent**: owner must fill them in dashboard Setup before a real run can start. Repository secrets cannot be read or copied back from GitHub.
 
 ## Updating an existing repository
 

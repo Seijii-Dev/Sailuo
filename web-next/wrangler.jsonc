@@ -1,5 +1,5 @@
 {
-  "name": "rdpfree-next",
+  "name": "sailuo-next",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-10",
   "compatibility_flags": [
@@ -12,7 +12,7 @@
   "account_id": "a678fee6e0a026ccd2fd978cdf07806a",
   "routes": [
     {
-      "pattern": "rdpfree.projectkal.my.id",
+      "pattern": "sailuo.projectkal.my.id",
       "custom_domain": true
     }
   ],
@@ -21,7 +21,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "rdpfree-state",
+      "database_name": "sailuo-state",
       "database_id": "5c523469-8fad-46cd-a9f6-53b202749c49"
     }
   ]
