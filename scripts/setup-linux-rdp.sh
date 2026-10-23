@@ -274,7 +274,7 @@ if [ "$STAGE_MODE" = "--keepalive-only" ]; then
 fi
 
 if [ -z "${RDP_PASSWORD:-}" ] || [ "${#RDP_PASSWORD}" -lt 8 ]; then
-  log "ERROR: secret RDP_PASSWORD not yet di-set / kurang from 8 karakter."
+  log "ERROR: secret RDP_PASSWORD not yet di-set / less from 8 karakter."
   exit 1
 fi
 

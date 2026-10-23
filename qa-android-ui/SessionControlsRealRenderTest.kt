@@ -201,7 +201,7 @@ class SessionControlsRealRenderTest {
         composeRule.waitForIdle()
         saveRealComposeScreenshot(outDir, "12_APK_UI_State2_BubblePanahKeyboard_AksiCepat.png")
 
-        // STATE 3: Tutup Bubble Panah lalu Klik Handle MENU di Kanan Atas -> Membuka Menu Popup Utama (SessionPanel + Lively 60Hz)
+        // STATE 3: Tutup Bubble Panah then Klik Handle MENU di Kanan Atas -> Membuka Menu Popup Utama (SessionPanel + Lively 60Hz)
         composeRule.onNodeWithContentDescription("Tutup aksi cepat").performClick()
         composeRule.mainClock.advanceTimeBy(250L)
         composeRule.waitForIdle()

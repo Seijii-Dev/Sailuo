@@ -207,7 +207,7 @@ function Update-Status([hashtable]$Pairs) {
   } catch { Log "writing status failed: $($_.Exception.Message)"; return $false }
 }
 
-# ---------- hive profil Default (setting ikut user RDP saat login pertama) ----------
+# ---------- hive profil Default (setting ikut user RDP when login pertama) ----------
 $script:DefHiveKey = 'Sailuo_Def'
 $script:DefHive    = 'HKU\Sailuo_Def'
 $script:DefReg     = 'Registry::HKEY_USERS\Sailuo_Def'
@@ -218,7 +218,7 @@ function Open-DefaultHive {
   try {
     & reg load $script:DefHive 'C:\Users\Default\NTUSER.DAT' 2>&1 | Out-Null
     Start-Sleep -Milliseconds 600
-    if (Test-Path $script:DefReg) { $script:HiveLoaded = $true; Log 'profil Default di-load (setting ikut user RDP saat login pertama)'; return $true }
+    if (Test-Path $script:DefReg) { $script:HiveLoaded = $true; Log 'profil Default di-load (setting ikut user RDP when login pertama)'; return $true }
   } catch { Log "load profil Default failed: $($_.Exception.Message)" }
   $script:HiveLoaded = $false
   return $false
@@ -263,7 +263,7 @@ function Get-PrimaryIPv4 {
 # ---------------------------------------------------------------------------
 #  RDP readiness (lesson from the 2026-10-03 validation on a real runner):
 #   - "port 3389 LISTENING" is NOT enough: the listener briefly disappeared for ~2 minutes
-#     setelah tweak Sailuo, and koneksi ke 127.0.0.1 can ditolak sementara
+#     after tweak Sailuo, and koneksi ke 127.0.0.1 can ditolak sementara
 #     the VM's main IP receives. So we wait until RDP really answers
 #     handshake X.224 senot yet tunnel diarahkan ke sana.
 # ---------------------------------------------------------------------------
@@ -321,7 +321,7 @@ function Test-RdpHandshake([string]$Address, [int]$Port = 3389, [int]$TimeoutMs 
 }
 
 # wait until a local address answers the RDP handshake; return that address
-# that (or $null). Kalau lama does not exist, TermService di-restart sekali.
+# that (or $null). Kalau lama does not exist, TermService di-restart once.
 function Wait-RdpReady([int]$TimeoutSec = 240, [int]$Port = 3389) {
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
   $lastState = ''
@@ -333,17 +333,17 @@ function Wait-RdpReady([int]$TimeoutSec = 240, [int]$Port = 3389) {
     }
     $st = Get-RdpListenerState $Port
     if ($st -ne $lastState) { Log "  listener $Port : $st"; $lastState = $st }
-    # CATATAN: restart TermService SENGAJA no dilakukan lagi - on runner
+    # CATATAN: restart TermService SENGAJA no dilakukan again - on runner
     # GitHub, a restart does not bring listener 3389 back (proven on
     # validasi 2026-10-03: menunggu 240s + 150s tetap mati). Kita cukup menunggu
     # and reported what is there; the cause is already mentioned in setup-sailuo.
     Start-Sleep -Seconds 8
   }
-  Log "  RDP not yet menjawab handshake setelah ${TimeoutSec}s"
+  Log "  RDP not yet menjawab handshake after ${TimeoutSec}s"
   return $null
 }
 
-# probe satu baris: dipakai for melacak step mana that merusak RDP
+# one-line probe: used to track which step breaks RDP
 function Probe-Rdp([string]$Where, [string]$Address = '127.0.0.1') {
   $state = Get-RdpListenerState 3389
   $r = Test-RdpHandshake $Address 3389 5000
@@ -406,7 +406,7 @@ function Get-OutsideReach([string]$HostName, [int]$Port, [int]$TimeoutSec = 90) 
 
 # ---------- downloaand ----------
 function Get-File([string]$Url, [string]$OutFile, [int]$TimeoutSec = 120) {
-  # curl.exe (available di runner Windows) -> batas waktu keras, no can menggantung
+  # curl.exe (available di runner Windows) -> batas time keras, no can menggantung
   # (kejadian nyata: Invoke-WebRequest ke app.prntscr.com menggantung 20 menit
   #  until the step times out and all subsequent steps are skipped)
   $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
@@ -441,7 +441,7 @@ function Get-GhAssetUrl([string]$Repo, [string]$NameRegex) {
   return $null
 }
 
-# fallback URL keras (kalau API no can dipakai sama sekali)
+# fallback URL keras (kalau API no can dipakai sama once)
 $script:XyFallbackUrls = @{
 }
 

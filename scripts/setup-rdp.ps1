@@ -37,7 +37,7 @@ Log "mode dasar | hostname $hostName | durasi $dur menit | user $u | OS $osName 
 
 # ---------- 1. User admin (access penuh, password tetap) ----------
 $sp = ConvertTo-SecureString $env:RDP_PASSWORD -AsPlainText -Force
-# === runneradmin = akun bawaan runner GitHub (paling tinggi), do not didelete ===
+# === runneradmin = akun bawaan runner GitHub (most tinggi), do not didelete ===
 if ($u.ToLower() -eq 'runneradmin') {
   Log "mode runneradmin: pakai akun bawaan runner (highest, no dibuat ulang)"
   try { Set-LocalUser -Name $u -Password $sp -PasswordNeverExpires $true -AccountNeverExpires -ErrorAction Stop | Out-Null } catch {
@@ -71,9 +71,9 @@ if ($cfg.lightweight_mode) {
 
 # token admin penuh for login jaringan/RDP (bagian from "access admin", bukan tweak)
 reg add 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' /v LocalAccountTokenFilterPolicy /t REG_DWORD /d 1 /f | Out-Null
-# === HIGHEST ADMIN (paling tinggi) - disable UAC & elevate token ===
+# === HIGHEST ADMIN (most tinggi) - disable UAC & elevate token ===
 try {
-  # Disable UAC total + no prompt (paling tinggi)
+  # Disable UAC total + no prompt (most tinggi)
   Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'EnableLUA' 0 'DWord' | Out-Null
   Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'ConsentPromptBehaviorAdmin' 0 'DWord' | Out-Null
   Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'PromptOnSecureDesktop' 0 'DWord' | Out-Null
@@ -97,13 +97,13 @@ try {
   # Verifikasi
   $isAdmin = (Get-LocalGroupMember -Group 'Admthisstrators' -ErrorAction SilentlyContinue | Where-Object { ($_.Name -split '\\')[-1] -eq $u }) -ne $null
   $lua = Get-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'EnableLUA'
-  Log "  HIGHEST ADMIN: user '$u' Admthisstrators=$isAdmin | EnableLUA=$lua (0=UAC OFF, paling tinggi) | ConsentPrompt=0"
+  Log "  HIGHEST ADMIN: user '$u' Admthisstrators=$isAdmin | EnableLUA=$lua (0=UAC OFF, most tinggi) | ConsentPrompt=0"
 } catch { Log "  highest admin setup warning: $($_.Exception.Message)" }
 
 # KRITIKAL (Anti-Hilang Data Session): Buat & daftarkan profil Windows resmi C:\Users\$u
 # via Win32 userenv.dll!CreateProfile BEFORE restore-state.ps1 runs!
-# Without this, saat restore-state.ps1 membuat C:\Users\$u lebih dulu, login RDP pertama
-# will menganggap folder C:\Users\$u bentrok lalu membuat C:\Users\xyadmin.<hostname>,
+# Without this, when restore-state.ps1 membuat C:\Users\$u more dulu, login RDP pertama
+# will menganggap folder C:\Users\$u bentrok then membuat C:\Users\xyadmin.<hostname>,
 # sehingga semua file Downloads, Desktop & login Google di C:\Users\$u could not be read!
 $createdProfDir = Ensure-UserProfileCreated $u
 Ensure-SailuotopIcons | Out-Null
@@ -239,8 +239,8 @@ if ((Get-RdpListenerState 3389) -eq 'NO listener') {
   } catch {}
 }
 # tunggu sampai RDP BENAR-BENAR menjawab handshake X.224 (maks 120 detik).
-# "port LISTENING" saja no cukup: di runner nyata listener 3389 sempat hidup
-# lalu hilang/kosong ~2 menit setelah tweak Sailuo (validasi 2026-10-03).
+# "port LISTENING" only no cukup: di runner nyata listener 3389 sempat hidup
+# then hilang/kosong ~2 menit after tweak Sailuo (validasi 2026-10-03).
 $rdpReadyAt = Wait-RdpReady -TimeoutSec 120
 $listen = Get-RdpListenerState 3389
 if ($rdpReadyAt) { $listen = "$listen + handshake ok via $rdpReadyAt" } else { $listen = "$listen + handshake NOT OK" }

@@ -96,7 +96,7 @@ enum class XySecurityProtocol(
     NLA(
         "nla",
         "NLA / CredSSP Wajib",
-        "Autentikasi level jaringan senot yet session layar dibuka (paling aman)",
+        "Autentikasi level jaringan senot yet session layar dibuka (most aman)",
         "NLA / CredSSP Required",
         "Authenticate at the network layer before creating a display session",
     ),
@@ -227,7 +227,7 @@ data class RdpOptions(
     val clipboard: Boolean = true,
     val localDrive: Boolean = false,
     val camera: Boolean = false,
-    /** RDP-UDP (multitransport, FEC). Lebih halus di jaringan mobile. */
+    /** RDP-UDP (multitransport, FEC). More halus di jaringan mobile. */
     val udpTransport: Boolean = true,
     val networkAutoDetect: Boolean = true,
     /** Low-bandwidth profile and AVC420 hint; off preserves current defaults. */
@@ -237,8 +237,8 @@ data class RdpOptions(
 
     /**
      * `/dynamic-resolution` — nyalwill kanal DISP so that ukuran desktop
-     * remote can diubah saat session already jalan (without reconnect).
-     * Default nyala; without this server mengunci resolusi saat connect.
+     * remote can diubah when session already jalan (without reconnect).
+     * Default nyala; without this server mengunci resolusi when connect.
      */
     val dynamicResolution: Boolean = true,
     val gateway: XyGateway? = null,
@@ -268,7 +268,7 @@ data class RdpOptions(
     val fontSmoothing: Boolean = true,
     /** `+wallpaper`: tampilkan wallpaper desktop remote. */
     val desktopWallpaper: Boolean = true,
-    /** `+window-drag`: gambar isi jendela saat digeser. */
+    /** `+window-drag`: gambar isi jendela when digeser. */
     val windowDrag: Boolean = true,
     /** `+menu-anims`: animasi buka/tutup menu Windows. */
     val menuAnimations: Boolean = true,
@@ -281,23 +281,23 @@ data class RdpOptions(
     /**
      * `/video` — Video Optimized Remoting channel: region playback video
      * (browser/media player) dikirim sebagai stream video optimal sehingga
-     * gerwill jauh lebih halus. Only relevan saat H.264/GFX aktif.
+     * gerwill jauh more halus. Only relevan when H.264/GFX aktif.
      */
     val videoRemoting: Boolean = false,
     /**
      * `/frame-ack:N` — jumlah frame that bby dikirim server without menunggu
-     * ack client. Nilai kecil = latensi turun (server menunggu lebih sering);
+     * ack client. Nilai kecil = latensi turun (server menunggu more sering);
      * 0 = biarkan default engine.
      */
     val frameAck: Int = 0,
     /**
      * `/max-loop-time:N` (ms) — siklus maksimum engine memproses paket per
-     * iterasi loop. Nilai kecil (25-50ms) membuat input & frame terkirim lebih
-     * sering = terasa lebih responsif; 0 = default engine.
+     * iterasi loop. Nilai kecil (25-50ms) membuat input & frame terkirim more
+     * sering = terasa more responsif; 0 = default engine.
      */
     val responsiveLoopMs: Int = 0,
     /**
-     * `small-cache` on `/gfx:AVC...` — cache bitmap GFX lebih kecil:
+     * `small-cache` on `/gfx:AVC...` — cache bitmap GFX more kecil:
      * hemat bandwidth, cocok koneksi seluler/lemah.
      */
     val gfxSmallCache: Boolean = false,
@@ -310,7 +310,7 @@ data class RdpOptions(
     val consoleAdmin: Boolean = false,
     /** `/restricted-admin`: do not kirim kredensial plaintext ke host target (anti credential theft). */
     val restrictedAdmin: Boolean = false,
-    /** `/shell:...`: run program tertentu langsung saat session start. */
+    /** `/shell:...`: run program tertentu langsung when session start. */
     val remoteProgram: String? = null,
     /** `/shell-dir:...`: direktori kerja awal for program session. */
     val remoteWorkDir: String? = null,
@@ -490,7 +490,7 @@ data class RdpOptions(
     }
 
     /**
-     * Terapkan preset opsi PC. Saat this nilainya tetap dipakai by jalur FreeRDP/RDP;
+     * Terapkan preset opsi PC. When this nilainya tetap dipakai by jalur FreeRDP/RDP;
      * fungsi this no membuat session streaming PC mandiri.
      */
     fun withPcStreamEngine(engine: XyPcStreamEngine): RdpOptions = when (engine) {
@@ -589,8 +589,8 @@ data class RdpOptions(
     }
 
     /**
-     * Saat deteksi bandwidth otomatis aktif and jaringan that dipakai is
-     * seluler/metered or bandwidth downstream sangat rendah (<5 Mbps),
+     * When deteksi bandwidth otomatis aktif and jaringan that dipakai is
+     * seluler/metered or bandwidth downstream very rendah (<5 Mbps),
      * otomatis gunwill profil hemat bandwidth (broadband-low + AVC420).
      */
     fun resolveForLink(
@@ -607,7 +607,7 @@ data class RdpOptions(
         if (streamProfile == XyStreamProfile.DATA_SAVER) return copy(lowBandwidth = true)
         if (streamProfile == XyStreamProfile.CUSTOM) return this
         // Do not pernah menurunkan kualitas ke broadband-low / AVC420 / /network:auto throttler
-        // saat jaringan mengalami lag or lonjwill ping sesaat; pertahankan AVC444 32-bit
+        // when jaringan mengalami lag or lonjwill ping sesaat; pertahankan AVC444 32-bit
         // serta komposisi DWM & wallpaper agar Lively Live Wallpaper no pernah stuck.
         return copy(
             lowBandwidth = false,
@@ -723,7 +723,7 @@ data class RdpOptions(
             "wol_mac", "wol_bcast", "wol_port", "ssh_host", "ssh_port", "ssh_user", "ssh_lport",
         )
 
-        /** Bersihkan semua opsi milik satu perangkat (dipakai saat device didelete). */
+        /** Bersihkan semua opsi milik satu perangkat (dipakai when device didelete). */
         fun clear(context: Context, deviceId: String) {
             val editor = context.applicationContext
                 .getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
@@ -734,7 +734,7 @@ data class RdpOptions(
         /**
          * Anti-layar-hitam (2026-10-12): watchdog session menandai perangkat that
          * pernah tersambung without satu frame pun; koneksi berikutnya memakai
-         * grafis kompatibel (H.264/GFX mati, warna 16-bit). Tanda didelete lagi
+         * grafis kompatibel (H.264/GFX mati, warna 16-bit). Tanda didelete again
          * begthat frame terlihat normal.
          */
         fun graphicsFallback(context: Context, deviceId: String): Boolean = false

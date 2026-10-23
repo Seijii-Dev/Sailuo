@@ -1,7 +1,7 @@
 # ============================================================================
 #  setup-extras.ps1 - MODE EKSTRA (v2: Win10-style, without Tailscale/Sailuo)
 # ----------------------------------------------------------------------------
-#  Dirun SETELAH setup-rdp.ps1 (+ setup-win10.ps1). Semua langkah
+#  Run AFTER setup-rdp.ps1 (+ setup-win10.ps1). All steps
 #  BEST-EFFORT: satu failed does not stop session.
 #
 #    1) baca konfigurasi from repo: assets/sailuo-extras.json (ubah from dashboard)
@@ -11,8 +11,8 @@
 #    5) VERIFIKASI  - user RDP diensure anggota grup Admthisstrators
 #    6) rangkum hasil -> out/sailuo-status.json (dibaca dashboard web)
 #
-#  Note: VM sekali-pakai. Setting per-user dthatlis ke profil Default
-#  (C:\Users\Default\NTUSER.DAT) so that otomatis aktif saat user RDP login.
+#  Note: VM once-pakai. Setting per-user dthatlis ke profil Default
+#  (C:\Users\Default\NTUSER.DAT) so that otomatis aktif when user RDP login.
 # ============================================================================
 
 $SailuoTag = 'Sailuo:ekstra'
@@ -94,14 +94,14 @@ if ($cfg.lightshot) {
   Log 'LIGHTSHOT: verified vendor installer, machine-wide install, bounded wait...'
   $lsExe = Find-Lightshot
   if (-not $lsExe) { Install-LightshotDirect | Out-Null; $lsExe = Find-Lightshot }
-  # final check: coba cari lagi via registry
+  # final check: coba cari again via registry
   if (-not $lsExe) { Start-Sleep -Seconds 2; $lsExe = Find-Lightshot }
   if ($lsExe) {
     Log "  terinstall: $lsExe"
     Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'Lightshot' ('"{0}"' -f $lsExe) 'String' | Out-Null
     # ensure firewall allow
     # Screenshot capture does not require opening an inbound firewall rule.
-    try { Start-Process -FilePath $lsExe -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; $proc=Get-Process -Name 'Lightshot' -ErrorAction SilentlyContinue; if($proc){Log '  Lightshot proses jalan'} else {Log '  Lightshot terinstall tapi proses not yet jalan (will auto-run saat login)'} } catch {}
+    try { Start-Process -FilePath $lsExe -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; $proc=Get-Process -Name 'Lightshot' -ErrorAction SilentlyContinue; if($proc){Log '  Lightshot proses jalan'} else {Log '  Lightshot terinstall tapi proses not yet jalan (will auto-run when login)'} } catch {}
     # fix: Lightshot sometimes needs the Visual C++ redist, already installed by setup-extras, but check
     $resLightshot = 'ok'
   } else {

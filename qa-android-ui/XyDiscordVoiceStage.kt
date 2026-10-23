@@ -82,7 +82,7 @@ internal data class LiveRdpScreenShareState(
 
 /**
  * Engine Global ala Discord for Multi-User Voice Party + Live RDP Screen Share.
- * Tetap hidup saat user berpindah antara Session Sailuo, Chat Global, and Beranda.
+ * Tetap hidup when user berpindah antara Session Sailuo, Chat Global, and Beranda.
  */
 internal object XyDiscordVoiceStageManager {
     private const val ENDPOINT = "https://api.sailuoremote.biz.id/api/voice-stage"

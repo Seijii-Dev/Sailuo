@@ -6,7 +6,7 @@
 #  (build 20348) - jadi tampilannya already Windows 10. Script this menambahkan
 #  that khas "Windows 10" and mematikan that khas "Server":
 #
-#    1) Server Manager no muncul saat login, IE Enhanced Security mati
+#    1) Server Manager no muncul when login, IE Enhanced Security mati
 #    2) Shutdown Event Tracker mati (no tanya "alasan shutdown")
 #    3) Personalisasi: transparansi, warna aksen di taskbar, taskbar
 #       "do not gabungkan tombol", kotak pencarian, tema gelap taskbar
@@ -41,7 +41,7 @@ Log "  OS terinstall: $($os.Caption) build $($os.Version) - UI-nya sama with Win
 # ---------- 1. buang ciri khas "Server" ----------
 Open-DefaultHive | Out-Null
 
-# Server Manager: do not buka otomatis saat login
+# Server Manager: do not buka otomatis when login
 Set-RegBoth 'Software\Microsoft\ServerManager' 'DoNotOpenServerManagerAtLogon' 1 'DWord' | Out-Null
 # Shutdown Event Tracker: do not tanya alasan
 Set-Reg 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Reliability\Shutdown' 'ShutdownReasonOn' 0 'DWord' | Out-Null

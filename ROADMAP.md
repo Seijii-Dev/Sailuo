@@ -59,7 +59,7 @@ Shared Windows/PowerShell (and one Bash) scripts invoked by the workflow.
 | `scripts/setup-sailuo.ps1` | XyDesk/Sailuo Remote host setup (AVC444, ClearType, audio, firewall). |
 | `scripts/setup-extras.ps1` | Installs extra applications (7-Zip, Chrome, Lightshot, wallpaper). |
 | `scripts/setup-host-tools.ps1` | Installs host development tools. |
-| `scripts/setup-akses.ps1` | Sets up Tailscale private access (installs Tailscale, joins the tailnet). |
+| `scripts/setup-access.ps1` | Sets up Tailscale private access (installs Tailscale, joins the tailnet). |
 | `scripts/setup-portmap.ps1` | Sets up Portmap/OpenVPN access as an alternative to Tailscale. |
 | `scripts/setup-linux-rdp.sh` | Linux desktop RDP / plain Linux SSH VPS setup (XRDP/SSH + Tailscale). |
 | `scripts/publish-status.ps1` | Publishes `out/rdp-status.json` to the `status` branch for the dashboard/clients. |

@@ -5,7 +5,7 @@
 #  smoothing from commit Sailuo-Remote v0.5.30, dirun langsung from repo
 #  (no mengambil script from internet).
 #
-#  Isi (idempoten, best-effort - semua hasil dilaporkan apa aandya):
+#  Contents (idempotent, best-effort - all results reported as-is):
 #    1) RDP: multi-session (fSingleSessionPerUser=0) + audio out & mic hidup
 #    2) Kebijwill grafis: AVC444 4:4:4 (preferred) + hardware encode + VGAdapter
 #    3) Font smoothing: fNoFontSmoothing=0 + AllowFontAntiAlias=1 di
@@ -21,7 +21,7 @@
 #    - Sailuo audio bridge QUIC (UDP 4433) cannot go through the TCP tunnel - UDP port
 #      dibuka di sthis so that ready kalau HP can reach UDP langsung (LAN/tailnet).
 #      Lewat tunnel, klien otomatis fallback ke audio RDP.
-#    - Klien Sailuo will probe QUIC 4433 lalu failed (wajar) -> lanjut mode RDP.
+#    - Klien Sailuo will probe QUIC 4433 then failed (wajar) -> lanjut mode RDP.
 #
 #  Konfigurasi: assets/sailuo-extras.json -> sailuo_host = true/false
 # ============================================================================
@@ -60,13 +60,13 @@ $okMulti = Set-Reg $tsRoot 'fSingleSessionPerUser' 0 'DWord'
 Set-Reg $tsPol 'fDenyTSConnections'   0 'DWord' | Out-Null
 Set-Reg $tsPol 'fSingleSessionPerUser' 0 'DWord' | Out-Null
 Log "  RDP: denyTS=$okDeny multisession=$okMulti"
-$rdpAlive1 = Probe-Rdp 'setelah setelan multi-session (root+policy)'
+$rdpAlive1 = Probe-Rdp 'after setelan multi-session (root+policy)'
 
 # ---------- 1b. Audio + font + wallpaper RDP: kebijwill (Policy override WinStations) ----------
 # Audio: aktifkan playback + mic via Policy (override WinStations without tulis WinStations biar listener gak mati)
 $okAudioPol = Set-Reg $tsPol 'fDisableAudio' 0 'DWord'
 $okMicPol   = Set-Reg $tsPol 'fDisableAudioCapture' 0 'DWord'
-# Wallpaper RDP: do not blok wallpaper saat RDP (hemat bandwidth -> hitam kalau 1)
+# Wallpaper RDP: do not blok wallpaper when RDP (hemat bandwidth -> hitam kalau 1)
 $okWallPol  = Set-Reg $tsPol 'fNoRemoteDesktopWallpaper' 0 'DWord'
 # Audio Quality: 0=Dynamic, 2=High
 Set-Reg $tsPol 'AudioQualityMode' 2 'DWord' | Out-Null
@@ -87,7 +87,7 @@ Log "  audit WinStations\RDP-Tcp (without tulis): fDisableAudio=$curAudio fDisab
 $okAudio = ($polAudio -eq 0) -or (($null -eq $polAudio) -and ("$curAudio" -ne '1'))
 $okMic   = ($polMic -eq 0) -or (($null -eq $polMic) -and ("$curMic" -ne '1'))
 $okWall  = ($polWall -eq 0) -or (($null -eq $polWall) -and ("$curWall" -ne '1'))
-$rdpAlive2 = Probe-Rdp 'setelah kebijwill audio+wallpaper + audit WinStation'
+$rdpAlive2 = Probe-Rdp 'after kebijwill audio+wallpaper + audit WinStation'
 
 # ---------- 2. Kebijwill grafis Sailuo (AVC444 / hardware encode / 120 FPS DWM) ----------
 $okAvc  = Set-Reg $tsPol 'AVC444ModePreferred'       1 'DWord'
@@ -117,7 +117,7 @@ try {
 } catch {}
 $avcTxt = if ($okAvc -and $okAvc2) { 'ok (120FPS DWMFRAMEINTERVAL=8 + TCPNoDelay=1)' } else { 'failed' }
 Log "  grafis: AVC444ModePreferred+AVCHardwareEncodePreferred+120FPS -> $avcTxt"
-$rdpAlive3 = Probe-Rdp 'setelah kebijwill grafis (AVC444 + 120FPS)'
+$rdpAlive3 = Probe-Rdp 'after kebijwill grafis (AVC444 + 120FPS)'
 
 # ---------- 3. ClearType: lewat profil Default (per-user), bukan kunci WinStation ----------
 $fontTxt = 'failed'
@@ -131,7 +131,7 @@ if (Open-DefaultHive) {
   $fontTxt = if ($f1 -and $f2) { 'ok (ClearType profil Default)' } elseif ($f1 -or $f2) { 'sebagian' } else { 'failed' }
 } else { $fontTxt = 'failed (profil Default tak can di-load)' }
 Log "  ClearType: $fontTxt (FontSmoothing=2 + FontSmoothingType=2 di profil Default)"
-$rdpAlive4 = Probe-Rdp 'setelah ClearType profil Default'
+$rdpAlive4 = Probe-Rdp 'after ClearType profil Default'
 
 # ---------- 4. Firewall (dibuka di VM; from luar tetap only via tunnel/P2P) ----------
 function Add-FwRule([string]$Name, [string]$Proto, [string]$Ports) {
@@ -147,7 +147,7 @@ $fwUdp  = Add-FwRule 'Sailuo Remote RDP UDP'  'UDP' '3389'
 $fw4433 = Add-FwRule 'Sailuo Remote QUIC UDP' 'UDP' '4433'
 Enable-NetFirewallRule -DisplayGroup 'Remote Desktop' -ErrorAction SilentlyContinue | Out-Null
 Log "  firewall: TCP3389=$fwTcp UDP3389=$fwUdp UDP4433=$fw4433"
-$rdpAlive5 = Probe-Rdp 'setelah aturan firewall'
+$rdpAlive5 = Probe-Rdp 'after aturan firewall'
 
 # ---------- 5. Layanan ----------
 $svcOk = @()
@@ -160,7 +160,7 @@ foreach ($svc in @('TermService', 'Audiosrv', 'AudioEndpointBuilder', 'UmRdpServ
 }
 $svcTxt = if ($svcOk.Count -eq 2) { 'ok' } elseif ($svcOk.Count -eq 1) { "sebagian ($($svcOk[0]) hidup)" } else { 'failed' }
 Log "  layanan: $svcTxt"
-$rdpAlive6 = Probe-Rdp 'setelah start layanan'
+$rdpAlive6 = Probe-Rdp 'after start layanan'
 
 # ---------- 6. Access privat + Daemon UDP :4433 P2P Stream (`XYV1`) & RawInput (`XYI1`) ----------
 try {
@@ -441,16 +441,16 @@ public static class XyRawInputDaemon {
 } catch { Log "  daemon RawInput failed didaftarkan: $($_.Exception.Message)" }
 Log 'Hubungkan HP and Windows ke tailnet that sama. RDP playback and audio capture memakai kanal RDP; bridge UDP :4433 ready for RawInput Game FPS.'
 
-# ---------- 6b. Verifikasi RDP still hidup setelah tweak ----------
-# CATATAN PENTING (validasi 2026-10-03): setelah tweak, listener 3389 di runner
+# ---------- 6b. Verifikasi RDP still hidup after tweak ----------
+# CATATAN PENTING (validasi 2026-10-03): after tweak, listener 3389 di runner
 # this briefly died for ~2 minutes. We do NOT restart TermService again (restart does not
-# membantu, malah memperlama mati) - kita cukup mengukur and melaporkan apa
-# aandya so that setup-access tahu must menunggu berapa lama.
+# helps, it only delays death) - we just measure and report
+# aandya so that setup-access tahu must menunggu how many lama.
 $rdpReadyAt = Wait-RdpReady -TimeoutSec 150
-if ($rdpReadyAt) { Log "  RDP still sehat setelah tweak: $rdpReadyAt`:3389 (handshake X.224 OK)" }
-else { Log '  PERINGATAN: RDP not yet menjawab handshake setelah tweak - setup-access will menunggu lagi' }
+if ($rdpReadyAt) { Log "  RDP still sehat after tweak: $rdpReadyAt`:3389 (handshake X.224 OK)" }
+else { Log '  PERINGATAN: RDP not yet menjawab handshake after tweak - setup-access will menunggu again' }
 
-# ---------- 7. Status (apa aandya, bukan asumsi) ----------
+# ---------- 7. Status (as-is, not assumptions) ----------
 $allOk = $okDeny -and $okMulti -and $okAudio -and $okMic -and $okWall -and $okAvc -and $okAvc2 -and ($fontTxt -like 'ok*')
 Update-Status @{ sailuo = [ordered]@{
     host          = if ($allOk) { 'ok' } else { 'sebagian' }
