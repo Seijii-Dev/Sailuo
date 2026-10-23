@@ -1,31 +1,37 @@
 {
   "active": true,
-  "hostname": "sailuo-2",
+  "hostname": "sailuo-3",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
+    "disk_free_gb": 31.2,
     "cpu_threads": 4,
-    "ram_gb": 16.0,
-    "disk_free_gb": 28.3
+    "ram_gb": 16.0
   },
   "rdp_port": 3389,
   "rdp_user": "sailuo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-23T12:53:54Z",
-  "expires_at": "2026-10-23T18:35:54Z",
+  "started_at": "2026-10-23T13:02:30Z",
+  "expires_at": "2026-10-23T18:44:30Z",
   "duration_menit": 342,
-  "run_id": "39956770175",
+  "run_id": "39957869183",
   "run_attempt": "1",
-  "run_number": "2",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/39956770175",
+  "run_number": "3",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/39957869183",
   "mode": "bersih+win10",
   "persist": {
-    "files": 15,
-    "profile": "C:\\Users\\sailuo",
+    "source": "sailuo-state.7z.enc",
+    "files": 16,
     "restored": true,
-    "source": "sailuo-state.7z.enc"
+    "profile": "C:\\Users\\sailuo"
+  },
+  "media": {
+    "verification": "Login ulang, aktifkan mic di Sailuo and izinkan Android. Uji Windows Settings > Sound > Input; kebijwill aktif bukan bukti capture end-to-end.",
+    "wallpaper": "sailuo_configured_for_user_logon",
+    "microphone": "rdp_capture_enabled",
+    "audio_output": "rdp_playback_enabled"
   },
   "sailuo": {
     "host": "ok",
@@ -34,7 +40,7 @@
     "avc444": "ok (120FPS DWMFRAMEINTERVAL=8 + TCPNoDelay=1)",
     "fontsmoothing": "ok (ClearType profil Default)",
     "audio_out": "ok (policy fDisableAudio=0, WinStations=0)",
-    "audio_mic": "ok (policy fDisableAudioCapture=0, WinStations=1) - mic HP redirect aktif, Allow di HP",
+    "audio_mic": "ok (policy fDisableAudioCapture=0, WinStations=0) - mic HP redirect aktif, Allow di HP",
     "wallpaper_rdp": "ok (policy fNoRemoteDesktopWallpaper=0) - wallpaper RDP tampil, cek client Experience->Wallpaper ON",
     "firewall": "tcp3389=True udp3389=True udp4433=True",
     "services": "ok",
@@ -45,21 +51,21 @@
     "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
-    "mode": "tailscale",
     "tunnel": {
-      "outside": "tailscale",
       "selftest": "ok",
-      "address": "100.115.104.101:3389",
-      "host": "100.115.104.101",
+      "address": "100.87.213.30:3389",
       "status": "ok",
+      "outside": "tailscale",
+      "host": "100.87.213.30",
       "port": 3389
     },
+    "mode": "tailscale",
     "tailscale": {
-      "status": "ok",
-      "magicdns": "sailuo-2.tail4b745d.ts.net.",
-      "hostname": "sailuo-2",
+      "ip": "100.87.213.30",
+      "magicdns": "sailuo-3.tail4b745d.ts.net.",
       "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
-      "ip": "100.115.104.101"
+      "hostname": "sailuo-3",
+      "status": "ok"
     }
   }
 }
