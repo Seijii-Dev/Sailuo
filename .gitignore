@@ -1,4 +1,4 @@
-# kredensial lokal — JANGAN PERNAH di-commit ke repo publik
+# local credentials - NEVER commit to a public repo
 web/config.json
 *.env
 out/
