@@ -56,16 +56,6 @@ try {
   $status=$state.text | ConvertFrom-Json
   $ip=@($status.Self.TailscaleIPs | Where-Object { $_ -match '^100\.' }) | Select-Object -First 1
   if ($status.BackendState -ne 'Running' -or -not $ip) { throw 'Tailscale is not ready yet or has not been approved by the tailnet owner' }
-  # Isolate the Tailscale availablepter metric so general outbound traffic always uses the primary Ethernet and is not flagged as VPN
-  try {
-    Get-NetAvailablepter | Where-Object { $_.Name -match 'Tailscale' -or $_.InterfaceDescription -match 'Tailscale|Wintun' } | ForEach-Object {
-      Set-NetIPInterface -InterfaceIndex $_.ifIndex -AutomaticMetric Disabled -InterfaceMetric 5000 -ErrorAction SilentlyContinue
-    }
-    Get-NetAvailablepter | Where-Object { $_.Status -eq 'Up' -and $_.Name -notmatch 'Tailscale|OpenVPN|TAP' -and $_.InterfaceDescription -notmatch 'Tailscale|OpenVPN|TAP|Wintun' } | ForEach-Object {
-      Set-NetIPInterface -InterfaceIndex $_.ifIndex -AutomaticMetric Disabled -InterfaceMetric 5 -ErrorAction SilentlyContinue
-    }
-    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'DefaultTTL' -Value 128 -Type DWord -ErrorAction SilentlyContinue
-  } catch {}
   $deadline=(Get-Date).AddSeconds(90)
   $repairedRdp=$false
   do {

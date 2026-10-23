@@ -51,7 +51,7 @@ function Sync-And-Heal-DesktopShortcuts {
           $sc = $wsh.CreateShortcut($lnkDash)
           $sc.TargetPath = $dashExe
           $sc.WorkingDirectory = 'C:\XyRDP\tools'
-          $sc.Description = 'XyDeskRemote Dashboard - System Management, Installer & Cloud Save Hub'
+          $sc.Description = 'XyDeskRemote Dashboard - System Management & Cloud Save Hub'
           if (Test-Path $dashIco) { $sc.IconLocation = "$dashIco,0" }
           $sc.Save()
         }
