@@ -1,4 +1,0 @@
-
-import {T} from "@/app/locale-provider";
-import SetupPanel from "../setup-panel";
-export default function Page(){return <><span className="eyebrow">Workspace / Setup</span><h1><T text={"Repository, lalu koneksi."}/></h1><p><T text={"Gunwill template Sailuo di akunmu, sambungkan secrets, and check kereadyan workflow."}/></p><SetupPanel expanded/></>}

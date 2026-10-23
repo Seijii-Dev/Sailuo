@@ -31,17 +31,12 @@ Inputs now use `duration_minutes`, `access`, `windows10`, `extras`, `debloat`, a
 
 - `.github/workflows/rdp-6h.yml`: Windows session plus host preparation.
 - `scripts/`: Windows scripts; `assets/`: wallpaper and configuration.
-- `web-next/`: the active Next.js/OpenNext/Cloudflare dashboard. The `web/`, `deploy/`, and older documentation folders are archives of earlier implementations, not the current access configuration.
-- The admin area stays hidden behind email/password login plus Turnstile; it has not been moved to GitHub login.
-- Native API: see `web-next/docs/SAILUO-API.md`. Tokens are bound to a repository and can be revoked. Old native OAuth tokens must be recreated after the App split.
+- The dashboard is no longer bundled in this repository; host it separately if needed.
+- Native API documentation has been removed along with the dashboard. Tokens are bound to a repository and can be revoked.
 - A separate login does not prevent suspension. For a suspended tester account, review is only available through GitHub Support; the cause cannot be inferred from a 404 or from login patterns alone.
 
 ## Validation
 
-Lint, TypeScript, the OpenNext build, unit tests, and the mobile browser smoke test are available and exercised. PowerShell scripts are parsed with PowerShell 7; the parser is not a Windows installation test. Real App installation requires owner approval. Do not treat these results as certification of end-to-end audio or device compatibility.
+PowerShell scripts are parsed with PowerShell 7; the parser is not a Windows installation test. Real App installation requires owner approval. Do not treat these results as certification of end-to-end audio or device compatibility.
 
-## Repository guide and deleting through the dashboard
 
-Flow: create the repo from the template first → confirm “My repo is created” → grant repository access through the GitHub App (Only select repositories) → pick the repo → fill in the secrets → start a session. Installing the App means authorization; it does not create a repo or download a phone app.
-
-Repo deletion is available at `/dashboard/connection`, only for a GitHub login that owns a private repository. Type the full `owner/repo` name and accept the deletion impact; any active or queued workflow must be stopped first. The service's source repository is protected and an Sailuo token cannot delete it. An App that is already registered needs Admthisstration: Read and write plus the installation owner's approval for the update. The Admthisstration permission is broader than delete-only; GitHub does not provide a delete-only scope for installation tokens. A regular token still has no Admthisstration. Destructive testing uses mocks and never deletes user repositories.

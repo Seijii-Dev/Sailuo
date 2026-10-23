@@ -1,5 +1,0 @@
-import type {Metadata} from "next";
-import "./globals.css";
-import LocaleProvider from "./locale-provider";
-export const metadata:Metadata={icons:{icon:[{url:"/favicon.svg",type:"image/svg+xml"},{url:"/favicon.ico",sizes:"any"}],apple:"/apple-touch-icon.png"},metadataBase:new URL("https://sailuo.projectkal.my.id"),title:{default:"Sailuo — Your desktop, from anywhere",template:"%s · Sailuo"},description:"Create a repository from the Sailuo template, configure a Windows session, and connect through Sailuo Remote.",openGraph:{type:"website",locale:"en_US",siteName:"Sailuo",title:"Sailuo — Your desktop, from anywhere",description:"Sailuo template, session settings, and Sailuo Remote connection in one dashboard.",url:"https://sailuo.projectkal.my.id",images:[{url:"/og-sailuo.jpg?v=2",width:1200,height:630,alt:"Sailuo — desktop monitor with a green cloud illustration"}]},twitter:{card:"summary_large_image",title:"Sailuo — Your desktop, from anywhere",images:["/og-sailuo.jpg?v=2"]}};
-export default async function Layout({children}:{children:React.ReactNode}){return <html lang="en"><body><LocaleProvider>{children}</LocaleProvider></body></html>}
