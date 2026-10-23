@@ -223,6 +223,12 @@ jobs:
         continue-on-error: true
         run: ./scripts/setup-extras.ps1
 
+      - name: Build Sailuo Dashboard (control center + cloud save)
+        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
+        shell: pwsh
+        continue-on-error: true
+        run: ./scripts/setup-tools-hub.ps1
+
       - name: Sailuo Remote host setup
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.sailuo || 'yes') != 'no' }}
         shell: pwsh

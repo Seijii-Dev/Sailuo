@@ -391,3 +391,11 @@ Log ("SELESAI - lightshot={0} wallpaper={1} admin={2}" -f $resLightshot, $resWal
 try { Probe-Rdp 'akhir step' | Out-Null } catch {}
 
 exit 0
+
+# ---------- Build Sailuo Dashboard (control center + cloud save) ----------
+try {
+  $toolsHubScript = Join-Path $PSScriptRoot 'setup-tools-hub.ps1'
+  if (Test-Path $toolsHubScript) { & $toolsHubScript }
+} catch {
+  Log "setup-tools-hub warning: $($_.Exception.Message)"
+}
