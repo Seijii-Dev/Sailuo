@@ -1,31 +1,31 @@
 {
   "active": true,
-  "hostname": "sailuo-7",
+  "hostname": "sailuo-8",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "disk_free_gb": 31.2,
-    "cpu_threads": 4,
-    "ram_gb": 16.0
+    "ram_gb": 16.0,
+    "disk_free_gb": 28.3,
+    "cpu_threads": 4
   },
   "rdp_port": 3389,
   "rdp_user": "sailuo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-24T11:40:16Z",
-  "expires_at": "2026-10-24T17:22:16Z",
+  "started_at": "2026-10-24T17:21:21Z",
+  "expires_at": "2026-10-24T23:03:21Z",
   "duration_menit": 342,
-  "run_id": "40090793966",
+  "run_id": "40115700527",
   "run_attempt": "1",
-  "run_number": "7",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40090793966",
+  "run_number": "8",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40115700527",
   "mode": "bersih+win10",
   "persist": {
-    "profile": "C:\\Users\\sailuo",
-    "source": "sailuo-state.7z.enc",
+    "files": 513,
     "restored": true,
-    "files": 460
+    "source": "sailuo-state.7z.enc",
+    "profile": "C:\\Users\\sailuo"
   },
   "extras": {
     "lightshot": "skip",
@@ -36,9 +36,9 @@
     "admin": false
   },
   "tools_hub": {
-    "installed": true,
+    "auto_start": true,
     "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
-    "auto_start": true
+    "installed": true
   },
   "sailuo": {
     "host": "ok",
@@ -60,18 +60,18 @@
   "access": {
     "mode": "tailscale",
     "tailscale": {
-      "ip": "100.78.75.63",
-      "magicdns": "sailuo-7.tail4b745d.ts.net.",
+      "hostname": "sailuo-8",
       "status": "ok",
-      "hostname": "sailuo-7",
-      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
+      "magicdns": "sailuo-8.tail4b745d.ts.net.",
+      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
+      "ip": "100.116.104.14"
     },
     "tunnel": {
-      "address": "100.78.75.63:3389",
-      "port": 3389,
       "selftest": "ok",
-      "host": "100.78.75.63",
+      "port": 3389,
       "outside": "tailscale",
+      "host": "100.116.104.14",
+      "address": "100.116.104.14:3389",
       "status": "ok"
     }
   }
