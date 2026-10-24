@@ -1,6 +1,6 @@
 {
   "active": true,
-  "hostname": "sailuo-6",
+  "hostname": "sailuo-7",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
@@ -13,41 +13,66 @@
   "rdp_user": "sailuo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-23T21:50:39Z",
-  "expires_at": "2026-10-24T03:32:39Z",
+  "started_at": "2026-10-24T11:40:16Z",
+  "expires_at": "2026-10-24T17:22:16Z",
   "duration_menit": 342,
-  "run_id": "40029597425",
+  "run_id": "40090793966",
   "run_attempt": "1",
-  "run_number": "6",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40029597425",
+  "run_number": "7",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40090793966",
   "mode": "bersih+win10",
   "persist": {
-    "restored": true,
+    "profile": "C:\\Users\\sailuo",
     "source": "sailuo-state.7z.enc",
-    "files": 460,
-    "profile": "C:\\Users\\sailuo"
+    "restored": true,
+    "files": 460
+  },
+  "extras": {
+    "lightshot": "skip",
+    "wallpaper": "ok",
+    "wallpaper_file": "wallpaper.jpg",
+    "vscode": "skip",
+    "notepadpp": "skip",
+    "admin": false
   },
   "tools_hub": {
+    "installed": true,
     "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
-    "auto_start": true,
-    "installed": true
+    "auto_start": true
+  },
+  "sailuo": {
+    "host": "ok",
+    "denyts": "ok",
+    "multisession": "ok",
+    "avc444": "ok (120FPS DWMFRAMEINTERVAL=8 + TCPNoDelay=1)",
+    "fontsmoothing": "ok (ClearType profil Default)",
+    "audio_out": "ok (policy fDisableAudio=0, WinStations=0)",
+    "audio_mic": "ok (policy fDisableAudioCapture=0, WinStations=1) - mic HP redirect aktif, Allow di HP",
+    "wallpaper_rdp": "ok (policy fNoRemoteDesktopWallpaper=0) - wallpaper RDP tampil, cek client Experience->Wallpaper ON",
+    "firewall": "tcp3389=True udp3389=True udp4433=True",
+    "services": "ok",
+    "rdp_ready": "127.0.0.1 (handshake OK)",
+    "rdp_probe": "awal=True multi=True audio=True grafis=True clear=True fw=True svc=True",
+    "quic_udp4433": "dibuka di VM (no lewat tunnel TCP)",
+    "access": "(menyusul)",
+    "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
+    "mode": "tailscale",
     "tailscale": {
+      "ip": "100.78.75.63",
+      "magicdns": "sailuo-7.tail4b745d.ts.net.",
       "status": "ok",
-      "magicdns": "sailuo-6.tail4b745d.ts.net.",
-      "hostname": "sailuo-6",
-      "ip": "100.109.10.80",
+      "hostname": "sailuo-7",
       "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
     },
-    "mode": "tailscale",
     "tunnel": {
-      "status": "ok",
-      "selftest": "ok",
-      "host": "100.109.10.80",
+      "address": "100.78.75.63:3389",
       "port": 3389,
-      "address": "100.109.10.80:3389",
-      "outside": "tailscale"
+      "selftest": "ok",
+      "host": "100.78.75.63",
+      "outside": "tailscale",
+      "status": "ok"
     }
   }
 }
