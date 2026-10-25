@@ -19,8 +19,12 @@ $SailuoTag = 'Sailuo:state-sync'
 . "$PSScriptRoot/lib-common.ps1"
 
 $taskName = 'Sailuo Cloud Save'
-$persist  = Join-Path $PSScriptRoot 'persist-state.ps1'
-$libFile  = Join-Path $PSScriptRoot 'lib-common.ps1'
+# Prefer the provisioned copy under C:\Sailuo\scripts. The checkout in D:\a is
+# recreated on every run, so a task that points into it silently keeps running
+# stale code after the repository is updated.
+$provisioned = 'C:\Sailuo\scripts'
+$persist  = if (Test-Path (Join-Path $provisioned 'persist-state.ps1')) { Join-Path $provisioned 'persist-state.ps1' } else { Join-Path $PSScriptRoot 'persist-state.ps1' }
+$libFile  = if (Test-Path (Join-Path $provisioned 'lib-common.ps1')) { Join-Path $provisioned 'lib-common.ps1' } else { Join-Path $PSScriptRoot 'lib-common.ps1' }
 $psExe    = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 
 function Say([string]$m) {
