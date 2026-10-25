@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  setup-tools-hub.ps1 - Build & Install "Sailuo Dashboard" (GUI Desktop)
 # ----------------------------------------------------------------------------
 #  Compiles the native WinForms dashboard (C:\Sailuo\tools\SailuoDashboard.exe)
@@ -53,8 +53,7 @@ $dashIco = Join-Path $icoDir 'sailuo-dashboard.ico'
 $exePath = Join-Path $toolsDir 'SailuoDashboard.exe'
 $legacyExePath = Join-Path $toolsDir 'SailuoTools.exe'
 
-$csharpSource = @'
-// ============================================================================
+$csharpSource = @'`r`n// ============================================================================
 //  Sailuo Dashboard - native WinForms control center
 //  ---------------------------------------------------------------------------
 //  UI/UX architecture notes
@@ -90,6 +89,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("Sailuo Dashboard")]
@@ -548,9 +548,7 @@ namespace SailuoTools
             Graphics graphics = e.Graphics;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (LinearGradientBrush brush = new LinearGradientBrush(
-                new Rectangle(0, 0, Math.Max(1, Width), Math.Max(1, Height)),
-                Theme.BrandFrom, Theme.BrandTo, 45f))
+            using (SolidBrush brush = new SolidBrush(Theme.BrandFrom))
             using (GraphicsPath path = Gfx.Round(rect, Ui.S(9)))
             {
                 graphics.FillPath(brush, path);
@@ -699,9 +697,7 @@ namespace SailuoTools
             int segment = Ui.S(180);
             int x = Ui.AnimationsEnabled ? _offset : Math.Max(0, (Width - segment) / 4);
             Rectangle bar = new Rectangle(x, 0, segment, Height);
-            using (LinearGradientBrush brush = new LinearGradientBrush(
-                new Rectangle(bar.X - Ui.S(24), 0, segment + Ui.S(48), Math.Max(1, Height)),
-                Gfx.Alpha(Theme.Blue, 0), Theme.Blue, LinearGradientMode.Horizontal))
+            using (SolidBrush brush = new SolidBrush(Theme.Blue))
             {
                 graphics.FillRectangle(brush, bar);
             }
@@ -2670,6 +2666,7 @@ namespace SailuoTools
     {
         private const int AutoSaveMinutes = 4;
         private const string CloudStatusPath = @"C:\Persist\System\last-cloud-save.json";
+        private const string OperationStatusPath = @"C:\Persist\System\last-operation.json";
         private const string SyncLockPath = @"C:\Persist\System\sync.lock";
 
         // Chrome
@@ -2997,6 +2994,15 @@ namespace SailuoTools
                     Directory.CreateDirectory(path);
                     Process.Start("explorer.exe", path);
                     AppendLog("Opened the Downloads folder.", LogKind.Info);
+                }));
+            quick.AddCard(Card("Sharpen text", "Enable ClearType font smoothing for sharper text on this display.",
+                "\uE8D2", Theme.Violet, delegate
+                {
+                    RunTask("Enabling ClearType text smoothing...", @"
+                        Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'FontSmoothing' -Value '2' -ErrorAction SilentlyContinue
+                        Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'FontSmoothingType' -Value 2 -ErrorAction SilentlyContinue
+                        Write-Host 'ClearType font smoothing enabled. Sign out and back in if text does not change immediately.'
+                    ");
                 }));
             page.Controls.Add(quick);
             page.Controls.Add(_github);
@@ -3448,6 +3454,7 @@ namespace SailuoTools
                 control.Enabled = !busy;
             }
             _hero.SaveButton.Enabled = !busy;
+            _hero.RestoreButton.Enabled = !busy;
             _footer.Progress.Visible = busy;
             _footer.Progress.Active = busy;
         }
@@ -3548,76 +3555,223 @@ namespace SailuoTools
 
         private void RefreshCloudStatus(bool announce)
         {
-            if (!File.Exists(CloudStatusPath))
+            Dictionary<string, object> meta = ReadJsonMap(CloudStatusPath);
+            bool busy = SyncInProgress();
+            string operation = JsonString(meta, "operation");
+            string status = JsonString(meta, "status");
+            string progress = JsonString(meta, "progress");
+            string error = JsonString(meta, "last_error");
+            string warning = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase)
+                ? JsonString(meta, "last_restore_warning")
+                : JsonString(meta, "last_warning");
+            string skipReason = JsonString(meta, "reason");
+            DateTime savedUtc = JsonUtc(meta, "last_saved_utc");
+            DateTime checkUtc = JsonUtc(meta, "last_check_utc");
+            DateTime restoredUtc = JsonUtc(meta, "last_restore_utc");
+            int fileCount = (int)JsonLong(meta, "file_count", 0);
+            double sizeMb = JsonDouble(meta, "size_mb", 0);
+            int restoreFiles = (int)JsonLong(meta, "last_restore_files", 0);
+            string restoreSource = JsonString(meta, "last_restore_source");
+
+            _lastSaveUtc = savedUtc;
+            _lastCheckUtc = checkUtc;
+            _lastSaveFiles = fileCount;
+            _lastSaveMb = sizeMb;
+
+            // The rail tile and sidebar card always describe the last verified
+            // save (or the last restore when no save metadata exists yet).
+            DateTime displayUtc = savedUtc != DateTime.MinValue ? savedUtc : restoredUtc;
+            string displayTime = displayUtc == DateTime.MinValue ? "--:--" : displayUtc.ToLocalTime().ToString("HH:mm");
+            string displayMeta = displayUtc == DateTime.MinValue
+                ? "No verified snapshot yet"
+                : savedUtc != DateTime.MinValue
+                    ? string.Format("{0} files \u00B7 {1:0.#} MB", fileCount, sizeMb)
+                    : string.Format("{0} files restored", restoreFiles);
+            _sidebar.SetLastSave(displayTime, displayMeta);
+            _stats.SetTile(2, "LAST SNAPSHOT", displayTime, displayMeta, -1f);
+
+            if (meta == null)
             {
-                _lastSaveUtc = DateTime.MinValue;
-                _lastCheckUtc = DateTime.MinValue;
-                _sidebar.SetLastSave("--:--", "No snapshot yet");
                 _hero.SetState("No snapshot yet", Theme.Amber);
-                _hero.SetMeta("Save once to create the first cloud snapshot for this account.");
-                _stats.SetTile(2, "LAST SNAPSHOT", "--:--", "No snapshot yet", -1f);
-                _header.SetCloud("Cloud idle", Theme.Amber);
+                _hero.SetMeta("Save once to create the first verified cloud snapshot for this account.");
+                _header.SetCloud(busy ? "Saving..." : "Cloud idle", busy ? Theme.Blue : Theme.Amber);
+                if (announce) { AppendLog("No verified cloud snapshot exists yet.", LogKind.Muted); }
                 return;
             }
 
-            try
+            DateTime freshUtc = savedUtc > checkUtc ? savedUtc : checkUtc;
+            TimeSpan age = freshUtc == DateTime.MinValue ? TimeSpan.MaxValue : DateTime.UtcNow - freshUtc;
+            string ago = FormatAge(age, displayUtc);
+            bool fresh = freshUtc != DateTime.MinValue && age.TotalMinutes <= AutoSaveMinutes + 2;
+
+            if (busy && string.Equals(status, "running", StringComparison.OrdinalIgnoreCase))
             {
-                string json = File.ReadAllText(CloudStatusPath);
-                Match mTime = Regex.Match(json, "\"last_saved_utc\"\\s*:\\s*\"([^\"]+)\"");
-                Match mCheck = Regex.Match(json, "\"last_check_utc\"\\s*:\\s*\"([^\"]+)\"");
-                Match mCount = Regex.Match(json, "\"file_count\"\\s*:\\s*(\\d+)");
-                Match mSize = Regex.Match(json, "\"size_mb\"\\s*:\\s*([0-9.]+)");
+                string activity = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase)
+                    ? "Restoring snapshot..." : "Saving session...";
+                _hero.SetState(activity, Theme.Blue);
+                _hero.SetMeta(string.IsNullOrEmpty(progress)
+                    ? "The encrypted snapshot is being verified. This can take a minute."
+                    : progress);
+                _header.SetCloud(activity, Theme.Blue);
+                if (announce) { AppendLog(activity + " " + progress, LogKind.Info); }
+                return;
+            }
 
-                DateTime saved;
-                if (mTime.Success && DateTime.TryParse(mTime.Groups[1].Value, CultureInfo.InvariantCulture,
-                        DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out saved))
+            if (string.Equals(status, "running", StringComparison.OrdinalIgnoreCase))
+            {
+                _hero.SetState("Last operation was interrupted", Theme.Amber);
+                _hero.SetMeta("No process is running now. The previous verified snapshot is still safe; save again to renew it.");
+                _header.SetCloud("Cloud needs attention", Theme.Amber);
+                if (announce) { AppendLog("The last cloud operation did not finish.", LogKind.Warn); }
+            }
+            else if (string.Equals(status, "failure", StringComparison.OrdinalIgnoreCase))
+            {
+                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase);
+                _hero.SetState(restore ? "Restore failed" : "Save failed", Theme.Red);
+                _hero.SetMeta(ShortError(error, restore
+                    ? "The previous profile data was kept or rolled back."
+                    : "The previous verified snapshot was kept."));
+                _header.SetCloud("Cloud error", Theme.Red);
+                if (announce)
                 {
-                    _lastSaveUtc = saved;
+                    AppendLog((restore ? "Restore" : "Save") + " failed: " + ShortError(error, "see the activity log."),
+                        LogKind.Error);
                 }
-                DateTime checkedUtc;
-                _lastCheckUtc = DateTime.MinValue;
-                if (mCheck.Success && DateTime.TryParse(mCheck.Groups[1].Value, CultureInfo.InvariantCulture,
-                        DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out checkedUtc))
+            }
+            else if (string.Equals(status, "warning", StringComparison.OrdinalIgnoreCase))
+            {
+                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase);
+                _hero.SetState(restore ? "Restored with warnings" : "Saved with warnings", Theme.Amber);
+                _hero.SetMeta(ShortError(warning, restore
+                    ? "Content was verified, but a permission warning was reported."
+                    : "The snapshot was uploaded and verified with documented warnings."));
+                _header.SetCloud("Cloud warning", Theme.Amber);
+                if (announce) { AppendLog("Cloud operation finished with warnings: " + ShortError(warning, "see the activity log."), LogKind.Warn); }
+            }
+            else if (string.Equals(status, "skipped", StringComparison.OrdinalIgnoreCase))
+            {
+                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase);
+                _hero.SetState(restore ? "Restore skipped" : "Save skipped", Theme.Amber);
+                _hero.SetMeta(ShortError(skipReason, restore
+                    ? "No files were changed."
+                    : "No new upload was needed; the previous verified snapshot is still current."));
+                _header.SetCloud("Cloud ready", Theme.Amber);
+                if (announce) { AppendLog((restore ? "Restore" : "Save") + " skipped: " + ShortError(skipReason, "no changes."), LogKind.Info); }
+            }
+            else
+            {
+                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase)
+                              && restoredUtc != DateTime.MinValue;
+                if (restore)
                 {
-                    _lastCheckUtc = checkedUtc;
+                    _hero.SetState(fresh ? "Restored just now" : "Restored " + FormatAge(DateTime.UtcNow - restoredUtc, restoredUtc),
+                        fresh ? Theme.Green : Theme.Amber);
+                    _hero.SetMeta(string.Format("Restored {0} files from {1} \u00B7 {2}",
+                        restoreFiles,
+                        string.IsNullOrEmpty(restoreSource) ? "the cloud" : restoreSource,
+                        FormatAge(DateTime.UtcNow - restoredUtc, restoredUtc)));
                 }
-                if (mCount.Success) { _lastSaveFiles = int.Parse(mCount.Groups[1].Value, CultureInfo.InvariantCulture); }
-                if (mSize.Success) { _lastSaveMb = double.Parse(mSize.Groups[1].Value, CultureInfo.InvariantCulture); }
-
-                DateTime local = _lastSaveUtc == DateTime.MinValue ? DateTime.Now : _lastSaveUtc.ToLocalTime();
-                string timeText = _lastSaveUtc == DateTime.MinValue ? "--:--" : local.ToString("HH:mm");
-                string sizeText = string.Format("{0} files \u00B7 {1:0.#} MB", _lastSaveFiles, _lastSaveMb);
-                _sidebar.SetLastSave(timeText, sizeText);
-                _stats.SetTile(2, "LAST SNAPSHOT", timeText, sizeText, -1f);
-
-                DateTime freshUtc = _lastSaveUtc > _lastCheckUtc ? _lastSaveUtc : _lastCheckUtc;
-                TimeSpan age = freshUtc == DateTime.MinValue ? TimeSpan.MaxValue : DateTime.UtcNow - freshUtc;
-                string ago = age == TimeSpan.MaxValue ? "unknown"
-                    : age.TotalMinutes < 1 ? "just now"
-                    : age.TotalMinutes < 60 ? string.Format("{0} min ago", (int)age.TotalMinutes)
-                    : age.TotalHours < 24 ? string.Format("{0} h ago", (int)age.TotalHours)
-                    : local.ToString("d MMM");
-
-                bool fresh = age.TotalMinutes <= 6;
-                _hero.SetState(fresh ? "Up to date" : "Snapshot is " + ago, fresh ? Theme.Green : Theme.Amber);
-                _hero.SetMeta(_lastSaveUtc == DateTime.MinValue
-                    ? "No snapshot yet. Save once to start the 4-minute backup cycle."
-                    : string.Format("Last save {0} \u00B7 {1}", local.ToString("HH:mm"), ago));
-
-                bool busy = SyncInProgress();
-                _header.SetCloud(busy ? "Saving..." : (fresh ? "Cloud up to date" : "Cloud stale"),
-                    busy ? Theme.Blue : (fresh ? Theme.Green : Theme.Amber));
-
+                else if (savedUtc == DateTime.MinValue)
+                {
+                    _hero.SetState("No verified snapshot yet", Theme.Amber);
+                    _hero.SetMeta("Save once to create the first verified cloud snapshot for this account.");
+                }
+                else
+                {
+                    _hero.SetState(fresh ? "Up to date" : "Snapshot is " + ago, fresh ? Theme.Green : Theme.Amber);
+                    _hero.SetMeta(string.Format("Last save {0} \u00B7 {1} \u00B7 {2} files \u00B7 {3:0.#} MB",
+                        savedUtc.ToLocalTime().ToString("HH:mm"), ago, fileCount, sizeMb));
+                }
+                _header.SetCloud(fresh ? "Cloud up to date" : "Cloud stale", fresh ? Theme.Green : Theme.Amber);
                 if (announce)
                 {
                     AppendLog(string.Format("Cloud snapshot: {0} \u00B7 {1} files \u00B7 {2:0.#} MB.",
-                        local.ToString("HH:mm"), _lastSaveFiles, _lastSaveMb), LogKind.Muted);
+                        displayTime, fileCount, sizeMb), LogKind.Muted);
                 }
             }
-            catch (Exception ex)
+        }
+
+        private static Dictionary<string, object> ReadJsonMap(string path)
+        {
+            try
             {
-                AppendLog("Could not read the cloud status file: " + ex.Message, LogKind.Warn);
+                if (!File.Exists(path)) { return null; }
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                Dictionary<string, object> map =
+                    serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(path));
+                return map;
             }
+            catch { return null; }
+        }
+
+        private static string JsonString(Dictionary<string, object> map, string key)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return string.Empty; }
+            return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
+        private static long JsonLong(Dictionary<string, object> map, string key, long fallback)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return fallback; }
+            try
+            {
+                if (value is long) { return (long)value; }
+                if (value is int) { return (int)value; }
+                if (value is decimal) { return (long)(decimal)value; }
+                long parsed;
+                if (long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
+                        NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed)) { return parsed; }
+            }
+            catch { }
+            return fallback;
+        }
+
+        private static double JsonDouble(Dictionary<string, object> map, string key, double fallback)
+        {
+            object value;
+            if (map == null || !map.TryGetValue(key, out value) || value == null) { return fallback; }
+            try
+            {
+                if (value is double) { return (double)value; }
+                if (value is decimal) { return (double)(decimal)value; }
+                double parsed;
+                if (double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
+                        NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)) { return parsed; }
+            }
+            catch { }
+            return fallback;
+        }
+
+        private static DateTime JsonUtc(Dictionary<string, object> map, string key)
+        {
+            string text = JsonString(map, key);
+            if (string.IsNullOrEmpty(text)) { return DateTime.MinValue; }
+            DateTime parsed;
+            if (DateTime.TryParse(text, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out parsed))
+            {
+                return parsed;
+            }
+            return DateTime.MinValue;
+        }
+
+        private static string FormatAge(TimeSpan age, DateTime referenceUtc)
+        {
+            if (referenceUtc == DateTime.MinValue || age == TimeSpan.MaxValue) { return "unknown"; }
+            if (age.TotalMinutes < 1) { return "just now"; }
+            if (age.TotalMinutes < 60) { return string.Format("{0} min ago", (int)age.TotalMinutes); }
+            if (age.TotalHours < 24) { return string.Format("{0} h ago", (int)age.TotalHours); }
+            return referenceUtc.ToLocalTime().ToString("d MMM");
+        }
+
+        private static string ShortError(string text, string fallback)
+        {
+            if (string.IsNullOrEmpty(text)) { return fallback ?? string.Empty; }
+            string clean = text.Replace("\r", " ").Replace("\n", " ").Trim();
+            if (clean.Length > 180) { clean = clean.Substring(0, 177) + "..."; }
+            return clean;
         }
 
         private void RefreshSystemInfo()
@@ -3675,8 +3829,8 @@ namespace SailuoTools
                 }
                 return;
             }
-            RunTask(manual ? "Saving session to the cloud..." : "Auto-saving session to the cloud...",
-                @"& 'C:\Sailuo\scripts\persist-state.ps1' -Checkpoint",
+            RunStateTask(manual ? "Saving session to the cloud..." : "Auto-saving session to the cloud...",
+                "save", @"C:\Sailuo\scripts\persist-state.ps1", "-Checkpoint",
                 delegate { RefreshCloudStatus(false); });
         }
 
@@ -3699,7 +3853,8 @@ namespace SailuoTools
                 "Restore now", Theme.Violet,
                 delegate
                 {
-                    RunTask("Restoring the latest cloud save...", @"& 'C:\Sailuo\scripts\restore-state.ps1'",
+                    RunStateTask("Restoring the latest cloud save...",
+                        "restore", @"C:\Sailuo\scripts\restore-state.ps1", null,
                         delegate { RefreshCloudStatus(true); });
                 });
         }
@@ -4060,6 +4215,176 @@ namespace SailuoTools
         // ------------------------------------------------------------------
         //  Task runner
         // ------------------------------------------------------------------
+        /// <summary>
+        /// Runs Save/Restore directly with -File so PowerShell returns the real
+        /// script exit code (a wrapper script would swallow it). The operation id
+        /// ties the UI to the exact result written by the script.
+        /// </summary>
+        private void RunStateTask(string label, string operation, string scriptPath, string extraArgs, Action onComplete)
+        {
+            if (_running)
+            {
+                AppendLog("A task is already running. Wait for it to finish, then try again.", LogKind.Warn);
+                SetStatus("Busy", Theme.Amber, _runningLabel + " is still running.");
+                return;
+            }
+            if (!File.Exists(scriptPath))
+            {
+                string missing = "The cloud helper is missing: " + scriptPath;
+                AppendLog(missing, LogKind.Error);
+                SetStatus("Cloud helper missing", Theme.Red, missing);
+                return;
+            }
+
+            _running = true;
+            _runningLabel = label;
+            SetStatus(label, Theme.Blue, "Working in the background...");
+            SetBusy(true);
+            AppendLog(label, LogKind.Info);
+            UpdateCountdown();
+
+            string operationId = Guid.NewGuid().ToString("N");
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                int exitCode = -1;
+                bool launched = false;
+                string launchError = string.Empty;
+                Dictionary<string, object> result = null;
+
+                try
+                {
+                    ProcessStartInfo info = new ProcessStartInfo();
+                    info.FileName = "powershell.exe";
+                    info.Arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \""
+                        + scriptPath + "\" -OperationId " + operationId
+                        + (string.IsNullOrEmpty(extraArgs) ? string.Empty : " " + extraArgs);
+                    info.UseShellExecute = false;
+                    info.RedirectStandardOutput = true;
+                    info.RedirectStandardError = true;
+                    info.CreateNoWindow = true;
+                    info.StandardOutputEncoding = Encoding.UTF8;
+                    info.StandardErrorEncoding = Encoding.UTF8;
+
+                    using (Process process = Process.Start(info))
+                    {
+                        process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs args)
+                        {
+                            if (!string.IsNullOrEmpty(args.Data)) { AppendOutput(args.Data, false); }
+                        };
+                        process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs args)
+                        {
+                            if (!string.IsNullOrEmpty(args.Data)) { AppendOutput(args.Data, true); }
+                        };
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+                        process.WaitForExit();
+                        // Flush the asynchronous readers before taking the code.
+                        process.WaitForExit();
+                        exitCode = process.ExitCode;
+                        launched = true;
+                    }
+
+                    result = ReadOperationResult(operationId, operation, 12);
+                }
+                catch (Exception ex)
+                {
+                    launchError = ex.Message;
+                    AppendLog("Cloud task failed to start: " + ex.Message, LogKind.Error);
+                }
+
+                int contractCode = exitCode;
+                string contractStatus = string.Empty;
+                string message = string.Empty;
+                string errorText = string.Empty;
+                bool matched = result != null;
+                if (matched)
+                {
+                    long reported = JsonLong(result, "exit_code", exitCode);
+                    contractCode = (int)reported;
+                    contractStatus = JsonString(result, "status");
+                    message = JsonString(result, "message");
+                    errorText = JsonString(result, "error");
+                }
+
+                try
+                {
+                    Post(delegate
+                    {
+                        _running = false;
+                        _runningLabel = string.Empty;
+                        SetBusy(false);
+                        UpdateCountdown();
+
+                        if (!launched)
+                        {
+                            SetStatus("Cloud action failed", Theme.Red,
+                                ShortError(launchError, "The PowerShell helper could not be started."));
+                            AppendLog("Cloud action failed to start: " + ShortError(launchError, "unknown error"), LogKind.Error);
+                        }
+                        else if (contractCode == 0 && (contractStatus == "success" || contractStatus.Length == 0))
+                        {
+                            SetStatus("Ready", Theme.Green, string.IsNullOrEmpty(message)
+                                ? label.TrimEnd('.') + " completed."
+                                : ShortError(message, "Cloud action completed."));
+                            AppendLog(string.IsNullOrEmpty(message) ? "Done: " + label.TrimEnd('.') : message, LogKind.Ok);
+                        }
+                        else if (contractCode == 2 || contractStatus == "skipped")
+                        {
+                            string why = string.IsNullOrEmpty(message) ? "No changes were needed." : message;
+                            SetStatus("Nothing to do", Theme.Amber, ShortError(why, "The action was skipped."));
+                            AppendLog(why, LogKind.Info);
+                        }
+                        else if (contractCode == 3 || contractStatus == "warning")
+                        {
+                            string why = string.IsNullOrEmpty(errorText) ? message : errorText;
+                            SetStatus("Finished with warnings", Theme.Amber,
+                                ShortError(why, "Check the activity log for details."));
+                            AppendLog("Completed with warnings: " + ShortError(why, "see the activity log."), LogKind.Warn);
+                        }
+                        else
+                        {
+                            string why = !string.IsNullOrEmpty(errorText) ? errorText : message;
+                            SetStatus(operation == "restore" ? "Restore failed" : "Save failed", Theme.Red,
+                                ShortError(why, "Check the activity log for details."));
+                            AppendLog("Failed (exit " + contractCode + "): " + ShortError(why, "see the activity log."), LogKind.Error);
+                        }
+
+                        if (!matched)
+                        {
+                            AppendLog("The operation result could not be matched to this run (exit code "
+                                + exitCode + "); the status above uses the process exit code.", LogKind.Warn);
+                        }
+                        else if (contractCode != exitCode)
+                        {
+                            AppendLog("The result reports exit code " + contractCode + " but PowerShell returned "
+                                + exitCode + "; the script result is treated as authoritative.", LogKind.Warn);
+                        }
+
+                        if (onComplete != null) { onComplete(); }
+                        else { RefreshCloudStatus(true); }
+                    });
+                }
+                catch { }
+            });
+        }
+
+        private static Dictionary<string, object> ReadOperationResult(string operationId, string operation, int attempts)
+        {
+            for (int attempt = 0; attempt < attempts; attempt++)
+            {
+                Dictionary<string, object> result = ReadJsonMap(OperationStatusPath);
+                if (result != null &&
+                    string.Equals(JsonString(result, "operation_id"), operationId, StringComparison.OrdinalIgnoreCase) &&
+                    (string.IsNullOrEmpty(operation) ||
+                     string.Equals(JsonString(result, "operation"), operation, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return result;
+                }
+                Thread.Sleep(100);
+            }
+            return null;
+        }
+
         private void RunTask(string label, string psCommand)
         {
             RunTask(label, psCommand, null);
@@ -4233,6 +4558,7 @@ namespace SailuoTools
     }
 }
 
+
 '@
 
 try {
@@ -4244,7 +4570,7 @@ try {
     # System.IO.Compression* is required by the GitHub run-log viewer (ZipArchive).
     $cscArgs = @('/nologo', '/target:winexe', "/out:$exePath",
       '/r:System.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll',
-      '/r:System.IO.Compression.dll', '/r:System.IO.Compression.FileSystem.dll')
+      '/r:System.IO.Compression.dll', '/r:System.IO.Compression.FileSystem.dll', '/r:System.Web.Extensions.dll')
     if (Test-Path $dashIco) { $cscArgs += "/win32icon:$dashIco" }
     $cscArgs += $csFile
     $cscOutput = & $cscExe @cscArgs 2>&1
@@ -4255,7 +4581,7 @@ try {
     }
   } else {
     Add-Type -TypeDefinition $csharpSource `
-      -ReferencedAssemblies @('System.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.IO.Compression.dll', 'System.IO.Compression.FileSystem.dll') `
+      -ReferencedAssemblies @('System.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.IO.Compression.dll', 'System.IO.Compression.FileSystem.dll', 'System.Web.Extensions.dll') `
       -OutputAssembly $exePath `
       -OutputType WindowsApplication `
       -ErrorAction Stop

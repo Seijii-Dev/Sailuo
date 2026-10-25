@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  lib-common.ps1 - shared helpers for all Sailuo scripts (v2: Win10-style,
 #  private Tailscale access). Dot-source it like this:
 #
@@ -469,7 +469,7 @@ function Ensure-UserProfileCreated([string]$UserName) {
     $profKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$sid"
     if (-not (Test-Path $profKey)) {
       if (-not ('XyWin32Profile' -as [type])) {
-        Add-Type -TypeDefthistion @"
+        Add-Type -TypeDefinition @"
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -511,9 +511,9 @@ public static class XyWin32Profile {
       }
     } else {
       Set-ItemProperty -Path $profKey -Name 'ProfileImagePath' -Value $targetDir -ErrorAction SilentlyContinue
-      Set-ItemProperty -Path $profKey -Name 'State' -Value 0 -Type DWord -ErrorAction SilentlyContinue
+      New-ItemProperty -Path $profKey -Name 'State' -Value 0 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
     }
-    & icacls $targetDir /grant "${UserName}:(OI)(CI)F" /grant "Admthisstrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /C /Q 2>&1 | Out-Null
+    & icacls $targetDir /grant "${UserName}:(OI)(CI)F" /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /C /Q 2>&1 | Out-Null
   } catch {
     Log "  Ensure-UserProfileCreated warning: $($_.Exception.Message)"
   }
@@ -523,30 +523,40 @@ public static class XyWin32Profile {
 function Get-AllUserProfileDirs([string]$UserName) {
   $dirs = New-Object System.Collections.Generic.List[string]
   if ($UserName) {
+    $sid = $null
     try {
       $acct = New-Object System.Security.Principal.NTAccount($UserName)
       $sid = $acct.Translate([System.Security.Principal.SecurityIdentifier]).Value
+    } catch {}
+    if ($sid) {
       $profKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$sid"
       if (Test-Path $profKey) {
         $p = (Get-ItemProperty -Path $profKey -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
-        if ($p -and (Test-Path $p) -and -not $dirs.Contains($p)) { $dirs.Add($p) }
+        # The ProfileList entry is authoritative even when the folder has not
+        # been materialised yet (a brand-new runner). It is the folder Windows
+        # will use at the first RDP logon, so restore must fill exactly that.
+        if ($p -and -not $dirs.Contains($p)) { $dirs.Add($p) }
       }
-    } catch {}
-
-    # The ProfileList entry is authoritative. Leftover folders such as
-    # C:\Users\user.old or a stale C:\Users\user must NOT be merged into the
-    # same backup destination: older copies would overwrite newer files.
+    }
     if ($dirs.Count -eq 0) {
+      # Dynamically named profiles (sailuo.runnervmdaln5) are normal on
+      # GitHub runners. Prefer the profile of the process's own account.
+      $currentProfile = $env:USERPROFILE
+      $currentName = $env:USERNAME
+      if ($currentProfile -and (Test-Path $currentProfile) -and $currentName -and
+          ($currentName -ieq $UserName -or $currentName -like "$UserName.*")) {
+        if (-not $dirs.Contains($currentProfile)) { $dirs.Add($currentProfile) }
+      }
       $base = "C:\Users\$UserName"
       if ((Test-Path $base) -and -not $dirs.Contains($base)) { $dirs.Add($base) }
-      Get-ChildItem -Path 'C:\Users' -Directory -Filter "$UserName.*" -ErrorAction SilentlyContinue | ForEach-Object {
-        if (-not $dirs.Contains($_.FullName)) { $dirs.Add($_.FullName) }
+      if ($dirs.Count -eq 0) {
+        Get-ChildItem -Path 'C:\Users' -Directory -Filter "$UserName.*" -ErrorAction SilentlyContinue | ForEach-Object {
+          if (-not $dirs.Contains($_.FullName)) { $dirs.Add($_.FullName) }
+        }
       }
     }
   }
-  if ($dirs.Count -eq 0 -and $UserName) {
-    $dirs.Add("C:\Users\$UserName")
-  }
+  if ($dirs.Count -eq 0 -and $UserName) { $dirs.Add("C:\Users\$UserName") }
   return $dirs.ToArray()
 }
 
@@ -608,15 +618,34 @@ function Copy-FileUnlocked([string]$SourceFile, [string]$DestFile) {
   return $false
 }
 
+# Absolute paths that must never be staged (runtime metadata, work folders,
+# restore rollback copies). Set by the save scripts before copying.
+$global:SailuoExcludePaths = New-Object System.Collections.ArrayList
+
+function Test-SailuoPathExcluded([string]$Path) {
+  if (-not $Path) { return $false }
+  if (-not $global:SailuoExcludePaths -or $global:SailuoExcludePaths.Count -eq 0) { return $false }
+  try { $full = [System.IO.Path]::GetFullPath($Path).TrimEnd('\') } catch { return $false }
+  foreach ($ex in @($global:SailuoExcludePaths)) {
+    if (-not $ex) { continue }
+    try { $root = [System.IO.Path]::GetFullPath([string]$ex).TrimEnd('\') } catch { continue }
+    if ($full -ieq $root) { return $true }
+    if ($full.StartsWith($root + '\', [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+  }
+  return $false
+}
+
 function Copy-TreeUnlocked([string]$SourceDir, [string]$DestDir) {
   if (-not (Test-Path -LiteralPath $SourceDir)) { return }
+  if (Test-SailuoPathExcluded $SourceDir) { return }
   if (Test-Path -LiteralPath $SourceDir -PathType Leaf) {
     Copy-FileUnlocked $SourceDir $DestDir | Out-Null
     return
   }
   New-Item -ItemType Directory -Path $DestDir -Force -ErrorAction SilentlyContinue | Out-Null
   Get-ChildItem -LiteralPath $SourceDir -Force -ErrorAction SilentlyContinue | Where-Object {
-    -not ($_.PSIsContainer -and $global:SailuoExcludeDirs -contains $_.Name)
+    -not ($_.PSIsContainer -and $global:SailuoExcludeDirs -contains $_.Name) -and
+    -not (Test-SailuoPathExcluded $_.FullName)
   } | ForEach-Object {
     $target = Join-Path $DestDir $_.Name
     if ($_.PSIsContainer) {
@@ -625,6 +654,307 @@ function Copy-TreeUnlocked([string]$SourceDir, [string]$DestDir) {
       Copy-FileUnlocked $_.FullName $target | Out-Null
     }
   }
+}
+
+# ===========================================================================
+#  State metadata, operation results and archive validation
+# ===========================================================================
+# The dashboard must be able to tell the difference between a snapshot that
+# was really uploaded/verified, a checkpoint that intentionally skipped an
+# unchanged upload, and an operation that failed. Two small JSON files carry
+# that contract:
+#   last-cloud-save.json : durable snapshot metadata (last successful save,
+#                          last checkpoint verification, last restore, error)
+#   last-operation.json  : result of the current run, keyed by operation id
+$global:SailuoCloudMetaPath  = 'C:\Persist\System\last-cloud-save.json'
+$global:SailuoOperationPath  = 'C:\Persist\System\last-operation.json'
+$global:SailuoSyncLockPath   = 'C:\Persist\System\sync.lock'
+$global:SailuoSyncLockOwned  = $false
+
+function Get-SailuoUtcNowText {
+  return [DateTime]::UtcNow.ToString('o')
+}
+
+function Write-SailuoJson([string]$Path, $Object, [int]$Depth = 12) {
+  $parent = Split-Path -Path $Path -Parent
+  if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+    New-Item -ItemType Directory -Path $parent -Force -ErrorAction SilentlyContinue | Out-Null
+  }
+  $json = $Object | ConvertTo-Json -Depth $Depth
+  [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+function Read-SailuoJson([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) { return $null }
+  try { return (Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json) } catch { return $null }
+}
+
+function Get-SailuoCloudMeta {
+  $obj = Read-SailuoJson $global:SailuoCloudMetaPath
+  if (-not $obj) { $obj = New-Object psobject }
+  return $obj
+}
+
+# Merge fields into the durable snapshot metadata without dropping fields that
+# belong to the other operation (save vs restore).
+function Set-SailuoCloudMeta([hashtable]$Pairs) {
+  $obj = Get-SailuoCloudMeta
+  foreach ($k in $Pairs.Keys) {
+    $obj | Add-Member -NotePropertyName $k -NotePropertyValue $Pairs[$k] -Force
+  }
+  Write-SailuoJson $global:SailuoCloudMetaPath $obj 12
+  return $obj
+}
+
+function Write-SailuoOperationResult {
+  param(
+    [string]$Operation,
+    [string]$OperationId,
+    [string]$Status,
+    [string]$Message = '',
+    [string]$ErrorText = '',
+    [int]$ExitCode = 0,
+    [object]$FinishedUtc = $null,
+    [hashtable]$Extra = @{}
+  )
+  if (-not $OperationId) { $OperationId = [guid]::NewGuid().ToString('N') }
+  $now = Get-SailuoUtcNowText
+  $started = if ($script:SailuoOperationStartedUtc) { $script:SailuoOperationStartedUtc } else { $now }
+  if ($null -eq $FinishedUtc -and $Status -ne 'running') { $FinishedUtc = $now }
+  $obj = [ordered]@{
+    schema        = 1
+    operation     = $Operation
+    operation_id  = $OperationId
+    status        = $Status
+    message       = $Message
+    error         = $ErrorText
+    exit_code     = $ExitCode
+    pid           = $PID
+    started_utc   = $started
+    finished_utc  = $FinishedUtc
+    writer        = 'sailuo-operation/1'
+  }
+  foreach ($k in $Extra.Keys) { $obj[$k] = $Extra[$k] }
+  Write-SailuoJson $global:SailuoOperationPath $obj 10
+}
+
+function Start-SailuoOperation {
+  param(
+    [string]$Operation,
+    [string]$OperationId,
+    [string]$Writer = 'sailuo/3',
+    [string]$Message = ''
+  )
+  $script:SailuoOperationStartedUtc = Get-SailuoUtcNowText
+  if (-not $OperationId) { $OperationId = [guid]::NewGuid().ToString('N') }
+  $script:SailuoOperationId = $OperationId
+  Set-SailuoCloudMeta @{
+    schema            = 2
+    status            = 'running'
+    operation         = $Operation
+    operation_id      = $OperationId
+    writer            = $Writer
+    started_utc       = $script:SailuoOperationStartedUtc
+    last_attempt_utc  = $script:SailuoOperationStartedUtc
+    pid               = $PID
+    progress          = $Message
+  } | Out-Null
+  Write-SailuoOperationResult -Operation $Operation -OperationId $OperationId -Status 'running' `
+    -Message $Message -Extra @{ writer = $Writer }
+  return $OperationId
+}
+
+function Write-SailuoSyncLock([string]$Mode) {
+  New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
+  $owns = [ordered]@{
+    pid         = $PID
+    mode        = $Mode
+    started_utc = Get-SailuoUtcNowText
+  }
+  Write-SailuoJson $global:SailuoSyncLockPath $owns 5
+  $global:SailuoSyncLockOwned = $true
+}
+
+function Remove-SailuoSyncLock {
+  if (-not $global:SailuoSyncLockOwned) { return }
+  try {
+    if (Test-Path -LiteralPath $global:SailuoSyncLockPath) {
+      $raw = Get-Content -LiteralPath $global:SailuoSyncLockPath -Raw -ErrorAction SilentlyContinue
+      if ($raw -match '"pid"\s*:\s*(\d+)' -and [int]$Matches[1] -eq $PID) {
+        Remove-Item -LiteralPath $global:SailuoSyncLockPath -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {}
+  $global:SailuoSyncLockOwned = $false
+}
+
+# Append/merge the persist block in out/sailuo-status.json without clobbering
+# fields written by the other operation.
+function Update-PersistStatus([hashtable]$Pairs) {
+  $status = Read-Status
+  if (-not $status) { $status = New-Object psobject }
+  $persist = $null
+  try { $persist = $status.persist } catch {}
+  if (-not $persist) { $persist = New-Object psobject }
+  foreach ($k in $Pairs.Keys) {
+    $persist | Add-Member -NotePropertyName $k -NotePropertyValue $Pairs[$k] -Force
+  }
+  $status | Add-Member -NotePropertyName 'persist' -NotePropertyValue $persist -Force
+  $path = Get-StatusPath
+  try {
+    $parent = Split-Path -Path $path -Parent
+    if ($parent -and -not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+    Write-SailuoJson $path $status 10
+    return $true
+  } catch {
+    Log "writing persist status failed: $($_.Exception.Message)"
+    return $false
+  }
+}
+
+function Get-SailuoSevenZipPath {
+  foreach ($candidate in @(
+      (Join-Path $env:ProgramFiles '7-Zip\7z.exe'),
+      (Join-Path ${env:ProgramFiles(x86)} '7-Zip\7z.exe'),
+      'C:\Program Files\7-Zip\7z.exe',
+      'C:\Program Files (x86)\7-Zip\7z.exe')) {
+    if ($candidate -and (Test-Path -LiteralPath $candidate)) { return $candidate }
+  }
+  return $null
+}
+
+function Get-SailuoFileSha256([string]$Path) {
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
+  try {
+    return ([BitConverter]::ToString($sha.ComputeHash($stream)) -replace '-', '').ToLowerInvariant()
+  } finally {
+    $stream.Dispose()
+    $sha.Dispose()
+  }
+}
+
+function Get-SailuoFileMagic([string]$Path) {
+  $fs = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+  try {
+    $buf = New-Object byte[] 8
+    $n = $fs.Read($buf, 0, 8)
+    return (($buf[0..([Math]::Max(0, $n - 1))] | ForEach-Object { $_.ToString('x2') }) -join '')
+  } finally { $fs.Dispose() }
+}
+
+function Get-SailuoArchiveFormat([string]$Path) {
+  try {
+    $magic = Get-SailuoFileMagic $Path
+    if ($magic.StartsWith('377abcaf271c')) { return '7z' }
+    if ($magic.StartsWith('504b0304') -or $magic.StartsWith('504b0506') -or $magic.StartsWith('504b0708')) { return 'zip' }
+  } catch {}
+  return $null
+}
+
+# Verify the archive itself (CRC for 7z, decompression/CRC for zip) before any
+# file is extracted over live data.
+function Test-SailuoArchive {
+  param([string]$Path, [string]$Format)
+  if (-not (Test-Path -LiteralPath $Path)) { return @{ ok = $false; error = 'archive is missing' } }
+  if ($Format -eq '7z') {
+    $sevenZip = Get-SailuoSevenZipPath
+    if (-not $sevenZip) { return @{ ok = $false; error = '7-Zip is not installed' } }
+    $output = & $sevenZip t $Path -y 2>&1
+    if ($LASTEXITCODE -ne 0) {
+      return @{ ok = $false; error = "7-Zip test failed (exit $LASTEXITCODE): $(Log-Tail (($output | Out-String)) 2)" }
+    }
+    return @{ ok = $true; error = '' }
+  }
+  if ($Format -eq 'zip') {
+    try {
+      Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+      $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
+      try {
+        foreach ($entry in $zip.Entries) {
+          if ($entry.Length -le 0) { continue }
+          $stream = $entry.Open()
+          try {
+            $buffer = New-Object byte[] 65536
+            while ($stream.Read($buffer, 0, $buffer.Length) -gt 0) { }
+          } finally { $stream.Dispose() }
+        }
+      } finally { $zip.Dispose() }
+      return @{ ok = $true; error = '' }
+    } catch {
+      return @{ ok = $false; error = $_.Exception.Message }
+    }
+  }
+  return @{ ok = $false; error = "unsupported archive format '$Format'" }
+}
+
+function Get-SailuoArchiveEntries {
+  param([string]$Path, [string]$Format)
+  $entries = New-Object System.Collections.ArrayList
+  if ($Format -eq '7z') {
+    $sevenZip = Get-SailuoSevenZipPath
+    if (-not $sevenZip) { throw '7-Zip is not installed' }
+    $output = @(& $sevenZip l -slt $Path 2>&1)
+    if ($LASTEXITCODE -ne 0) { throw "7-Zip list failed (exit $LASTEXITCODE)" }
+    $inBody = $false
+    $current = $null
+    foreach ($line in $output) {
+      $text = [string]$line
+      if ($text -match '^----------$') { $inBody = $true; continue }
+      if (-not $inBody) { continue }
+      if ($text -match '^Path = (.*)$') {
+        if ($current) { [void]$entries.Add($current) }
+        $current = [pscustomobject]@{ path = $Matches[1]; isDirectory = $false; size = 0L }
+      } elseif ($current -and $text -match '^Size = (\d+)$') {
+        $current.size = [long]$Matches[1]
+      } elseif ($current -and $text -match '^Folder = (\+|-)$') {
+        $current.isDirectory = ($Matches[1] -eq '+')
+      } elseif ($current -and $text -match '^Attributes = (.*)$') {
+        if ($Matches[1] -match '(^|\s)D') { $current.isDirectory = $true }
+      }
+    }
+    if ($current) { [void]$entries.Add($current) }
+    return $entries.ToArray()
+  }
+  if ($Format -eq 'zip') {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
+    try {
+      foreach ($entry in $zip.Entries) {
+        [void]$entries.Add([pscustomobject]@{
+          path        = $entry.FullName
+          isDirectory = $entry.FullName.EndsWith('/')
+          size        = [long]$entry.Length
+        })
+      }
+    } finally { $zip.Dispose() }
+    return $entries.ToArray()
+  }
+  throw "unsupported archive format '$Format'"
+}
+
+# Reject absolute paths, drive letters, alternate data streams and parent
+# traversal before anything is written to disk.
+function Test-SailuoArchivePaths($Entries) {
+  foreach ($entry in @($Entries)) {
+    $p = [string]$entry.path
+    if (-not $p) { continue }
+    $normalized = $p.Replace('/', '\')
+    if ($normalized -match '^[\\/]' -or $normalized -match '^[A-Za-z]:' -or
+        $normalized -match '(^|\\)\.\.(\\|$)' -or $normalized.Contains(':')) {
+      return @{ ok = $false; error = "unsafe archive path: $p" }
+    }
+  }
+  return @{ ok = $true; error = '' }
+}
+
+function Get-SailuoFirstValue($Object, [string]$Name, $Default = $null) {
+  if (-not $Object) { return $Default }
+  try {
+    $property = $Object.PSObject.Properties[$Name]
+    if ($property -and $null -ne $property.Value) { return $property.Value }
+  } catch {}
+  return $Default
 }
 
 # ---------- 11. Generator Ikon Unik Desktop (.ico 64x64 ARGB Berwarna) ----------
