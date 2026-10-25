@@ -164,6 +164,11 @@ function Get-CfgStr([object]$o, [string]$n, [string]$d) {
 function Get-Cfg {
   $j = $null
   $path = Join-Path (Get-Workspace) 'assets\sailuo-extras.json'
+  if (-not (Test-Path $path)) {
+    # The repository still ships this file as assets/rdp-extras.json.
+    $legacyCfg = Join-Path (Get-Workspace) 'assets\rdp-extras.json'
+    if (Test-Path $legacyCfg) { $path = $legacyCfg }
+  }
   if (Test-Path $path) {
     try { $j = Get-Content $path -Raw | ConvertFrom-Json; Log 'configuration: assets/sailuo-extras.json' }
     catch { Log "sailuo-extras.json could not be read ($($_.Exception.Message)) - use defaults" }
@@ -488,11 +493,23 @@ public static class XyWin32Profile {
       $existingPath = (Get-ItemProperty -Path $profKey -Name 'ProfileImagePath' -ErrorAction SilentlyContinue).ProfileImagePath
       if ($existingPath) { $targetDir = $existingPath }
     }
-    # Ensure ProfileList menunjuk ke folder profil that konsisten & milik user penuh
+    # Ensure ProfileList menunjuk ke folder profil that konsisten & milik user penuh.
+    # CreateProfile can fail on a fresh runner (the account has never signed in).
+    # Without a ProfileList entry Windows invents C:\Users\<user>.<host> at the
+    # first RDP logon, which leaves the restored files in a folder the desktop
+    # never opens. Register the folder we are about to fill so both sides agree.
     if (-not (Test-Path $targetDir)) {
       New-Item -ItemType Directory -Path $targetDir -Force -ErrorAction SilentlyContinue | Out-Null
     }
-    if (Test-Path $profKey) {
+    if (-not (Test-Path $profKey)) {
+      New-Item -Path $profKey -Force -ErrorAction SilentlyContinue | Out-Null
+      if (Test-Path $profKey) {
+        New-ItemProperty -Path $profKey -Name 'ProfileImagePath' -Value $targetDir -PropertyType String -Force -ErrorAction SilentlyContinue | Out-Null
+        New-ItemProperty -Path $profKey -Name 'State' -Value 0 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        New-ItemProperty -Path $profKey -Name 'RefCount' -Value 0 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        Log "  profil resmi Windows didaftarkan manual di ProfileList: $targetDir (SID=$sid)"
+      }
+    } else {
       Set-ItemProperty -Path $profKey -Name 'ProfileImagePath' -Value $targetDir -ErrorAction SilentlyContinue
       Set-ItemProperty -Path $profKey -Name 'State' -Value 0 -Type DWord -ErrorAction SilentlyContinue
     }

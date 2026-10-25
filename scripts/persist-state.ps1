@@ -418,7 +418,11 @@ if (Test-Path $metaPath) {
   } catch {}
 }
 $bigFailures = @($copyFailures | Where-Object { $_.MB -ge 32 })
-$isSuspicious = ($bigFailures.Count -gt 0) -or ($prevMb -gt 20 -and $zipMB -lt ($prevMb * 0.5))
+# A healthy snapshot must never be replaced by one that lost most of its files,
+# even when the remaining bytes still look large (one big installer can hide a
+# wiped profile). Compare the file count as well as the archive size.
+$countCollapsed = ($prevCount -gt 20 -and $fileCount -lt [int]($prevCount * 0.5))
+$isSuspicious = ($bigFailures.Count -gt 0) -or ($prevMb -gt 20 -and $zipMB -lt ($prevMb * 0.5)) -or $countCollapsed
 if (-not $Force -and $isSuspicious -and (Test-Path $metaPath)) {
   if ($guardState -notmatch '^suspicious') {
     Set-Content -Path $guardFile -Value ("suspicious " + [DateTime]::UtcNow.ToString('o')) -Encoding ASCII -Force
@@ -499,11 +503,23 @@ try {
   }
 
   $baseAssetName = if ($zipPath.EndsWith('.7z')) { 'sailuo-state.7z.enc' } else { 'sailuo-state.zip.enc' }
+  # Never delete the only good snapshot before the new upload has succeeded.
+  # Rename the current asset first (keeping the canonical name free), upload the
+  # new archive, then remove the renamed copy. A failed upload leaves the old
+  # snapshot in place so the next restore still has something to download.
+  $oldAssetIds = @()
   foreach ($a in @($rel.assets)) {
     if ($a.name -like 'sailuo-state.*') {
-      try {
-        Invoke-RestMethod -Method Delete -Uri "https://api.github.com/repos/$ghRepo/releases/assets/$($a.id)" -Headers $hdrs -TimeoutSec 30 | Out-Null
-      } catch {}
+      $oldAssetIds += $a.id
+      if ($a.name -notlike 'sailuo-state-old-*') {
+        try {
+          $oldName = 'sailuo-state-old-' + [DateTime]::UtcNow.ToString('yyyyMMddHHmmss') + ($a.name -replace '^sailuo-state', '')
+          Invoke-RestMethod -Method Patch -Uri "https://api.github.com/repos/$ghRepo/releases/assets/$($a.id)" -Headers $hdrs -ContentType 'application/json' -Body (@{ name = $oldName } | ConvertTo-Json) -TimeoutSec 30 | Out-Null
+          Log "  Previous snapshot kept as $oldName until the new upload succeeds."
+        } catch {
+          Log "  Could not rename the previous snapshot: $($_.Exception.Message)"
+        }
+      }
     }
   }
 
@@ -546,6 +562,13 @@ try {
     } finally {
       $fsRead.Close()
     }
+  }
+
+  # The new snapshot is uploaded; only now drop the previous copy.
+  foreach ($oldId in $oldAssetIds) {
+    try {
+      Invoke-RestMethod -Method Delete -Uri "https://api.github.com/repos/$ghRepo/releases/assets/$oldId" -Headers $hdrs -TimeoutSec 30 | Out-Null
+    } catch {}
   }
 
   # Save the last state signature so the next checkpoint does not spam the API when nothing has changed

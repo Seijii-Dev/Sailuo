@@ -22,6 +22,21 @@ $u = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { $cfg.rdp_user }
 $toolsDir = 'C:\Sailuo\tools'
 New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
 
+# The dashboard starts cloud save/restore helpers from C:\Sailuo\scripts. The
+# Actions checkout (D:\a\...) disappears when the session ends, so keep a
+# durable copy next to the dashboard and refresh it on every setup run.
+$scriptsDir = 'C:\Sailuo\scripts'
+New-Item -ItemType Directory -Path $scriptsDir -Force -ErrorAction SilentlyContinue | Out-Null
+if (Test-Path $PSScriptRoot) {
+  Copy-Item -Path (Join-Path $PSScriptRoot '*.ps1') -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
+}
+$assetsDir = 'C:\Sailuo\assets'
+New-Item -ItemType Directory -Path $assetsDir -Force -ErrorAction SilentlyContinue | Out-Null
+$repoAssets = Join-Path (Split-Path -Parent $PSScriptRoot) 'assets'
+if (Test-Path $repoAssets) {
+  Copy-Item -Path (Join-Path $repoAssets '*') -Destination $assetsDir -Force -ErrorAction SilentlyContinue
+}
+
 # Persist the session context so the dashboard and the scheduled task can run
 # cloud save/restore without inheriting the setup process environment.
 $envFile = Join-Path $toolsDir 'session-env.json'
