@@ -10,6 +10,12 @@
 #    - Wallpaper from the previous session
 # ============================================================================
 
+param(
+  # Optional: restore a specific named snapshot instead of the newest auto-save.
+  #   .\restore-state.ps1 -Asset 'sailuo-snapshot-run40141009370.7z.enc'
+  [string]$Asset
+)
+
 $SailuoTag = 'Sailuo:restore'
 . "$PSScriptRoot/lib-common.ps1"
 
@@ -96,8 +102,20 @@ try {
   exit 0
 }
 
-$asset = $rel.assets | Where-Object { $_.name -like 'sailuo-state.*.enc' } | Select-Object -First 1
-$partAssets = @($rel.assets | Where-Object { $_.name -like 'sailuo-state.*.enc.part*' } | Sort-Object -Property name)
+$asset = $null
+$partAssets = @()
+if ($Asset) {
+  $asset = $rel.assets | Where-Object { $_.name -eq $Asset } | Select-Object -First 1
+  if (-not $asset) {
+    $available = @($rel.assets | ForEach-Object { $_.name }) -join ', '
+    Log "Snapshot '$Asset' not found. Available assets: $available"
+    exit 1
+  }
+  Log "Restoring the requested snapshot: $Asset"
+} else {
+  $asset = $rel.assets | Where-Object { $_.name -like 'sailuo-state.*.enc' } | Select-Object -First 1
+  $partAssets = @($rel.assets | Where-Object { $_.name -like 'sailuo-state.*.enc.part*' } | Sort-Object -Property name)
+}
 if (-not $asset -and $partAssets.Count -eq 0) {
   Log 'State asset not found in the release.'
   exit 0

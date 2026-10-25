@@ -586,6 +586,21 @@ try {
     user           = $u
     writer         = 'persist-state/v2'
   } | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8 -Force
+
+  # At the end of a session, keep a copy of the archive on disk so the workflow
+  # can attach it to the Actions run as a downloadable artifact. Without this
+  # the artifact step found no file and every run ended up with 0 artifacts,
+  # which meant an overwritten release asset could never be recovered.
+  if (-not $Checkpoint) {
+    try {
+      $persistCopy = 'C:\Sailuo\persist\sailuo-state.7z.enc'
+      New-Item -ItemType Directory -Path 'C:\Sailuo\persist' -Force -ErrorAction SilentlyContinue | Out-Null
+      Copy-Item -LiteralPath $encPath -Destination $persistCopy -Force -ErrorAction Stop
+      Log "Kept a copy for the run artifact: $persistCopy"
+    } catch {
+      Log "Could not keep the artifact copy: $($_.Exception.Message)"
+    }
+  }
 } catch {
   Log "State upload failed: $($_.Exception.Message)"
 }
