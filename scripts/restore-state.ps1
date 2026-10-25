@@ -13,6 +13,22 @@
 $SailuoTag = 'Sailuo:restore'
 . "$PSScriptRoot/lib-common.ps1"
 
+# Serialize with persist-state.ps1 so a restore never overwrites the profile
+# while the 4-minute checkpoint is staging or uploading.
+$syncMutex = New-Object System.Threading.Mutex($false, 'Global\SailuoStateSync')
+$syncOwned = $false
+try {
+  $syncOwned = $syncMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+  $syncOwned = $true
+} catch {
+  $syncOwned = $false
+}
+if (-not $syncOwned) {
+  Log 'A cloud save is currently running - close it or wait a moment, then restore again.'
+  exit 0
+}
+
 $cfg = Get-Cfg
 if ($env:PERSIST_DATA -and @('no','0','false','no','off') -contains $env:PERSIST_DATA.Trim().ToLower()) {
   Log 'State restore disabled by user input - skip.'
@@ -261,7 +277,7 @@ foreach ($userDir in $targetProfileDirs) {
   # CRITICAL: Give full ownership & FullControl to user '$u' over all restored files
   # so Chrome, Explorer & other apps can read/write Cookies, Downloads, and Desktop without Access Denied!
   try {
-    & icacls $userDir /grant "${u}:(OI)(CI)F" /grant "Admthisstrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /T /C /Q 2>&1 | Out-Null
+    & icacls $userDir /grant "${u}:(OI)(CI)F" /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /T /C /Q 2>&1 | Out-Null
   } catch {}
 }
 

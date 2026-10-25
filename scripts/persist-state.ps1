@@ -14,11 +14,78 @@
 #  in the user's own repository.
 # ============================================================================
 param(
-  [switch]$Checkpoint
+  [switch]$Checkpoint,
+  [switch]$Force
 )
 
 $SailuoTag = if ($Checkpoint) { 'Sailuo:checkpoint' } else { 'Sailuo:persist' }
 . "$PSScriptRoot/lib-common.ps1"
+
+# Give every run a persistent log: scheduled tasks run headless and otherwise
+# leave no trace when a checkpoint fails.
+$script:SailuoLogFile = 'C:\Persist\System\persist-state.log'
+try {
+  New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
+  if (Test-Path $script:SailuoLogFile) {
+    $existingLines = @(Get-Content -LiteralPath $script:SailuoLogFile -ErrorAction SilentlyContinue)
+    if ($existingLines.Count -gt 600) {
+      Set-Content -LiteralPath $script:SailuoLogFile -Value ($existingLines | Select-Object -Last 400) -Encoding UTF8 -Force
+    }
+  }
+  Add-Content -LiteralPath $script:SailuoLogFile -Value ("---- run start pid=$PID mode=$(if ($Checkpoint) { 'checkpoint' } else { 'final' }) at $([DateTime]::UtcNow.ToString('o')) ----") -Encoding UTF8 -ErrorAction SilentlyContinue
+} catch {}
+
+# Only one save or restore may touch the stage/upload at a time. Without this,
+# the 4-minute task and a dashboard-triggered checkpoint can race, upload a
+# half-written archive, or restore while a save is in flight.
+$syncMutex = New-Object System.Threading.Mutex($false, 'Global\SailuoStateSync')
+$syncOwned = $false
+try {
+  $syncOwned = $syncMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+  $syncOwned = $true
+} catch {
+  $syncOwned = $false
+}
+if (-not $syncOwned) {
+  Log 'Another cloud save or restore is already running - skip this run.'
+  exit 0
+}
+
+# The mutex can be released prematurely (for example if a previous run exited
+# while a child process kept running). As a second line of defence, refuse to
+# start while a recorded owner is still alive.
+$lockFile = 'C:\Persist\System\sync.lock'
+$ownerPid = 0
+if (Test-Path $lockFile) {
+  try {
+    $lockRaw = Get-Content $lockFile -Raw -ErrorAction SilentlyContinue
+    if ($lockRaw -match '"pid"\s*:\s*(\d+)') { $ownerPid = [int]$Matches[1] }
+  } catch {}
+}
+if ($ownerPid -gt 0 -and $ownerPid -ne $PID) {
+  $ownerAlive = $false
+  try { $ownerAlive = -not (Get-Process -Id $ownerPid -ErrorAction Stop).HasExited } catch { $ownerAlive = $false }
+  if ($ownerAlive) {
+    Log "Another cloud save (pid $ownerPid) is still running - skip this run."
+    exit 0
+  }
+}
+
+# Publish an in-progress marker so the dashboard can show "Saving..." while the
+# scheduled task runs in the background. The marker is removed when the
+# PowerShell process exits (including every early exit path below).
+try {
+  New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
+  @{
+    pid         = $PID
+    mode        = $(if ($Checkpoint) { 'checkpoint' } else { 'final' })
+    started_utc = [DateTime]::UtcNow.ToString('o')
+  } | ConvertTo-Json | Set-Content -Path $lockFile -Encoding UTF8 -Force
+  Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+    Remove-Item 'C:\Persist\System\sync.lock' -Force -ErrorAction SilentlyContinue
+  } | Out-Null
+} catch {}
 
 $cfg = Get-Cfg
 if ($env:PERSIST_DATA -and @('no','0','false','no','off') -contains $env:PERSIST_DATA.Trim().ToLower()) {
@@ -48,6 +115,42 @@ $u = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { $cfg.rdp_user }
 $p = if ($env:RDP_PASSWORD) { $env:RDP_PASSWORD.Trim() } else { '' }
 $secretKey = if ($p.Length -ge 4) { "Sailuo-Persist-$u-$p" } else { "Sailuo-Persist-$ghRepo" }
 
+$metaPath = 'C:\Persist\System\last-cloud-save.json'
+
+# Record that the cloud copy is still current even when nothing changed. The
+# dashboard reads last_check_utc together with last_saved_utc; without this a
+# skipped checkpoint would look "stale" forever and trigger save attempts every
+# minute.
+function Write-CloudHeartbeat([int]$count, [double]$mb) {
+  try {
+    # Read the raw JSON instead of ConvertFrom-Json: PowerShell 7 turns ISO
+    # date strings into DateTime objects, which would be re-serialized in a
+    # locale-specific format that the dashboard cannot parse reliably.
+    $raw = ''
+    if (Test-Path $metaPath) {
+      try { $raw = Get-Content $metaPath -Raw -ErrorAction SilentlyContinue } catch {}
+    }
+    $savedUtc = ''
+    if ($raw -match '"last_saved_utc"\s*:\s*"([^"]+)"') { $savedUtc = $Matches[1] }
+    $prevSize = $mb
+    if ($raw -match '"size_mb"\s*:\s*([0-9.]+)') { $prevSize = [double]$Matches[1] }
+    $prevCount = $count
+    if ($raw -match '"file_count"\s*:\s*(\d+)') { $prevCount = [int]$Matches[1] }
+    $prevUser = $u
+    if ($raw -match '"user"\s*:\s*"([^"]*)"') { $prevUser = $Matches[1] }
+
+    New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
+    @{
+      last_saved_utc = $(if ($savedUtc) { $savedUtc } else { [DateTime]::UtcNow.ToString('o') })
+      last_check_utc = [DateTime]::UtcNow.ToString('o')
+      size_mb        = $prevSize
+      file_count     = $prevCount
+      user           = $prevUser
+      writer         = 'persist-state/v2'
+    } | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8 -Force
+  } catch {}
+}
+
 $workDir  = 'C:\Sailuo\state-work'
 $stageDir = Join-Path $workDir 'stage'
 $zipPath  = Join-Path $workDir 'sailuo-state.7z'
@@ -73,7 +176,19 @@ if (-not $Checkpoint) {
 function Get-DirSizeMB([string]$Path) {
   if (-not (Test-Path $Path)) { return 0 }
   try {
-    $sum = (Get-ChildItem -Path $Path -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+    $sum = 0
+    $stack = New-Object System.Collections.Stack
+    $stack.Push($Path)
+    while ($stack.Count -gt 0) {
+      $cur = $stack.Pop()
+      Get-ChildItem -LiteralPath $cur -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.PSIsContainer) {
+          if ($global:SailuoExcludeDirs -notcontains $_.Name) { $stack.Push($_.FullName) }
+        } else {
+          $sum += $_.Length
+        }
+      }
+    }
     if (-not $sum) { return 0 }
     return [math]::Round($sum / 1MB, 1)
   } catch { return 0 }
@@ -227,6 +342,7 @@ $allStagedFiles = @(Get-ChildItem -Path $stageDir -Recurse -File -Force -ErrorAc
 $fileCount = $allStagedFiles.Count
 if ($fileCount -eq 0) {
   Log 'No new files in C:\Persist or the user profile to save.'
+  Write-CloudHeartbeat 0 0
   Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
   exit 0
 }
@@ -239,8 +355,22 @@ if ($Checkpoint -and (Test-Path $sigFile)) {
   $prevSig = (Get-Content $sigFile -Raw -ErrorAction SilentlyContinue).Trim()
   if ($prevSig -eq $stateSig) {
     Log "No data changes since the last checkpoint ($fileCount files) - skip the API upload."
+    Write-CloudHeartbeat $fileCount ([math]::Round($totalBytes / 1MB, 2))
     Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
     exit 0
+  }
+}
+
+# Report anything that could not be read, so a thin archive is never a surprise.
+$copyFailures = @()
+try {
+  if ($global:SailuoCopyFailures) { $copyFailures = @($global:SailuoCopyFailures) }
+} catch {}
+if ($copyFailures.Count -gt 0) {
+  $failedMB = [math]::Round((($copyFailures | Measure-Object -Property MB -Sum).Sum), 2)
+  Log "Warning: $($copyFailures.Count) file(s) could not be read and were left out ($failedMB MB)."
+  $copyFailures | Sort-Object MB -Descending | Select-Object -First 5 | ForEach-Object {
+    Log "  - $($_.Path) ($($_.MB) MB)"
   }
 }
 
@@ -266,6 +396,45 @@ if ($zipMB -gt 5400) {
   exit 0
 }
 
+# Safety: never replace a healthy snapshot with a suspiciously incomplete one.
+# A run is "suspicious" when a large file could not be read while staging, or
+# when the archive shrank to less than half of the previous one. The first
+# suspicious run is blocked once; if the next run is still suspicious (for
+# example a file that stays locked) the shrink is accepted so backups can never
+# stall forever. -Force bypasses the check.
+$guardFile = 'C:\Persist\System\shrink-guard.txt'
+$guardState = ''
+if (Test-Path $guardFile) {
+  $guardState = (Get-Content $guardFile -Raw -ErrorAction SilentlyContinue).Trim()
+}
+$prevRaw = ''
+$prevMb = 0.0
+$prevCount = 0
+if (Test-Path $metaPath) {
+  try {
+    $prevRaw = Get-Content $metaPath -Raw -ErrorAction SilentlyContinue
+    if ($prevRaw -match '"size_mb"\s*:\s*([0-9.]+)') { $prevMb = [double]$Matches[1] }
+    if ($prevRaw -match '"file_count"\s*:\s*(\d+)') { $prevCount = [int]$Matches[1] }
+  } catch {}
+}
+$bigFailures = @($copyFailures | Where-Object { $_.MB -ge 32 })
+$isSuspicious = ($bigFailures.Count -gt 0) -or ($prevMb -gt 20 -and $zipMB -lt ($prevMb * 0.5))
+if (-not $Force -and $isSuspicious -and (Test-Path $metaPath)) {
+  if ($guardState -notmatch '^suspicious') {
+    Set-Content -Path $guardFile -Value ("suspicious " + [DateTime]::UtcNow.ToString('o')) -Encoding ASCII -Force
+    $reason = if ($bigFailures.Count -gt 0) {
+      "$([math]::Round((($bigFailures | Measure-Object -Property MB -Sum).Sum), 2)) MB of files could not be read"
+    } else {
+      "$zipMB MB / $fileCount files vs previous $prevMb MB / $prevCount files"
+    }
+    Log "Keeping the previous cloud snapshot ($reason). It will be saved anyway if the next checkpoint looks the same."
+    Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
+    exit 0
+  }
+  Log "Archive is still suspicious ($zipMB MB / $fileCount files) - treating it as intentional and saving it."
+  Remove-Item $guardFile -Force -ErrorAction SilentlyContinue
+}
+
 try {
   $salt = New-Object byte[] 16
   [System.Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($salt)
@@ -277,7 +446,17 @@ try {
   $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
   $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
 
-  $fsOut = [System.IO.File]::OpenWrite($encPath)
+  $fsOut = $null
+  for ($encTry = 1; $encTry -le 5; $encTry++) {
+    try {
+      $fsOut = [System.IO.File]::OpenWrite($encPath)
+      break
+    } catch {
+      Log "Encryption file is busy (attempt $encTry/5): $($_.Exception.Message)"
+      Start-Sleep -Seconds 3
+    }
+  }
+  if ($null -eq $fsOut) { throw 'could not open the encrypted output file' }
   $header = [System.Text.Encoding]::ASCII.GetBytes('XYST01')
   $fsOut.Write($header, 0, $header.Length)
   $fsOut.Write($salt, 0, $salt.Length)
@@ -375,12 +554,15 @@ try {
 
   # Record the last save time to display in the SailuoRemote Dashboard
   New-Item -ItemType Directory -Path 'C:\Persist\System' -Force -ErrorAction SilentlyContinue | Out-Null
+  Remove-Item $guardFile -Force -ErrorAction SilentlyContinue
   @{
     last_saved_utc = [DateTime]::UtcNow.ToString('o')
+    last_check_utc = [DateTime]::UtcNow.ToString('o')
     size_mb        = $zipMB
     file_count     = $fileCount
     user           = $u
-  } | ConvertTo-Json | Set-Content -Path 'C:\Persist\System\last-cloud-save.json' -Encoding UTF8 -Force
+    writer         = 'persist-state/v2'
+  } | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8 -Force
 } catch {
   Log "State upload failed: $($_.Exception.Message)"
 }

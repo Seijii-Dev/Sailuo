@@ -38,6 +38,7 @@ This document maps every file in the repository and what it does. The codebase h
 
 | File | Purpose |
 |---|---|
+| `docs/DASHBOARD-UI.md` | Sailuo Dashboard UI architecture: design tokens, responsive breakpoints, DPI strategy, interaction states and accessibility rules. |
 | `docs/DESKTOP-MAINTENANCE.md` | Desktop maintenance notes. |
 | `docs/HOST-DEVELOPMENT-TOOLS.md` | Host development tools documentation. |
 | `docs/WINDOWS-DEPENDENCIES-AND-SYNC.md` | Windows dependency installation and sync notes. |
@@ -59,6 +60,7 @@ Shared Windows/PowerShell (and one Bash) scripts invoked by the workflow.
 | `scripts/setup-sailuo.ps1` | XyDesk/Sailuo Remote host setup (AVC444, ClearType, audio, firewall). |
 | `scripts/setup-extras.ps1` | Installs extra applications (7-Zip, Chrome, Lightshot, wallpaper). |
 | `scripts/setup-host-tools.ps1` | Installs host development tools. |
+| `scripts/setup-tools-hub.ps1` | Builds and installs the Sailuo Dashboard (embedded WinForms source compiled with `csc`), registers its auto-start entry and the 4-minute cloud-save task. UI/UX and architecture notes live in `docs/DASHBOARD-UI.md`. |
 | `scripts/setup-access.ps1` | Sets up Tailscale private access (installs Tailscale, joins the tailnet). |
 | `scripts/setup-portmap.ps1` | Sets up Portmap/OpenVPN access as an alternative to Tailscale. |
 | `scripts/setup-linux-rdp.sh` | Linux desktop RDP / plain Linux SSH VPS setup (XRDP/SSH + Tailscale). |
