@@ -13,7 +13,9 @@
 param(
   # Optional: restore a specific named snapshot instead of the newest auto-save.
   #   .\restore-state.ps1 -Asset 'sailuo-snapshot-run40141009370.7z.enc'
-  [string]$Asset
+  [string]$Asset,
+  # Optional: just list the snapshots that are available in the release.
+  [switch]$List
 )
 
 $SailuoTag = 'Sailuo:restore'
@@ -99,6 +101,15 @@ try {
   $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$ghRepo/releases/tags/$tag" -Headers $hdrs -TimeoutSec 25
 } catch {
   Log "No previous state save exists in Release '$tag' (first session)."
+  exit 0
+}
+
+if ($List) {
+  Log 'Available snapshots:'
+  foreach ($a in ($rel.assets | Sort-Object created_at -Descending)) {
+    Log ("  {0,-45} {1,9:N1} MB  {2:yyyy-MM-dd HH:mm} UTC" -f $a.name, ($a.size / 1MB), ([DateTime]$a.created_at).ToUniversalTime())
+  }
+  Log 'Restore one with: restore-state.ps1 -Asset <name>'
   exit 0
 }
 

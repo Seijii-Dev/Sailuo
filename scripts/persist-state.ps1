@@ -156,6 +156,11 @@ $stageDir = Join-Path $workDir 'stage'
 $zipPath  = Join-Path $workDir 'sailuo-state.7z'
 $encPath  = Join-Path $workDir 'sailuo-state.bin'
 
+# Folders that were skipped only because they were larger than the per-folder
+# limit. A backup that silently drops Desktop/Documents/Downloads is worse than
+# no backup, so the upload is blocked while this list is not empty.
+$global:SailuoSkippedFolders = New-Object System.Collections.ArrayList
+
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 
@@ -200,6 +205,7 @@ function Copy-SafeFolder([string]$Src, [string]$Dst, [int]$MaxMB = 900) {
   if ($sz -le 0) { return }
   if ($sz -gt $MaxMB) {
     Log "  Skip $Src ($sz MB > limit $MaxMB MB)"
+    [void]$global:SailuoSkippedFolders.Add("$Src ($sz MB)")
     return
   }
   Log "  Copying $Src ($sz MB)..."
@@ -232,7 +238,7 @@ foreach ($profDir in $profileDirs) {
   foreach ($sub in @('Desktop', 'Documents', 'Downloads', 'Pictures', 'Videos', 'Music')) {
     $s = Join-Path $profDir $sub
     if (Test-Path $s) {
-      Copy-SafeFolder $s (Join-Path $stageDir "User\$sub") 600
+      Copy-SafeFolder $s (Join-Path $stageDir "User\$sub") 2500
     }
   }
 }
@@ -348,6 +354,21 @@ if ($fileCount -eq 0) {
 }
 
 $totalBytes = ($allStagedFiles | Measure-Object -Property Length -Sum).Sum
+
+# A skipped folder means the user's files were left out. Never let that archive
+# replace a healthy snapshot: the old behaviour produced a 4.5 MB "state" that
+# looked valid while Desktop/Documents/Downloads were missing.
+$skippedFolders = @()
+if ($global:SailuoSkippedFolders) { $skippedFolders = @($global:SailuoSkippedFolders) }
+if ($skippedFolders.Count -gt 0 -and -not $Force) {
+  Log 'These folders are too large to back up and were left out:'
+  $skippedFolders | ForEach-Object { Log "  - $_" }
+  Log 'Keeping the previous cloud snapshot instead of uploading an incomplete one.'
+  Log 'Move big installers out of those folders (C:\Persist is backed up separately) or raise the limit in persist-state.ps1.'
+  Write-CloudHeartbeat $fileCount ([math]::Round($totalBytes / 1MB, 2))
+  Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
+  exit 0
+}
 $latestTicks = ($allStagedFiles | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1).LastWriteTimeUtc.Ticks
 $stateSig = "$fileCount|$totalBytes|$latestTicks"
 $sigFile = 'C:\Sailuo\tools\last-checkpoint-sig.txt'
@@ -591,12 +612,17 @@ try {
   # can attach it to the Actions run as a downloadable artifact. Without this
   # the artifact step found no file and every run ended up with 0 artifacts,
   # which meant an overwritten release asset could never be recovered.
+  #
+  # The workflow looks for C:\Sailuo\persist\sailuo-state.zip, so write that
+  # exact name too. The extension is historical - the payload is the encrypted
+  # 7z archive, identical to the .7z.enc copy.
   if (-not $Checkpoint) {
     try {
-      $persistCopy = 'C:\Sailuo\persist\sailuo-state.7z.enc'
       New-Item -ItemType Directory -Path 'C:\Sailuo\persist' -Force -ErrorAction SilentlyContinue | Out-Null
-      Copy-Item -LiteralPath $encPath -Destination $persistCopy -Force -ErrorAction Stop
-      Log "Kept a copy for the run artifact: $persistCopy"
+      foreach ($artifactName in @('sailuo-state.7z.enc', 'sailuo-state.zip')) {
+        Copy-Item -LiteralPath $encPath -Destination (Join-Path 'C:\Sailuo\persist' $artifactName) -Force -ErrorAction Stop
+      }
+      Log 'Kept a copy for the run artifact: C:\Sailuo\persist\sailuo-state.zip'
     } catch {
       Log "Could not keep the artifact copy: $($_.Exception.Message)"
     }
