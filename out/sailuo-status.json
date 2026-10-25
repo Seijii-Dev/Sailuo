@@ -1,30 +1,37 @@
 {
   "active": true,
-  "hostname": "sailuo-11",
+  "hostname": "sailuo-13",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "disk_free_gb": 31.2,
+    "ram_gb": 16.0,
     "cpu_threads": 4,
-    "ram_gb": 16.0
+    "disk_free_gb": 27.0
   },
   "rdp_port": 3389,
   "rdp_user": "sailuo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-25T10:25:47Z",
-  "expires_at": "2026-10-25T16:07:47Z",
+  "started_at": "2026-10-25T21:56:16Z",
+  "expires_at": "2026-10-26T03:38:16Z",
   "duration_menit": 342,
-  "run_id": "40184696647",
+  "run_id": "40237668153",
   "run_attempt": "1",
-  "run_number": "11",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40184696647",
+  "run_number": "13",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40237668153",
   "mode": "bersih+win10",
-  "tools_hub": {
-    "installed": true,
-    "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
-    "auto_start": true
+  "persist": {
+    "restored": true,
+    "source": "sailuo-state.7z.enc",
+    "verified": true,
+    "status": "success",
+    "updated_utc": "2026-10-25T21:56:20.3340515Z",
+    "files": 2,
+    "restored_utc": "2026-10-25T21:56:20.3340515Z",
+    "profile": "C:\\Users\\sailuo",
+    "operation": "restore",
+    "operation_id": "644ac3b3fb814c708d66438660860796"
   },
   "sailuo": {
     "host": "ok",
@@ -44,21 +51,21 @@
     "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
-    "mode": "tailscale",
-    "tunnel": {
-      "host": "100.111.69.102",
-      "status": "ok",
-      "address": "100.111.69.102:3389",
-      "outside": "tailscale",
-      "selftest": "ok",
-      "port": 3389
-    },
     "tailscale": {
-      "hostname": "sailuo-11",
-      "magicdns": "sailuo-11.tail4b745d.ts.net.",
-      "ip": "100.111.69.102",
       "status": "ok",
-      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
-    }
+      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
+      "hostname": "sailuo-13",
+      "magicdns": "sailuo-13.tail4b745d.ts.net.",
+      "ip": "100.104.106.120"
+    },
+    "tunnel": {
+      "selftest": "ok",
+      "address": "100.104.106.120:3389",
+      "outside": "tailscale",
+      "port": 3389,
+      "host": "100.104.106.120",
+      "status": "ok"
+    },
+    "mode": "tailscale"
   }
 }
