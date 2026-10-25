@@ -1,30 +1,30 @@
 {
   "active": true,
-  "hostname": "sailuo-9",
+  "hostname": "sailuo-10",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "cpu_threads": 4,
     "ram_gb": 16.0,
-    "disk_free_gb": 31.2
+    "cpu_threads": 4,
+    "disk_free_gb": 28.3
   },
   "rdp_port": 3389,
   "rdp_user": "sailuo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-24T23:02:02Z",
-  "expires_at": "2026-10-25T04:44:02Z",
+  "started_at": "2026-10-25T04:45:40Z",
+  "expires_at": "2026-10-25T10:27:40Z",
   "duration_menit": 342,
-  "run_id": "40141009370",
+  "run_id": "40163026575",
   "run_attempt": "1",
-  "run_number": "9",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40141009370",
+  "run_number": "10",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40163026575",
   "mode": "bersih+win10",
   "persist": {
-    "restored": true,
     "source": "sailuo-state.7z.enc",
-    "files": 530,
+    "files": 700,
+    "restored": true,
     "profile": "C:\\Users\\sailuo"
   },
   "tools_hub": {
@@ -50,21 +50,21 @@
     "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
-    "mode": "tailscale",
     "tailscale": {
-      "status": "ok",
-      "hostname": "sailuo-9",
+      "hostname": "sailuo-10",
+      "magicdns": "sailuo-10.tail4b745d.ts.net.",
       "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
-      "ip": "100.95.253.66",
-      "magicdns": "sailuo-9.tail4b745d.ts.net."
+      "ip": "100.118.139.85",
+      "status": "ok"
     },
     "tunnel": {
       "selftest": "ok",
-      "address": "100.95.253.66:3389",
-      "host": "100.95.253.66",
+      "host": "100.118.139.85",
+      "address": "100.118.139.85:3389",
+      "port": 3389,
       "outside": "tailscale",
-      "status": "ok",
-      "port": 3389
-    }
+      "status": "ok"
+    },
+    "mode": "tailscale"
   }
 }
