@@ -8,7 +8,7 @@
 #    2) LIGHTSHOT   - install otomatis (winget -> installer vendor), auto-run
 #    3) TranslucentTB disabled
 #    4) WALLPAPER   - assets/wallpaper.* di repo (or WALLPAPER_URL)
-#    5) VERIFIKASI  - user RDP diensure anggota grup Admthisstrators
+#    5) VERIFIKASI  - user RDP diensure anggota grup Administrators
 #    6) rangkum hasil -> out/sailuo-status.json (dibaca dashboard web)
 #
 #  Note: VM once-pakai. Setting per-user dthatlis ke profil Default
@@ -357,10 +357,10 @@ try {
 Log 'VERIFIKASI HAK ACCESS:'
 $adminOk = $false
 try {
-  $grpExists = Get-LocalGroup -Name 'Admthisstrators' -ErrorAction SilentlyContinue
+  $grpExists = Get-LocalGroup -Name 'Administrators' -ErrorAction SilentlyContinue
   $usrExists = Get-LocalUser -Name $u -ErrorAction SilentlyContinue
   if ($grpExists -and $usrExists) {
-    $members = Get-LocalGroupMember -Group 'Admthisstrators' | ForEach-Object { ($_.Name -split '\\')[-1] }
+    $members = Get-LocalGroupMember -Group 'Administrators' | ForEach-Object { ($_.Name -split '\\')[-1] }
     # Highest admin check: UAC
     $lua2 = Get-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'EnableLUA'
     $cpa = Get-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'ConsentPromptBehaviorAdmin'
@@ -369,7 +369,7 @@ try {
     $adminOk = ($members -contains $u)
     $adminTxt = $(if ($adminOk) { 'YES' } else { 'NO' })
     $rdpTxt   = $(if ($rdpMembers -contains $u) { 'YES' } else { 'NO' })
-    Log ("  user '{0}' available: YA | Admthisstrators: {1} | Remote Desktop Users: {2} | HIGHEST ADMIN (UAC OFF): EnableLUA={3} Consent={4}" -f $u, $adminTxt, $rdpTxt, $lua2, $cpa)
+    Log ("  user '{0}' available: YA | Administrators: {1} | Remote Desktop Users: {2} | HIGHEST ADMIN (UAC OFF): EnableLUA={3} Consent={4}" -f $u, $adminTxt, $rdpTxt, $lua2, $cpa)
     $lf = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'LocalAccountTokenFilterPolicy' -ErrorAction SilentlyContinue).LocalAccountTokenFilterPolicy
     Log "  LocalAccountTokenFilterPolicy = $lf (1 = token admin penuh for session jaringan/RDP)"
   } else { Log '  user/grup no ditemukan (mustnya dibuat setup-rdp.ps1)' }

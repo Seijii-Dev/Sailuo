@@ -36,7 +36,7 @@ function Log-Tail([string]$text, [int]$lines = 2) {
 # Lessons from a real validation run (2026-10-03) on the windows-2022 runner:
 #   - 'New-ItemProperty -Force' on a value that ALREADY EXISTS can be rejected
 #     "Attempted to perform an unauthorized operation" (needs Create/Delete rights
-#     which Admthisstrators do not have on some keys, e.g.
+#     which Administrators do not have on some keys, e.g.
 #     Terminal Server\fDenyTSConnections, Winlogon\DisableCAD,
 #     CurrentVersion\ProductName).
 #   - 'Set-ItemProperty' on a value that already exists only needs "Set Value"

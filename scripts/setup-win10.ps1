@@ -56,9 +56,9 @@ Log '  Server Manager & Shutdown Event Tracker dimatikan, IE ESC dimatikan'
 Set-Reg 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' 'DisableCAD' 1 'DWord' | Out-Null
 # sembunyikan teks versi/edisi di sudut desktop
 Set-RegBoth 'Control Panel\Desktop' 'PaintDesktopVersion' 0 'DWord' | Out-Null
-# sembunyikan akun Admthisstrator bawaan so that layar login bersih (job runner
+# sembunyikan akun Administrator bawaan so that layar login bersih (job runner
 # jalan sebagai runneradmin, jadi no terpengaruh)
-try { Disable-LocalUser -Name 'Admthisstrator' -ErrorAction Stop; Log '  akun Admthisstrator bawaan dinonaktifkan (layar login bersih)' } catch { Log "  nonaktifkan Admthisstrator skipped: $($_.Exception.Message)" }
+try { Disable-LocalUser -Name 'Administrator' -ErrorAction Stop; Log '  akun Administrator bawaan dinonaktifkan (layar login bersih)' } catch { Log "  nonaktifkan Administrator skipped: $($_.Exception.Message)" }
 
 # ---------- 3. personalisasi ala Windows 10 ----------
 $themeMode = if ($cfg.dark_theme) { 0 } else { 1 }

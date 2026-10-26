@@ -3918,7 +3918,7 @@ private fun MonitorAndUserGridModal(
                             value = customUsername,
                             onValueChange = { customUsername = it },
                             label = xy("Username Windows", "Windows Username"),
-                            hint = "runneradmin / Admthisstrator / Sailuo",
+                            hint = "runneradmin / Administrator / Sailuo",
                         )
                         XyField(
                             value = customPassword,

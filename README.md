@@ -8,11 +8,11 @@ Windows RDP over **private Tailscale**, with a Next.js/Cloudflare dashboard and 
 
 1. Sign in with your GitHub identity at `/login` (scope `read:user`). Signing in does not grant repository access.
 2. Install the GitHub App separately at `/dashboard/connection` and pick the repositories you allow. The service owner must register the App first on the hidden admin page `/admin/github-app`.
-3. Create a repository from the template under a name of your choice. A regular operation token only gets Contents/Metadata read and Actions/Secrets write. The new manifest also requests Admthisstration write for the delete-repo feature after owner confirmation; the token with delete rights is created separately. The App still cannot write to or clean up the source folder. Manual templates still copy the web folder.
+3. Create a repository from the template under a name of your choice. A regular operation token only gets Contents/Metadata read and Actions/Secrets write. The new manifest also requests Administration write for the delete-repo feature after owner confirmation; the token with delete rights is created separately. The App still cannot write to or clean up the source folder. Manual templates still copy the web folder.
 4. Fill in `RDP_PASSWORD` and `TAILSCALE_AUTH_KEY` through Setup. Connect your phone to the same tailnet. Do not share the auth key or password.
 5. Configure the session in Settings and start it from Home. The password is never printed, Base64-encoded, or turned into a workflow artifact. Reveal/copy only happens through the authenticated dashboard vault.
 
-`xyadmin` is the default username; `runneradmin` only when explicitly chosen. The workflow changes Windows policies, including UAC and the admthisstrator account. Use a dedicated or disposable machine, **not your main work computer**. The maximum job duration is 360 minutes including setup; preparation time reduces what is left of the session. GitHub-hosted sessions are not a general-purpose PC service, and there is no guarantee they stay free of suspension.
+`xyadmin` is the default username; `runneradmin` only when explicitly chosen. The workflow changes Windows policies, including UAC and the administrator account. Use a dedicated or disposable machine, **not your main work computer**. The maximum job duration is 360 minutes including setup; preparation time reduces what is left of the session. GitHub-hosted sessions are not a general-purpose PC service, and there is no guarantee they stay free of suspension.
 
 ## Wallpaper and microphone
 

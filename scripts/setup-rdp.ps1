@@ -1,6 +1,6 @@
 # ============================================================================
 #  setup-rdp.ps1 - MODE DASAR (v2: without Tailscale)
-#  1) buat user admin (Admthisstrators + Remote Desktop Users, password tetap)
+#  1) buat user admin (Administrators + Remote Desktop Users, password tetap)
 #  2) aktifkan Remote Desktop port 3389 (setting standar Windows)
 #  3) catat info session ke out/sailuo-status.json (without password)
 #
@@ -20,7 +20,7 @@ if (-not $env:RDP_PASSWORD -or $env:RDP_PASSWORD.Length -lt 8) {
 }
 $dur = [int]($env:DURATION_MINUTES -replace '\D', ''); if ($dur -lt 10) { $dur = 342 }; if ($dur -gt 342) { $dur = 342 }
 $u = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { 'xyadmin' }
-$reservedUsers = @('admthisstrator','guest','defaultaccount','wdagutilityaccount','system','localservice','networkservice','con','prn','aux','nul')
+$reservedUsers = @('administrator','guest','defaultaccount','wdagutilityaccount','system','localservice','networkservice','con','prn','aux','nul')
 if ($u -notmatch '^[A-Za-z0-9][A-Za-z0-9_-]{2,19}$' -or $reservedUsers -contains $u.ToLower()) {
   Log 'ERROR: invalid RDP_USER. Use 3-20 characters (letters/digits, _ or -); avoid built-in Windows names.'
   exit 1
@@ -48,11 +48,17 @@ if ($u.ToLower() -eq 'runneradmin') {
   if (Get-LocalUser -Name $u -ErrorAction SilentlyContinue) { Remove-LocalUser -Name $u }
   New-LocalUser -Name $u -Password $sp -FullName 'Sailuo Admin' -PasswordNeverExpires -AccountNeverExpires -Description 'Sailuo remote user' | Out-Null
 }
-Add-LocalGroupMember -Group 'Admthisstrators'         -Member $u -ErrorAction SilentlyContinue
-Add-LocalGroupMember -Group 'Remote Desktop Users'   -Member $u -ErrorAction SilentlyContinue
+# Nama grup di-resolve lewat SID S-1-5-32-544 supaya tetap benar di Windows non-English.
+# (bug lama: typo 'Admthisstrators' -> Add gagal senyap -> user bukan admin -> prompt kredensial UAC)
+$adminsGroup = try { Get-LocalGroup -SID 'S-1-5-32-544' -ErrorAction Stop } catch { $null }
+$adminsGroupName = if ($adminsGroup) { $adminsGroup.Name } else { 'Administrators' }
+try { Add-LocalGroupMember -Group $adminsGroupName -Member $u -ErrorAction Stop }
+catch { try { & net localgroup $adminsGroupName $u /add 2>&1 | Out-Null } catch {} }
+try { Add-LocalGroupMember -Group 'Remote Desktop Users' -Member $u -ErrorAction Stop } catch {}
 # Ensure runneradmin also tetap available sebagai fallback (jaga kalau user pakai xyadmin tapi mau runneradmin also can RDP)
-try { Add-LocalGroupMember -Group 'Admthisstrators' -Member 'runneradmin' -ErrorAction SilentlyContinue } catch {}
-try { Add-LocalGroupMember -Group 'Remote Desktop Users' -Member 'runneradmin' -ErrorAction SilentlyContinue } catch {}
+try { Add-LocalGroupMember -Group $adminsGroupName -Member 'runneradmin' -ErrorAction Stop }
+catch { try { & net localgroup $adminsGroupName 'runneradmin' /add 2>&1 | Out-Null } catch {} }
+try { Add-LocalGroupMember -Group 'Remote Desktop Users' -Member 'runneradmin' -ErrorAction Stop } catch {}
 
 # ---------- 1b. Conservative lightweight profile (non-essential only) --------------
 if ($cfg.lightweight_mode) {
@@ -78,10 +84,11 @@ try {
   Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'ConsentPromptBehaviorAdmin' 0 'DWord' | Out-Null
   Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'PromptOnSecureDesktop' 0 'DWord' | Out-Null
   Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'EnableVirtualization' 0 'DWord' | Out-Null
-  Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'FilterAdmthisstratorToken' 0 'DWord' | Out-Null
-  # Ensure grup Admthisstrators & bypass UAC via registry
-  try { Add-LocalGroupMember -Group 'Admthisstrators' -Member $u -ErrorAction SilentlyContinue } catch {}
-  try { & net localgroup 'Admthisstrators' $u /add 2>&1 | Out-Null } catch {}
+  Set-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'FilterAdministratorToken' 0 'DWord' | Out-Null
+  # Ensure grup Administrators & bypass UAC via registry
+  try { Add-LocalGroupMember -Group $adminsGroupName -Member $u -ErrorAction Stop } catch {
+    try { & net localgroup $adminsGroupName $u /add 2>&1 | Out-Null } catch {}
+  }
   # Auto-elevate: set user sebagai admin penuh without token filtering
   try { & net localgroup 'Remote Desktop Users' $u /add 2>&1 | Out-Null } catch {}
   # Grant Se* privileges via secedit (best-effort)
@@ -95,9 +102,10 @@ try {
     }
   } catch { Log "  highest admin secedit skipped: $($_.Exception.Message)" }
   # Verifikasi
-  $isAdmin = (Get-LocalGroupMember -Group 'Admthisstrators' -ErrorAction SilentlyContinue | Where-Object { ($_.Name -split '\\')[-1] -eq $u }) -ne $null
+  $isAdmin = (Get-LocalGroupMember -Group $adminsGroupName -ErrorAction SilentlyContinue | Where-Object { ($_.Name -split '\\')[-1] -eq $u }) -ne $null
   $lua = Get-Reg 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'EnableLUA'
-  Log "  HIGHEST ADMIN: user '$u' Admthisstrators=$isAdmin | EnableLUA=$lua (0=UAC OFF, most tinggi) | ConsentPrompt=0"
+  Log "  HIGHEST ADMIN: user '$u' $adminsGroupName=$isAdmin | EnableLUA=$lua (0=UAC OFF, most tinggi) | ConsentPrompt=0"
+  if (-not $isAdmin) { Log "  ERROR: '$u' GAGAL masuk grup '$adminsGroupName' - elevate akan meminta password admin (fix: cek ACL/SAM, jangan biarkan error ini senyap)" }
 } catch { Log "  highest admin setup warning: $($_.Exception.Message)" }
 
 # KRITIKAL (Anti-Hilang Data Session): Buat & daftarkan profil Windows resmi C:\Users\$u
