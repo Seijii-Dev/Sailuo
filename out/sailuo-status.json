@@ -1,34 +1,34 @@
 {
   "active": true,
-  "hostname": "sailuo-15",
+  "hostname": "sailuo-16",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "cpu_threads": 4,
+    "ram_gb": 16.0,
     "disk_free_gb": 29.8,
-    "ram_gb": 16.0
+    "cpu_threads": 4
   },
   "rdp_port": 3389,
-  "rdp_user": "sailuo",
+  "rdp_user": "sailo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-26T20:03:08Z",
-  "expires_at": "2026-10-27T01:45:08Z",
+  "started_at": "2026-10-27T09:04:57Z",
+  "expires_at": "2026-10-27T14:46:57Z",
   "duration_menit": 342,
-  "run_id": "40392056793",
+  "run_id": "40477972039",
   "run_attempt": "1",
-  "run_number": "15",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40392056793",
+  "run_number": "16",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40477972039",
   "mode": "bersih+win10",
   "persist": {
-    "updated_utc": "2026-10-26T20:03:29.8595753Z",
-    "error": "Restore failed and the previous data was rolled back where possible. Restored file failed SHA256 verification: C:\\Users\\sailuo\\Desktop\\desktop.ini",
+    "operation_id": "3217cb04a3bb42118085f48e26ed888b",
+    "error": "No usable snapshot could be restored. The snapshot could not be decrypted or validated. Exception calling \"CopyTo\" with \"1\" argument(s): \"Padding is invalid and cannot be removed.\"",
+    "updated_utc": "2026-10-27T09:06:47.1847183Z",
     "verified": false,
+    "restored": false,
     "status": "failure",
-    "operation_id": "b786ab74c0074af2ad7e5d6cc0d94871",
-    "operation": "restore",
-    "restored": false
+    "operation": "restore"
   },
   "win10": {
     "look": "ok",
@@ -44,7 +44,7 @@
     "wallpaper_file": "wallpaper.jpg",
     "vscode": "skip",
     "notepadpp": "skip",
-    "admin": false
+    "admin": true
   },
   "sailuo": {
     "host": "ok",
@@ -65,19 +65,19 @@
   },
   "access": {
     "tailscale": {
+      "magicdns": "sailuo-16.tail4b745d.ts.net.",
       "status": "ok",
-      "ip": "100.121.243.103",
-      "hostname": "sailuo-15",
-      "magicdns": "sailuo-15.tail4b745d.ts.net.",
-      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
+      "hostname": "sailuo-16",
+      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
+      "ip": "100.127.196.74"
     },
     "mode": "tailscale",
     "tunnel": {
       "port": 3389,
-      "address": "100.121.243.103:3389",
-      "host": "100.121.243.103",
       "selftest": "ok",
       "outside": "tailscale",
+      "address": "100.127.196.74:3389",
+      "host": "100.127.196.74",
       "status": "ok"
     }
   }
