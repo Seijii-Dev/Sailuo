@@ -53,7 +53,8 @@ $dashIco = Join-Path $icoDir 'sailuo-dashboard.ico'
 $exePath = Join-Path $toolsDir 'SailuoDashboard.exe'
 $legacyExePath = Join-Path $toolsDir 'SailuoTools.exe'
 
-$csharpSource = @'`r`n// ============================================================================
+$csharpSource = @'
+// ============================================================================
 //  Sailuo Dashboard - native WinForms control center
 //  ---------------------------------------------------------------------------
 //  UI/UX architecture notes
