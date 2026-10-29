@@ -1,34 +1,34 @@
 {
   "active": true,
-  "hostname": "sailuo-18",
+  "hostname": "administrator-19",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "disk_free_gb": 29.4,
+    "ram_gb": 16.0,
     "cpu_threads": 4,
-    "ram_gb": 16.0
+    "disk_free_gb": 26.3
   },
   "rdp_port": 3389,
-  "rdp_user": "sailo",
+  "rdp_user": "Admin",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-28T10:43:05Z",
-  "expires_at": "2026-10-28T16:25:05Z",
+  "started_at": "2026-10-29T09:11:41Z",
+  "expires_at": "2026-10-29T14:53:41Z",
   "duration_menit": 342,
-  "run_id": "40674199398",
+  "run_id": "40847582757",
   "run_attempt": "1",
-  "run_number": "18",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40674199398",
+  "run_number": "19",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/40847582757",
   "mode": "bersih+win10",
   "persist": {
-    "operation": "restore",
-    "restored": false,
-    "error": "Restore failed and the previous data was rolled back where possible. Restored file failed SHA256 verification: C:\\Users\\sailo\\Desktop\\desktop.ini",
-    "operation_id": "542d84ba70a14ad580344396f30a0e08",
-    "status": "failure",
+    "error": "No usable snapshot could be restored. The snapshot could not be decrypted or validated. Exception calling \"CopyTo\" with \"1\" argument(s): \"Padding is invalid and cannot be removed.\"",
+    "updated_utc": "2026-10-29T09:12:15.9770419Z",
     "verified": false,
-    "updated_utc": "2026-10-28T10:43:22.4175034Z"
+    "operation_id": "e9bffdada14c41e1af3c684d33fdbcf2",
+    "restored": false,
+    "status": "failure",
+    "operation": "restore"
   },
   "win10": {
     "look": "ok",
@@ -65,19 +65,19 @@
   },
   "access": {
     "tailscale": {
+      "ip": "100.123.18.59",
       "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
-      "hostname": "sailuo-18",
-      "ip": "100.108.92.107",
-      "magicdns": "sailuo-18.tail4b745d.ts.net.",
+      "hostname": "Administrator-19",
+      "magicdns": "administrator-19.tail4b745d.ts.net.",
       "status": "ok"
     },
     "tunnel": {
       "status": "ok",
       "selftest": "ok",
-      "host": "100.108.92.107",
-      "address": "100.108.92.107:3389",
+      "host": "100.123.18.59",
       "port": 3389,
-      "outside": "tailscale"
+      "outside": "tailscale",
+      "address": "100.123.18.59:3389"
     },
     "mode": "tailscale"
   }
