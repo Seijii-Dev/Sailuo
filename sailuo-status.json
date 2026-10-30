@@ -1,39 +1,45 @@
 {
   "active": true,
-  "hostname": "sei-24",
+  "hostname": "sailuo-25",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "disk_free_gb": 29.2,
     "cpu_threads": 4,
-    "ram_gb": 16.0
+    "ram_gb": 16.0,
+    "disk_free_gb": 29.2
   },
   "rdp_port": 3389,
-  "rdp_user": "sei",
+  "rdp_user": "sailo",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-30T09:25:41Z",
-  "expires_at": "2026-10-30T15:07:41Z",
+  "started_at": "2026-10-30T15:39:55Z",
+  "expires_at": "2026-10-30T21:21:55Z",
   "duration_menit": 342,
-  "run_id": "41033220077",
+  "run_id": "41082636742",
   "run_attempt": "1",
-  "run_number": "24",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/41033220077",
+  "run_number": "25",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/41082636742",
   "mode": "bersih+win10",
   "persist": {
-    "operation_id": "6128507a7bbe4acd868a7dacfcfb6281",
-    "status": "failure",
+    "updated_utc": "2026-10-30T15:40:40.2474453Z",
     "verified": false,
-    "restored": false,
+    "status": "failure",
     "operation": "restore",
     "error": "No usable snapshot could be restored. The snapshot could not be decrypted or validated. Exception calling \"CopyTo\" with \"1\" argument(s): \"Padding is invalid and cannot be removed.\"",
-    "updated_utc": "2026-10-30T09:26:07.3529238Z"
+    "operation_id": "2132d4f4345641efa7b9f4a7f4785bd2",
+    "restored": false
+  },
+  "media": {
+    "verification": "Login ulang, aktifkan mic di Sailuo and izinkan Android. Uji Windows Settings > Sound > Input; kebijwill aktif bukan bukti capture end-to-end.",
+    "wallpaper": "sailuo_configured_for_user_logon",
+    "microphone": "rdp_capture_enabled",
+    "audio_output": "rdp_playback_enabled"
   },
   "tools_hub": {
-    "installed": true,
+    "auto_start": true,
     "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
-    "auto_start": true
+    "installed": true
   },
   "sailuo": {
     "host": "ok",
@@ -42,7 +48,7 @@
     "avc444": "ok (120FPS DWMFRAMEINTERVAL=8 + TCPNoDelay=1)",
     "fontsmoothing": "ok (ClearType profil Default)",
     "audio_out": "ok (policy fDisableAudio=0, WinStations=0)",
-    "audio_mic": "ok (policy fDisableAudioCapture=0, WinStations=1) - mic HP redirect aktif, Allow di HP",
+    "audio_mic": "ok (policy fDisableAudioCapture=0, WinStations=0) - mic HP redirect aktif, Allow di HP",
     "wallpaper_rdp": "ok (policy fNoRemoteDesktopWallpaper=0) - wallpaper RDP tampil, cek client Experience->Wallpaper ON",
     "firewall": "tcp3389=True udp3389=True udp4433=True",
     "services": "ok",
@@ -53,21 +59,21 @@
     "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
+    "tailscale": {
+      "hostname": "sailuo-25",
+      "magicdns": "sailuo-25.tail4b745d.ts.net.",
+      "ip": "100.113.36.8",
+      "status": "ok",
+      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
+    },
     "tunnel": {
-      "host": "100.102.35.66",
-      "port": 3389,
+      "selftest": "ok",
+      "address": "100.113.36.8:3389",
+      "host": "100.113.36.8",
       "status": "ok",
       "outside": "tailscale",
-      "address": "100.102.35.66:3389",
-      "selftest": "ok"
+      "port": 3389
     },
-    "mode": "tailscale",
-    "tailscale": {
-      "hostname": "sei-24",
-      "ip": "100.102.35.66",
-      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
-      "magicdns": "sei-24.tail4b745d.ts.net.",
-      "status": "ok"
-    }
+    "mode": "tailscale"
   }
 }
