@@ -1,34 +1,34 @@
 {
   "active": true,
-  "hostname": "sailuo-27",
+  "hostname": "sailuo-28",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
+    "ram_gb": 16.0,
     "cpu_threads": 4,
-    "disk_free_gb": 29.2,
-    "ram_gb": 16.0
+    "disk_free_gb": 29.2
   },
   "rdp_port": 3389,
-  "rdp_user": "sai",
+  "rdp_user": "admin",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-10-31T07:54:00Z",
-  "expires_at": "2026-10-31T13:36:00Z",
+  "started_at": "2026-10-31T23:03:06Z",
+  "expires_at": "2026-11-01T04:45:06Z",
   "duration_menit": 342,
-  "run_id": "41182347464",
+  "run_id": "41250796161",
   "run_attempt": "1",
-  "run_number": "27",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/41182347464",
+  "run_number": "28",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/41250796161",
   "mode": "bersih+win10",
   "persist": {
-    "verified": false,
-    "operation_id": "7674426127a44094a3954bf795d429ab",
+    "error": "No usable snapshot could be restored. The snapshot could not be decrypted or validated. Exception calling \"CopyTo\" with \"1\" argument(s): \"Padding is invalid and cannot be removed.\"",
+    "operation_id": "4a4857efc3be4a3f9f997a86f7c61d70",
     "restored": false,
-    "error": "Restore failed and the previous data was rolled back where possible. Restored file failed SHA256 verification: C:\\Users\\sai\\Desktop\\desktop.ini",
-    "updated_utc": "2026-10-31T07:54:44.6807904Z",
+    "operation": "restore",
+    "verified": false,
     "status": "failure",
-    "operation": "restore"
+    "updated_utc": "2026-10-31T23:03:25.2268108Z"
   },
   "tools_hub": {
     "auto_start": true,
@@ -54,20 +54,20 @@
   },
   "access": {
     "mode": "tailscale",
-    "tunnel": {
-      "selftest": "ok",
-      "status": "ok",
-      "address": "100.83.83.62:3389",
-      "outside": "tailscale",
-      "host": "100.83.83.62",
-      "port": 3389
-    },
     "tailscale": {
+      "hostname": "sailuo-28",
+      "magicdns": "sailuo-28.tail4b745d.ts.net.",
       "status": "ok",
-      "magicdns": "sailuo-27.tail4b745d.ts.net.",
-      "ip": "100.83.83.62",
       "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
-      "hostname": "sailuo-27"
+      "ip": "100.87.183.125"
+    },
+    "tunnel": {
+      "status": "ok",
+      "address": "100.87.183.125:3389",
+      "host": "100.87.183.125",
+      "port": 3389,
+      "selftest": "ok",
+      "outside": "tailscale"
     }
   }
 }
