@@ -1,39 +1,42 @@
 {
   "active": true,
-  "hostname": "sailuo-37",
+  "hostname": "sailuo-38",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "ram_gb": 16.0,
+    "disk_free_gb": 27.0,
     "cpu_threads": 4,
-    "disk_free_gb": 26.4
+    "ram_gb": 16.0
   },
   "rdp_port": 3389,
   "rdp_user": "admin",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-11-04T20:27:36Z",
-  "expires_at": "2026-11-05T02:09:36Z",
+  "started_at": "2026-11-05T11:20:02Z",
+  "expires_at": "2026-11-05T17:02:02Z",
   "duration_menit": 342,
-  "run_id": "41906674219",
+  "run_id": "42018007070",
   "run_attempt": "1",
-  "run_number": "37",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/41906674219",
+  "run_number": "38",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/42018007070",
   "mode": "bersih+win10",
   "persist": {
-    "status": "failure",
+    "updated_utc": "2026-11-05T11:20:06.8291601Z",
     "operation": "restore",
-    "updated_utc": "2026-11-04T20:29:37.0367731Z",
-    "error": "Restore failed and the previous data was rolled back where possible. Restored file failed SHA256 verification: C:\\Users\\admin\\Desktop\\desktop.ini",
-    "verified": false,
-    "restored": false,
-    "operation_id": "3e93a3e8f44e4c219fd9ade8437c2c4c"
+    "restored": true,
+    "profile": "C:\\Users\\admin",
+    "restored_utc": "2026-11-05T11:20:06.8291601Z",
+    "verified": true,
+    "status": "success",
+    "source": "sailuo-state.7z.enc",
+    "operation_id": "70292004b56241f58914510f262013b7",
+    "files": 5
   },
   "tools_hub": {
-    "auto_start": true,
     "installed": true,
-    "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe"
+    "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
+    "auto_start": true
   },
   "sailuo": {
     "host": "ok",
@@ -53,20 +56,20 @@
     "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
-    "mode": "tailscale",
     "tunnel": {
+      "address": "100.77.102.102:3389",
+      "selftest": "ok",
       "status": "ok",
-      "outside": "tailscale",
-      "host": "100.72.182.26",
+      "host": "100.77.102.102",
       "port": 3389,
-      "address": "100.72.182.26:3389",
-      "selftest": "ok"
+      "outside": "tailscale"
     },
+    "mode": "tailscale",
     "tailscale": {
-      "ip": "100.72.182.26",
-      "hostname": "sailuo-37",
-      "magicdns": "sailuo-37.tail4b745d.ts.net.",
+      "magicdns": "sailuo-38.tail4b745d.ts.net.",
       "status": "ok",
+      "ip": "100.77.102.102",
+      "hostname": "sailuo-38",
       "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
     }
   }
