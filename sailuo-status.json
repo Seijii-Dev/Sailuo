@@ -1,42 +1,39 @@
 {
   "active": true,
-  "hostname": "sailuo-38",
+  "hostname": "sailuo-39",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
   "hardware": {
-    "disk_free_gb": 27.0,
     "cpu_threads": 4,
-    "ram_gb": 16.0
+    "ram_gb": 16.0,
+    "disk_free_gb": 29.3
   },
   "rdp_port": 3389,
   "rdp_user": "admin",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-11-05T11:20:02Z",
-  "expires_at": "2026-11-05T17:02:02Z",
+  "started_at": "2026-11-05T21:40:43Z",
+  "expires_at": "2026-11-06T03:22:43Z",
   "duration_menit": 342,
-  "run_id": "42018007070",
+  "run_id": "42114663385",
   "run_attempt": "1",
-  "run_number": "38",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/42018007070",
+  "run_number": "39",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/42114663385",
   "mode": "bersih+win10",
   "persist": {
-    "updated_utc": "2026-11-05T11:20:06.8291601Z",
+    "status": "failure",
+    "restored": false,
+    "verified": false,
+    "operation_id": "7d4310fb1bd94caaa96f277c836705ea",
     "operation": "restore",
-    "restored": true,
-    "profile": "C:\\Users\\admin",
-    "restored_utc": "2026-11-05T11:20:06.8291601Z",
-    "verified": true,
-    "status": "success",
-    "source": "sailuo-state.7z.enc",
-    "operation_id": "70292004b56241f58914510f262013b7",
-    "files": 5
+    "error": "Restore failed and the previous data was rolled back where possible. Restored file failed SHA256 verification: C:\\Users\\admin\\Desktop\\desktop.ini",
+    "updated_utc": "2026-11-05T21:41:18.5924229Z"
   },
   "tools_hub": {
     "installed": true,
-    "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
-    "auto_start": true
+    "auto_start": true,
+    "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe"
   },
   "sailuo": {
     "host": "ok",
@@ -57,20 +54,20 @@
   },
   "access": {
     "tunnel": {
-      "address": "100.77.102.102:3389",
+      "address": "100.98.92.37:3389",
+      "outside": "tailscale",
       "selftest": "ok",
-      "status": "ok",
-      "host": "100.77.102.102",
       "port": 3389,
-      "outside": "tailscale"
+      "host": "100.98.92.37",
+      "status": "ok"
     },
     "mode": "tailscale",
     "tailscale": {
-      "magicdns": "sailuo-38.tail4b745d.ts.net.",
       "status": "ok",
-      "ip": "100.77.102.102",
-      "hostname": "sailuo-38",
-      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
+      "hostname": "sailuo-39",
+      "magicdns": "sailuo-39.tail4b745d.ts.net.",
+      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
+      "ip": "100.98.92.37"
     }
   }
 }
