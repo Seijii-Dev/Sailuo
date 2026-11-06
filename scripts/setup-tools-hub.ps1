@@ -84,6 +84,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -105,41 +106,62 @@ namespace SailuoTools
     // ========================================================================
     internal static class Theme
     {
-        // Classic flat Win32 look: light dialog surfaces, thin borders, black
-        // text, no gradients or glow. Colours match the standard Windows
-        // client area (white) and dialog (light grey) faces.
-        public static readonly Color Bg        = Color.FromArgb(240, 240, 240); // window / page canvas
-        public static readonly Color BgDeep    = Color.FromArgb(255, 255, 255); // header, sidebar, activity
-        public static readonly Color SurfaceLo = Color.FromArgb(240, 240, 240); // inset wells, subtle fills
+        // Restrained light workspace: cool neutral canvas, white surfaces and a
+        // single Sailuo blue accent. Semantic colours are reserved for status.
+        public static readonly Color Bg        = Color.FromArgb(246, 247, 249); // window / page canvas
+        public static readonly Color BgDeep    = Color.FromArgb(255, 255, 255); // white chrome / panels
+        public static readonly Color SurfaceLo = Color.FromArgb(248, 250, 252); // inset wells, subtle fills
         public static readonly Color Surface   = Color.FromArgb(255, 255, 255); // cards, panels
-        public static readonly Color SurfaceHi = Color.FromArgb(225, 225, 225); // hover / raised
+        public static readonly Color SurfaceHi = Color.FromArgb(241, 245, 249); // hover / raised
 
         // Lines
-        public static readonly Color Border       = Color.FromArgb(171, 173, 179);
-        public static readonly Color BorderStrong = Color.FromArgb(120, 120, 120);
-        public static readonly Color ChromeLine   = Color.FromArgb(220, 220, 220);
-        public static readonly Color BorderControl = Color.FromArgb(120, 120, 120);
+        public static readonly Color Border       = Color.FromArgb(227, 231, 237);
+        public static readonly Color BorderStrong = Color.FromArgb(203, 210, 220);
+        public static readonly Color ChromeLine   = Color.FromArgb(234, 237, 242);
+        public static readonly Color BorderControl = Color.FromArgb(203, 210, 220);
 
-        // Text (dark on light for AA contrast on White and #F0F0F0).
-        public static readonly Color Text      = Color.FromArgb(26, 26, 26);
-        public static readonly Color TextSoft  = Color.FromArgb(51, 51, 51);
-        public static readonly Color TextMuted = Color.FromArgb(102, 102, 102);
+        // Text (AA contrast on white and the #F6F7F9 canvas).
+        public static readonly Color Text      = Color.FromArgb(17, 24, 39);
+        public static readonly Color TextSoft  = Color.FromArgb(55, 65, 81);
+        public static readonly Color TextMuted = Color.FromArgb(91, 101, 115);
 
-        // Accents: solid classic Windows colours, no gradients.
-        public static readonly Color Blue   = Color.FromArgb(0, 120, 212);
-        public static readonly Color Green  = Color.FromArgb(16, 124, 16);
-        public static readonly Color Violet = Color.FromArgb(92, 45, 145);
-        public static readonly Color Amber  = Color.FromArgb(200, 120, 0);
-        public static readonly Color Cyan   = Color.FromArgb(0, 130, 114);
-        public static readonly Color Red    = Color.FromArgb(209, 52, 56);
-        public static readonly Color Slate  = Color.FromArgb(102, 102, 102);
+        // Sailuo accents. Blue is the product colour; green / amber / red carry
+        // meaning only and are darkened enough for AA text contrast.
+        public static readonly Color Blue   = Color.FromArgb(37, 99, 235);
+        public static readonly Color Green  = Color.FromArgb(21, 128, 61);
+        public static readonly Color Violet = Color.FromArgb(109, 40, 217);
+        public static readonly Color Amber  = Color.FromArgb(180, 83, 9);
+        public static readonly Color Cyan   = Color.FromArgb(8, 145, 178);
+        public static readonly Color Red    = Color.FromArgb(220, 38, 38);
+        public static readonly Color Slate  = Color.FromArgb(100, 116, 139);
+
+        // Soft tints used behind small icons and status chips.
+        public static readonly Color BlueSoft  = Color.FromArgb(239, 244, 255);
+        public static readonly Color GreenSoft = Color.FromArgb(240, 253, 244);
+        public static readonly Color AmberSoft = Color.FromArgb(255, 251, 235);
+        public static readonly Color RedSoft   = Color.FromArgb(254, 242, 242);
 
         // Text placed on top of a filled accent control.
         public static readonly Color OnAccent = Color.White;
 
-        // Brand colour (flat; logo comes from the image when available).
-        public static readonly Color BrandFrom = Color.FromArgb(0, 120, 212);
-        public static readonly Color BrandTo   = Color.FromArgb(0, 120, 212);
+        // Brand colour (flat; the installed Sailuo mark is used when present).
+        public static readonly Color BrandFrom = Color.FromArgb(37, 99, 235);
+        public static readonly Color BrandTo   = Color.FromArgb(37, 99, 235);
+
+        // Dark navigation rail (the only dark surface in the light theme).
+        public static readonly Color Sidebar       = Color.FromArgb(15, 23, 42);
+        public static readonly Color SidebarCard   = Color.FromArgb(20, 31, 51);
+        public static readonly Color SidebarHover  = Color.FromArgb(24, 36, 56);
+        public static readonly Color SidebarActive = Color.FromArgb(30, 45, 70);
+        public static readonly Color SidebarBorder = Color.FromArgb(31, 43, 64);
+        public static readonly Color SidebarText   = Color.FromArgb(203, 213, 225);
+        public static readonly Color SidebarMuted  = Color.FromArgb(124, 140, 165);
+        public static readonly Color SidebarStrong = Color.FromArgb(241, 245, 249);
+
+        // Keyboard focus ring. Light theme uses a strong blue; the dark rail
+        // uses a lighter blue so the ring stays visible on navy.
+        public static readonly Color Focus = Color.FromArgb(37, 99, 235);
+        public static readonly Color FocusOnDark = Color.FromArgb(96, 165, 250);
 
         public static Color SurfaceFor(bool raised) { return raised ? SurfaceHi : Surface; }
     }
@@ -158,19 +180,20 @@ namespace SailuoTools
         public const int Space4 = 16;
         public const int Space5 = 24;
         public const int Space6 = 32;
+        public const int Space7 = 40;
 
-        // Corner radii (DIP) - classic Win32 uses square corners.
-        public const int RadiusSm = 0;
-        public const int RadiusMd = 0;
-        public const int RadiusLg = 0;
+        // Corner radii (DIP) - consistent 8/12/16 scale.
+        public const int RadiusSm = 8;
+        public const int RadiusMd = 12;
+        public const int RadiusLg = 16;
 
         // Control heights (DIP)
-        public const int HeaderHeight   = 64;
-        public const int PageHeader     = 76;
-        public const int NavHeight      = 44;
-        public const int CardHeight     = 92;
+        public const int HeaderHeight   = 56;
+        public const int PageHeader     = 96;
+        public const int NavHeight      = 40;
+        public const int CardHeight     = 80;
         public const int ButtonHeight   = 36;
-        public const int ButtonHeightSm = 28;
+        public const int ButtonHeightSm = 30;
 
         public static int Dpi = BaseDpi;
         public static int ForcedDpi = 0;   // test/diagnostic override, see Main()
@@ -295,7 +318,7 @@ namespace SailuoTools
         {
             get
             {
-                if (_textFamily == null) { _textFamily = Pick(new string[] { "Segoe UI Variable Text", "Segoe UI" }); }
+                if (_textFamily == null) { _textFamily = Pick(new string[] { "Segoe UI Variable Text", "Segoe UI", "Tahoma" }); }
                 return _textFamily;
             }
         }
@@ -304,7 +327,7 @@ namespace SailuoTools
         {
             get
             {
-                if (_semiFamily == null) { _semiFamily = Pick(new string[] { "Segoe UI Semibold", "Segoe UI Variable Text", "Segoe UI" }); }
+                if (_semiFamily == null) { _semiFamily = Pick(new string[] { "Segoe UI Semibold", "Segoe UI Variable Text", "Segoe UI", "Tahoma" }); }
                 return _semiFamily;
             }
         }
@@ -336,21 +359,22 @@ namespace SailuoTools
             return Get(key, family, points, needsBold ? FontStyle.Bold : FontStyle.Regular);
         }
 
-        public static Font Hero      { get { return Semi("hero", 21f, true); } }
-        public static Font PageTitle { get { return Semi("pageTitle", 17.5f, true); } }
-        public static Font Section   { get { return Semi("section", 11f, false); } }
+        public static Font Hero      { get { return Semi("hero", 24f, true); } }
+        public static Font PageTitle { get { return Semi("pageTitle", 21.5f, true); } }
+        public static Font Section   { get { return Semi("section", 11.5f, false); } }
         public static Font H1        { get { return Semi("h1", 12.5f, false); } }
-        public static Font H2        { get { return Semi("h2", 10.5f, false); } }
-        public static Font Brand     { get { return Semi("brand", 14.5f, true); } }
-        public static Font BrandSub  { get { return Get("brandSub", TextFamily, 8.5f, FontStyle.Regular); } }
-        public static Font Value     { get { return Semi("value", 16f, true); } }
+        public static Font H2        { get { return Semi("h2", 10.75f, false); } }
+        public static Font Brand     { get { return Semi("brand", 15f, true); } }
+        public static Font BrandSub  { get { return Get("brandSub", TextFamily, 8.75f, FontStyle.Regular); } }
+        public static Font Value     { get { return Semi("value", 17f, true); } }
         public static Font Body      { get { return Get("body", TextFamily, 9.5f, FontStyle.Regular); } }
-        public static Font Small     { get { return Get("small", TextFamily, 8.5f, FontStyle.Regular); } }
-        public static Font Micro     { get { return Semi("micro", 8f, false); } }
+        public static Font Small     { get { return Get("small", TextFamily, 8.75f, FontStyle.Regular); } }
+        public static Font Micro     { get { return Semi("micro", 8.25f, false); } }
         public static Font Button    { get { return Semi("button", 9.5f, false); } }
         public static Font ButtonSm  { get { return Semi("buttonSm", 8.75f, false); } }
-        public static Font Mono      { get { return Get("mono", MonoFamily, 8.75f, FontStyle.Regular); } }
+        public static Font Mono      { get { return Get("mono", MonoFamily, 9f, FontStyle.Regular); } }
         public static Font Glyph     { get { return Get("glyph", GlyphFamily(), 12f, FontStyle.Regular); } }
+        public static Font GlyphSm   { get { return Get("glyphSm", GlyphFamily(), 10f, FontStyle.Regular); } }
         public static Font GlyphLg   { get { return Get("glyphLg", GlyphFamily(), 17f, FontStyle.Regular); } }
 
         private static string _glyphFamily;
@@ -537,8 +561,8 @@ namespace SailuoTools
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-            Size = new Size(Ui.S(32), Ui.S(32));
-            BackColor = Theme.BgDeep;
+            Size = new Size(Ui.S(34), Ui.S(34));
+            BackColor = Theme.Sidebar;
             TabStop = false;
             AccessibleRole = AccessibleRole.Graphic;
             AccessibleName = "Sailuo logo";
@@ -570,6 +594,20 @@ namespace SailuoTools
                 }
                 catch { }
             }
+            // The dashboard icon already carries the Sailuo mark. Reusing it
+            // keeps the brand consistent even when no dedicated PNG is present.
+            try
+            {
+                string iconPath = @"C:\Sailuo\icons\sailuo-dashboard.ico";
+                if (File.Exists(iconPath))
+                {
+                    using (Icon loaded = new Icon(iconPath, 64, 64))
+                    {
+                        _logoImage = loaded.ToBitmap();
+                    }
+                }
+            }
+            catch { }
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -581,20 +619,13 @@ namespace SailuoTools
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
             if (_logoImage != null)
             {
-                int margin = Math.Max(1, Ui.S(1));
-                Rectangle dest = new Rectangle(margin, margin,
-                    Math.Max(1, Width - margin * 2), Math.Max(1, Height - margin * 2));
+                Rectangle dest = new Rectangle(0, 0, Width, Height);
                 try { graphics.DrawImage(_logoImage, dest); } catch { }
                 return;
             }
-            // Fallback when sailuo-logo.png is not present: plain square mark.
-            using (SolidBrush brush = new SolidBrush(Theme.BrandFrom))
-            using (Pen pen = new Pen(Theme.BorderStrong, 1f))
-            {
-                graphics.FillRectangle(brush, rect);
-                graphics.DrawRectangle(pen, rect);
-            }
-            using (Font font = new Font(UiFonts.Brand.FontFamily, 14f * Ui.FontScale, FontStyle.Bold))
+            // Fallback when no mark is installed: rounded Sailuo tile.
+            Gfx.FillRound(graphics, rect, Ui.S(9), Theme.BrandFrom);
+            using (Font font = new Font(UiFonts.Brand.FontFamily, 15f * Ui.FontScale, FontStyle.Bold))
             {
                 TextRenderer.DrawText(graphics, "S", font, rect, Color.White, Gfx.Center);
             }
@@ -635,12 +666,13 @@ namespace SailuoTools
     {
         private string _label = string.Empty;
         public Color DotColor = Theme.Green;
+        public string Glyph = string.Empty;
 
         public Chip(string label, Color dotColor)
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-            BackColor = Theme.BgDeep;
+            BackColor = Theme.Surface;
             TabStop = false;
             DotColor = dotColor;
             Height = Ui.S(28);
@@ -659,7 +691,8 @@ namespace SailuoTools
         public int MeasuredWidth()
         {
             Size text = TextRenderer.MeasureText(_label, UiFonts.Small);
-            return Ui.S(12) + Ui.S(8) + Ui.S(8) + text.Width + Ui.S(14);
+            int lead = string.IsNullOrEmpty(Glyph) ? Ui.S(7) + Ui.S(7) : Ui.S(14) + Ui.S(6);
+            return Ui.S(12) + lead + text.Width + Ui.S(14);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -667,15 +700,25 @@ namespace SailuoTools
             Graphics graphics = e.Graphics;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            Gfx.FillRound(graphics, rect, Height / 2, Theme.SurfaceLo);
-            Gfx.StrokeRound(graphics, rect, Height / 2, Theme.ChromeLine, 1f);
-            using (SolidBrush dot = new SolidBrush(DotColor))
+            Gfx.FillRound(graphics, rect, Height / 2, Theme.Surface);
+            Gfx.StrokeRound(graphics, rect, Height / 2, Theme.Border, 1f);
+            if (string.IsNullOrEmpty(Glyph))
             {
-                int size = Ui.S(7);
-                graphics.FillEllipse(dot, Ui.S(11), (Height - size) / 2, size, size);
+                int size = Ui.S(6);
+                using (SolidBrush dot = new SolidBrush(DotColor))
+                {
+                    graphics.FillEllipse(dot, Ui.S(12), (Height - size) / 2, size, size);
+                }
+                Gfx.Ellipsis(graphics, _label, UiFonts.Small,
+                    new Rectangle(Ui.S(12) + Ui.S(13), 0, Width - Ui.S(12) - Ui.S(13) - Ui.S(10), Height), Theme.TextSoft);
             }
-            Gfx.Ellipsis(graphics, _label, UiFonts.Small,
-                new Rectangle(Ui.S(12) + Ui.S(9), 0, Width - Ui.S(12) - Ui.S(9) - Ui.S(10), Height), Theme.TextSoft);
+            else
+            {
+                Rectangle glyphRect = new Rectangle(Ui.S(11), (Height - Ui.S(14)) / 2, Ui.S(14), Ui.S(14));
+                Gfx.DrawGlyph(graphics, Glyph, UiFonts.GlyphSm, glyphRect, Theme.TextMuted, Gfx.Center);
+                Gfx.Ellipsis(graphics, _label, UiFonts.Small,
+                    new Rectangle(Ui.S(11) + Ui.S(18), 0, Width - Ui.S(11) - Ui.S(18) - Ui.S(10), Height), Theme.TextSoft);
+            }
         }
     }
 
@@ -729,19 +772,15 @@ namespace SailuoTools
         {
             Graphics graphics = e.Graphics;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using (SolidBrush track = new SolidBrush(Theme.SurfaceLo))
-            {
-                graphics.FillRectangle(track, 0, 0, Width, Height);
-            }
+            Gfx.FillRound(graphics, new Rectangle(0, 0, Width, Height), Math.Max(1, Height / 2), Theme.SurfaceHi);
             if (!_active) { return; }
 
             int segment = Ui.S(180);
             int x = Ui.AnimationsEnabled ? _offset : Math.Max(0, (Width - segment) / 4);
-            Rectangle bar = new Rectangle(x, 0, segment, Height);
-            using (SolidBrush brush = new SolidBrush(Theme.Blue))
-            {
-                graphics.FillRectangle(brush, bar);
-            }
+            x = Math.Max(0, x);
+            int width = Math.Min(segment, Width - x);
+            if (width <= 0) { return; }
+            Gfx.FillRound(graphics, new Rectangle(x, 0, width, Height), Math.Max(1, Height / 2), Theme.Blue);
         }
     }
 
@@ -749,7 +788,8 @@ namespace SailuoTools
     {
         Primary,
         Secondary,
-        Ghost
+        Ghost,
+        Destructive
     }
 
     /// <summary>Flat rounded button with shared hover / press / focus / disabled states.</summary>
@@ -788,7 +828,7 @@ namespace SailuoTools
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             TabStop = true;
             Cursor = Cursors.Hand;
-            BackColor = Theme.BgDeep;
+            BackColor = Theme.Surface;
             Font = UiFonts.Button;
             Height = Ui.S(Ui.ButtonHeight);
             AccessibleRole = AccessibleRole.PushButton;
@@ -829,10 +869,10 @@ namespace SailuoTools
         public void FitWidth()
         {
             if (!_autoFit) { return; }
-            int padding = Ui.S(_small ? 12 : 16);
-            int glyphWidth = string.IsNullOrEmpty(_glyph) ? 0 : Ui.S(_small ? 18 : 22);
+            int padding = Ui.S(_small ? 12 : 14);
+            int glyphWidth = string.IsNullOrEmpty(_glyph) ? 0 : Ui.S(_small ? 16 : 18);
             Size text = TextRenderer.MeasureText(Text ?? string.Empty, Font);
-            Width = Math.Max(Ui.S(_small ? 56 : 84), text.Width + padding * 2 + glyphWidth);
+            Width = Math.Max(Ui.S(_small ? 30 : 76), text.Width + padding * 2 + glyphWidth);
         }
 
         protected override void OnTextChanged(EventArgs e)
@@ -853,7 +893,7 @@ namespace SailuoTools
         protected override void OnMouseLeave(EventArgs e) { _pressed = false; AnimateTo(0f); base.OnMouseLeave(e); }
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left) { _pressed = true; Invalidate(); }
+            if (e.Button == MouseButtons.Left) { Focus(); _pressed = true; Invalidate(); }
             base.OnMouseDown(e);
         }
 
@@ -912,29 +952,28 @@ namespace SailuoTools
             Color border;
             Color foreground;
 
-            if (_variant == ButtonVariant.Primary)
+            if (_variant == ButtonVariant.Primary || _variant == ButtonVariant.Destructive)
             {
-                face = Accent;
-                if (_hover > 0.01f && Enabled) { face = Gfx.Mix(face, Color.White, 0.14f * _hover); }
-                if (_pressed) { face = Gfx.Mix(face, Color.Black, 0.14f); }
+                face = _variant == ButtonVariant.Destructive ? Theme.Red : Accent;
+                if (Enabled && _hover > 0.01f) { face = Gfx.Mix(face, Color.Black, 0.09f * _hover); }
+                if (_pressed) { face = Gfx.Mix(face, Color.Black, 0.16f); }
                 if (!Enabled) { face = Theme.SurfaceHi; }
                 border = face;
                 foreground = Enabled ? Theme.OnAccent : Theme.TextMuted;
             }
             else if (_variant == ButtonVariant.Secondary)
             {
-                face = Theme.SurfaceLo;
-                if (Enabled) { face = Gfx.Mix(face, Theme.SurfaceHi, _hover); }
-                if (_pressed) { face = Gfx.Mix(face, Color.Black, 0.10f); }
+                face = Theme.Surface;
+                if (Enabled && _hover > 0.01f) { face = Gfx.Mix(face, Theme.SurfaceHi, _hover); }
+                if (_pressed) { face = Gfx.Mix(face, Theme.SurfaceHi, 0.8f); }
                 if (!Enabled) { face = Theme.SurfaceLo; }
-                // 3:1 boundary so the control is identifiable at a glance (WCAG 1.4.11).
-                border = Enabled ? Gfx.Mix(Theme.BorderControl, Theme.Text, 0.35f * _hover) : Theme.Border;
+                border = Enabled ? Gfx.Mix(Theme.BorderStrong, Theme.TextMuted, 0.25f * _hover) : Theme.Border;
                 foreground = Enabled ? Theme.Text : Theme.TextMuted;
             }
             else
             {
-                face = Gfx.Mix(Theme.BgDeep, Theme.SurfaceHi, _hover);
-                if (_pressed) { face = Gfx.Mix(face, Color.Black, 0.10f); }
+                face = Gfx.Mix(Theme.Surface, Theme.SurfaceHi, _hover);
+                if (_pressed) { face = Gfx.Mix(face, Color.Black, 0.03f); }
                 border = Color.Transparent;
                 foreground = Enabled ? Gfx.Mix(Theme.TextSoft, Theme.Text, _hover) : Theme.TextMuted;
             }
@@ -959,12 +998,11 @@ namespace SailuoTools
                 }
             }
 
-            int glyphWidth = 0;
             Rectangle textRect = rect;
             if (!string.IsNullOrEmpty(_glyph) && string.IsNullOrEmpty(Text))
             {
                 // Icon-only button: keep the glyph perfectly centred.
-                int size = Ui.S(_small ? 16 : 18);
+                int size = Ui.S(_small ? 15 : 17);
                 Rectangle glyphOnly = new Rectangle((Width - size) / 2, (Height - size) / 2, size, size);
                 Gfx.DrawGlyph(graphics, _glyph, UiFonts.Glyph, glyphOnly, foreground, Gfx.Center);
             }
@@ -972,15 +1010,20 @@ namespace SailuoTools
             {
                 if (!string.IsNullOrEmpty(_glyph))
                 {
-                    glyphWidth = Ui.S(_small ? 18 : 22);
-                    Rectangle glyphRect = new Rectangle(rect.X + Ui.S(_small ? 10 : 13), rect.Y, glyphWidth, rect.Height);
-                    Gfx.DrawGlyph(graphics, _glyph, UiFonts.Glyph, glyphRect, foreground, Gfx.Center);
-                    textRect = new Rectangle(rect.X + glyphWidth, rect.Y,
-                        Math.Max(0, rect.Width - glyphWidth - Ui.S(_small ? 10 : 13)), rect.Height);
+                    int glyphWidth = Ui.S(_small ? 16 : 18);
+                    int left = Ui.S(_small ? 11 : 14);
+                    Rectangle glyphRect = new Rectangle(rect.X + left, rect.Y, glyphWidth, rect.Height);
+                    Gfx.DrawGlyph(graphics, _glyph, UiFonts.GlyphSm, glyphRect, foreground, Gfx.Center);
+                    textRect = new Rectangle(rect.X + left + glyphWidth + Ui.S(2), rect.Y,
+                        Math.Max(0, rect.Width - left - glyphWidth - Ui.S(2) - Ui.S(8)), rect.Height);
                 }
                 TextRenderer.DrawText(graphics, Text ?? string.Empty, Font, textRect, foreground, Gfx.Center);
             }
-            if (Focused && Enabled) { Gfx.FocusRing(graphics, rect, radius, Theme.Blue); }
+            if (Focused && Enabled)
+            {
+                bool filled = _variant == ButtonVariant.Primary || _variant == ButtonVariant.Destructive;
+                Gfx.FocusRing(graphics, rect, radius, filled ? Color.White : Theme.Focus);
+            }
         }
     }
 
@@ -1004,7 +1047,7 @@ namespace SailuoTools
             TabStop = true;
             Cursor = Cursors.Hand;
             Height = Ui.S(Ui.NavHeight);
-            BackColor = Theme.BgDeep;
+            BackColor = Theme.Sidebar;
             AccessibleRole = AccessibleRole.PageTab;
             Ticker.Add(this);
         }
@@ -1029,6 +1072,13 @@ namespace SailuoTools
 
         protected override void OnMouseEnter(EventArgs e) { AnimateTo(1f); base.OnMouseEnter(e); }
         protected override void OnMouseLeave(EventArgs e) { AnimateTo(0f); base.OnMouseLeave(e); }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left && TabStop) { Focus(); }
+            base.OnMouseDown(e);
+        }
+
         protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
         protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
 
@@ -1093,42 +1143,38 @@ namespace SailuoTools
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
             int radius = Ui.S(Ui.RadiusSm);
 
-            if (_selected || _hover > 0.01f)
-            {
-                Color background = _selected
-                    ? Theme.Surface
-                    : Gfx.Mix(Theme.BgDeep, Theme.Surface, _hover * 0.9f);
-                Gfx.FillRound(graphics, rect, radius, background);
-                if (!_selected && _hover > 0.01f)
-                {
-                    Gfx.StrokeRound(graphics, rect, radius, Gfx.Alpha(Theme.Border, (int)(90 * _hover)), 1f);
-                }
-            }
             if (_selected)
             {
+                Gfx.FillRound(graphics, rect, radius, Theme.SidebarActive);
                 int barWidth = Ui.S(3);
-                int barInset = Ui.S(10);
-                Rectangle bar = new Rectangle(Ui.S(2), barInset, barWidth, Height - barInset * 2);
-                Gfx.FillRound(graphics, bar, barWidth / 2 < 1 ? 1 : barWidth / 2, Theme.Blue);
+                int barInset = Ui.S(9);
+                Rectangle bar = new Rectangle(Ui.S(1), barInset, barWidth, Height - barInset * 2);
+                Gfx.FillRound(graphics, bar, barWidth, Theme.FocusOnDark);
+            }
+            else if (_hover > 0.01f)
+            {
+                Gfx.FillRound(graphics, rect, radius, Gfx.Mix(Theme.Sidebar, Theme.SidebarHover, _hover));
             }
 
-            Color foreground = _selected ? Theme.Text : Gfx.Mix(Theme.TextSoft, Theme.Text, _hover);
-            Color glyphColor = _selected ? Theme.Blue : foreground;
-            int glyphSize = Ui.S(20);
+            Color foreground = _selected
+                ? Theme.SidebarStrong
+                : Gfx.Mix(Theme.SidebarText, Theme.SidebarStrong, _hover);
+            Color glyphColor = _selected ? Color.FromArgb(147, 197, 253) : Theme.SidebarMuted;
+            int glyphSize = Ui.S(18);
             Rectangle glyphRect = _rail
                 ? new Rectangle((Width - glyphSize) / 2, (Height - glyphSize) / 2, glyphSize, glyphSize)
-                : new Rectangle(Ui.S(18), (Height - glyphSize) / 2, glyphSize, glyphSize);
+                : new Rectangle(Ui.S(14), (Height - glyphSize) / 2, glyphSize, glyphSize);
             Gfx.DrawGlyph(graphics, Glyph, UiFonts.Glyph, glyphRect, glyphColor, Gfx.Center);
 
             if (!_rail)
             {
-                Rectangle textRect = new Rectangle(Ui.S(48), 0, Math.Max(0, Width - Ui.S(58)), Height);
+                Rectangle textRect = new Rectangle(Ui.S(42), 0, Math.Max(0, Width - Ui.S(52)), Height);
                 TextRenderer.DrawText(graphics, Caption, _selected ? UiFonts.H2 : UiFonts.Body, textRect, foreground,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix |
                     TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
             }
 
-            if (Focused && Enabled) { Gfx.FocusRing(graphics, rect, radius, Theme.Blue); }
+            if (Focused && Enabled) { Gfx.FocusRing(graphics, rect, radius, Theme.FocusOnDark); }
         }
 
         protected override AccessibleObject CreateAccessibilityInstance()
@@ -1155,6 +1201,535 @@ namespace SailuoTools
         }
     }
 
+    /// <summary>Authentic brand marks used by the Applications catalogue.</summary>
+    internal enum BrandIcon
+    {
+        None = -1,
+        Chrome = 0,
+        Discord = 1,
+        Facebook = 2,
+        Instagram = 3,
+        AppleMusic = 4,
+        Spotify = 5,
+        VisualStudioCode = 6,
+        Antigravity = 7,
+        OpenCode = 8
+    }
+
+    /// <summary>
+    /// Draws the embedded brand-icon sprite sheet. Keeping the sheet in the
+    /// assembly means the dashboard still ships as one self-contained exe and
+    /// never depends on an external asset folder at runtime.
+    /// </summary>
+    internal static class BrandIcons
+    {
+        private const int Cell = 96;
+        private const int Columns = 5;
+
+        private static readonly string SheetBase64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAeAAAADACAYAAADcD7AXAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRAAAAAAA" +
+            "APlDu38AAIAASURBVHja7J13nFxl2f6/93NmZvum92RTCAmBhJIgvYkgTawoQUWCEhUF7AZUBAVfCfq+FlSU6I9gI0gTQUGkKl0InSUBEti0TU82my0zc577" +
+            "98dzpu3ObnZ2Z3Y2yVz5nEw95zznmbPnOne7biihhBJKKKGEEkoooYQSSiihhL0BUuwBZMOqow+sBMYBU4F9gRnAJGBEsNQAZcEC0B4sO4CNwfI28Brwpltk" +
+            "7YTHX9xZ7GMroYRdYfSCpipgPO783w+YDkwERgFDgEG4cz8SrBLFnf/bga1AI/AOsBx4neD8b1xYs6PYx1ZCCSWkMCAIeNXRB3mgo4GDgSODx+m4C04l4PVy" +
+            "0z7QAmzAEfFS4AnQF4ywbtxjL/vFPvYSShj7zSbPCuOBA4GjcOf/NGAk7vw3vdy0BXYCm4C3gBeAxwWet7Bm/cLaeLGPvYQS9mYUlYBXHXXgKIRjgDOAI3BW" +
+            "bkWBd9uGs46fBO4FHpvw+EvrijkPJeydGL2gaSxwHPBe4BigjpRXp1BoBxpw5/99wH8aF9auLvZclFDC3oh+J+DVxxzoqTIL+ChwOs69XOiLTleI4lx0fwdu" +
+            "R/XFCU+8XLIKSigYxixoCikcApwFnIZzMYeLNJwYzk39D+A2tTy//ke1sWLPUa743gcfGNZYET58fVm4LuJzWFh1tg+jo+INUvBEwSKeKIgCKgYEUTDBe8lH" +
+            "6y6K6a8Tz7N+P/FZsI5RTb1P+nqafG3UuTSMqhrFF1BRxYAaVV8UP/g8atAdBt0gKssUno+gy8s09sq5z574drHnPYH4ud/wVHUCcBDu3J6BC5kMx4ULK3Dn" +
+            "uBcsvfXoFBoW5zX1cX8brbiw5iZcSOd1nBf1JaAh/Mcf99mD2m8EvPrIWWE1ciRwLo54x/bXvnuIRpxFfJMoT4x/4qXd7kJUwsDF6AVNEZx7+XzgFFx4ZSBh" +
+            "I84iXgw83riwtr3YA+oOz777b95vJgya3CreR7eFvfeIcmBMzHCLSJLkFMQmSE86EWq+yNeRrXZ+H5CAkFOvU+ScTsoBAWeul3ytiXGpQbcYdLmn+rgn9vaw" +
+            "ib/4iWdOai3GbxD75NcHAScAH8CFDicAVcU+NwqMFmAVzoN0F/BI+I8/3tbbjRWcgNcec6D4ymzgs7i7/qH9M0+9xhbgTuA3Ynlu/JMv2WIPqITdF6O/uk0I" +
+            "m8OBC4EzcUlUAxnbgHuAX2Hk6cYf1gy48//iTzwyZX15+FM7PfOpNmPqVPEEcYRps5Nv4nVW8kxfp8Nj1wQcEC6CsdqBWBPEK0kyzSBf1dT3SN9W2nc7fC4E" +
+            "RJxO3sIGD3t3WPW3n1h6wlP9Nf+xT3y1HOR9wBcQORIoL/Y5USS0o/oUcD3o38J/+r+cb4QKSsCrjj5wHO7Ccz4Dz+LdFdYBNwK/nvD4S6uKPZgSdj+MXtA0" +
+            "EXf+fwoYU+zx5Ij1OGv4+saFte8UezAAvz317vCjowa9b2tZ6FstnpljEUmRpyPZpNVqs1uyRqVbwu3K8u1IrkmLWjsSaLoF3NH61SykK5nu6STJpn03eC9B" +
+            "zJL+HcCovhXC/tKT+I1nLz15WyF/g9jHvzYN4Ts4Y6rQ+Tq7C9qA21GuCv/5f5flsmJBCHj1MTPDquZM4JvA4cWenT7iWWChqN41/omXS27pEnaJUQu2hwX5" +
+            "AHApMKfY4+kjlgILUf1r47WDosUaxHfOeqBiZU3kyxvKwl+NGTOcNKI0FmdtJp+TScYdv5PxXs+t36wWcIZrOd1Czfws3QrOcFd3fI+OlrBmuKGTrmnSXNiO" +
+            "iKMG+4cw+r2znn9PQQyG2Me/ehLwv7hs/RI642Xga+E//9+/erpC3gl41dEHjga+DswHaos9I3nCDuC3ID+e8PiLa4s9mBIGLkYvaBoHfAP4NC4BZU9AM84b" +
+            "tLBxYe2a/t755R/+Z+VbtZXf2lge/mpMpCKTYCVFpB2IOINMbdcE2z0Rp7mXEy5lm7JUs1q7WVzLiThxV6Sb/nlHd3MGGZNJvEnCdtvyPdG7POzXPvz8SW/n" +
+            "8zeInfOVDwC/QGQ8qv19CuweEAHV1cDF4Zt/8tcerZLP/a86+sDDgR8C7y72XBQIjwKXTnj8pX6Lt5Sw+2D0gqYjgYXAscUeS4Hwb+CyxoW1T/TXDm889e7w" +
+            "Q6MGfX19eeQ7MZHKzBhvmkWbRsbduZSNFUdiVtPItLs4cIL0JCvxppNv18Tb0b1MF27nDqTc4f0MSxhNI+R0MlaM6JKQxL/8gaWnrs/HbxA75ysn4W7AxvfX" +
+            "776bYzXw6fDNP9mlJZwXAl519CEG/A8D1wD7FPvoC4wVwGVxy22Td9MErXPmN9UqTAFmAYcFj1OAy5Ysqv1TIfc9d37Tp3DnyVvA88AzONfN20sW1W4v9tz0" +
+            "BiMvbTZG7dnAD4DJxR5PgfEO8C1UljReW/gErfPO/fcHN5RHFkVFhicIMmnpdmXxdmHRZrOCExZp5mdpSVO2o1VLZyuYNDdzdxZvRxLOeJ7uXs6MFae5mTOJ" +
+            "F0iPB6dZxTGD/q9nY1ee+dLpfcpmj8398nTgL5TczrniZeCj4SU/7TYm3GcCXnXUgWGELwLfZeBneOYLW4GrEH454bGXihYX6ynOmd8UUifteQhO8ORQXP3p" +
+            "cDJrsO8Hzl6yqHZbIcYxd37TYOA24D1pb7fjSmDexJHxk8ALBlb/edHAV2oavaCpDPgicDkwuNjj6SdsA65G+EXjNYUrV/rS2Q9NXVVZvqTZC83pRK4dLdZs" +
+            "pNvBuu0u3tuJZLORb+Izm5nFnEG2WUuMOpD1Li3ejiVIaXHfxHekM/Gmu6kF3WLEznvf86fe3dv5j539pQrgBuCTBT+j9kz8EdXPhv/y8y6zo0N92fqqYw4s" +
+            "R/ka8C2cZN7egiHA1SjVq44+8EcTHn+prdgD6oi5n9kRQnQSwjHqlJYOZddKS8cDpwJLCjSs03CKT+kow7m2xuNqCtuBVRaemTu/6UHgP2Jl5c2/qxlwZDx6" +
+            "QVMFsCBY9qZSjMG487929Debrmm8tjbvdai3HvOX0F2hsnnteLNDfmcLNz2r2aj2yJXcLfFmIeAMqzZZUtRRWEPS4r/piVbZrGDNYu2mk3A2N3P2OHAWwnWL" +
+            "BNsWHWrgovsOvvvpU184c0Mvf4YzcdnOJfQOZyFyN86DkBW9toBXHX1gOfAdXMJVsZSsio0o8GPgqoFCwnPnN40GjsYVxx+LK47PRUv7XkU/esuiQV02rvjY" +
+            "FzZKOBpJXINQVPE8e/MNNV1mZ8yd31QF3Ioj4Z7CxxW9Pwb8DfjPkkW1jUWa2gwE5Hs58DVSTRH2NkSB/wO+37gwvyR80ccenb4+Evlnm/EmdrJqs1qzmiTk" +
+            "BGlmTaQKtI5EFU8EzzhC9HAEm1jSM5kzYrmkRD0S79MhCSsjmUoTNcEaqHCBWPca3y0ubgtGyCDljlaxEUC1M/lKlriwe91q0M+99/nT/5Dr/Mc+dslgnB7C" +
+            "Cf17Su1xeAT4UPgvP9+W7cNeEfDqow8Mq7vr/w57L/kmEAWuRnXhhCdeLoo7eu5nm0IoM4EP4oi3L/KeO4DPAC/iarcTHahG4rrw1OC8HSFSxO4DcZzw/w6c" +
+            "i3Jj2rIOF0P6f/Q+MzgKvIpTn7kL9JUliwYVxSoetWB7mSCXAZex95JvAlHgGkT+p/Gamry5o+d/9LHvbolErlAwKdLVNIKVNBLWTpZsZwvWWcmVlR6Dh0UY" +
+            "PDzC0FFlDBlZRlVNiIpqj0iZIRQxhMKGUFjwvNTl0fMEE3Kv0/93GcGSvJCqVfyYdUQbfGyjFj+xtFtizT7R7TFaNkZpXtNK64Z2Wte3074lilhHtCIdLGJJ" +
+            "t5rTHsV9DonHNHIWEOw9ovrJk54/M6f8ithHL/4AcAul63tf0Q6cHb71uruyfZgzAa86Yn+DF7oEl3CyN7mdu0Mr8G3E/mzCY6/0W2LW2fN3hAQ9Bif0cCr5" +
+            "E3vYiLuwDiI/3XiacEQ1Ik/jW4eTTfyDqvz7lt/W9FtXq1HfbjYSt18C/oe9y+3cHdqAb1vMTzcsrO7z+f/D0x4a8VpN5c3txryno/u4M9FqFjdyygLGV0Ke" +
+            "MHxMOfvNGcyUWTWMnljJ0NFlhCLFlyRWX2nbEmX7ihY2v9JE4+Nb2Fa/A78ljjFkuJtJczMHSlgdk6+CzzOeb1bVM05a+v6nezqm2Ecu8jDyW2Besecn/xOu" +
+            "wRK89gyURdx77VF355N/LEa5IHzbdZ2uU7nHgL3Qh3GutxL5puDckWrW0I2/P98Q9ExcksTwPG86X0RpcBZvvuthx+DU1d4nohfg3NP9Aonbs3Hn/4An3/Tr" +
+            "TMYxJB7zd60pB75jsOuAm/u6sa1hc2jI6oG+gpckWE1mPEuneK6SoTQVLB4welIFs08cwaxjhjFkVBleaEB0YE1CPKFiRBkVI8oYffgQ9vngGDYt3cbbd65l" +
+            "89Kt2DY/cE13cDdncTt3es+9Hiyi7wZ6TMAIdageWey56TOUFOEK4HlQVYEMGQSjhyPjx8DYkcio4RD3sX97AH2hvhAknNDJfrvjBzkRcFDnew0DX8+5GBgC" +
+            "/HDV0Qc29Eed8NzPNo1DuZT8k+/uhBHAZXPnNz27ZFFtwQVSRi9oOgpn+Q7IbH+buNYIWh4iXlUmfnkYzzPiGUGsotaqH/Ox7XG0La5eNE7IpowCScQie4Eh" +
+            "wP+MXtD0duPC2if7chw7vMgkrAyPZBCrdnBBk5HclF6Li1XKygwHHjec4z86jlGTdh9boXxYhPEnj2TEoYNZ/fdGVvzxHdoaWxGTLTmrg7VLgoQznnugsx88" +
+            "6q/h9zzxwZ4p+akehCOM3QsJsgVHtpXlyJBaGDUcmTAGmTgWxo5Chg+B6koIZdKfMYL/+gpoy3ti/3hcp6i3O37QYwJedfSBY9g76nz7gik4Ev54IXsMz71w" +
+            "iyHOF3A1vHs7jgC++NH5Wy+/ddGQgrn/A4Wra3A9qwcMFLAWIiH8SUNMdPYEz59dZ/x9hpvw2MEmVl1G2BMRBA/FWiUe9TXW3I5uatbIlp3WbmulpWGLNau2" +
+            "2bIXV1tZtcWW9dIImARcM3rBjo83LqzptWJWedw/NGaMpCQbU1Zwimi1k8tZcAlOVbUhjj97Aoe9bzRllbnkHw4clA2JsM8n6qjdp4plP1/Ojte3By7nbMSb" +
+            "5o7ObgWPj8R1LK6Guyc4hIHs4Uy6kdPItqID2daNddbtiKFQXQXhHlDdkEFQUQatbfm2gqtwc9opDtwjAl511EFh0K9RyojrCU4Avr7qqFmXTiiUdnQ8dDRw" +
+            "QbEPdADhMx7eP4DHC7HxMZc2RVT5JgNM4coqlIWIH7mv1/6x2WH/6H1CkVE1UiGSTOTtiJBbJE1E34NUIpn9wX3t+tOHovTBU3sc6DdHL2j6euPC3vUWDvt2" +
+            "VriDVZupoZyyjBNJSgnLt3pQmHd/qo5DzxizS3dzPEiKsnFLPGqJt/qpZKmoxcbS7uc0zXWfdOwLCSe/JJ5rKiVLBEzE4IWNe4wYvDKDV+4hnrjX5V7XmTgC" +
+            "I44cRrhyBvULX2XH69sz3NGIphK0AsIlPTFLkuQ8QtEx9JSAVffr9a+fb6S7kcHFbCvKkUE1AdmOhrqxyPjRjmxrqntGtl3Md3D8hTiSGdne7NlIRc/EtRMs" +
+            "oWeYj8gTwO353vDZn22uQu2XcVnJJTiMAr4yd37TC0sW1e7s89Y6QJUP4rSdBwysojNGm9ZL3h2Jn7p/qLwyIn3pw5q49Hih/OQlfRpXOnZrb1Y2ljERNMPy" +
+            "TRe3SDU9yLSQy8oMx509nne9bwzGy85qsVafTW/uYMPrTWx6cwfbV7XQurmdWEscrMuUdo+pfRC4upOPiUxjdaQrSIe63uCGIbCijAgi4ojRCKFyj8jgCFVj" +
+            "K6idWsOgGbUMmlFD2bDsCceDDxrMfl/dj9d/8DKt7zQjppOFm/Y8RchI8mZhELmEDVUn5uUs6C1scONjDJSXIYNrUzHburHI+FEpso2E87dfJUX4+UfWOd0l" +
+            "Aa8+6sBxQcnRwBGWT05Q+p1o+mPRUQN8s2HOQU/XPffi6nxuWNSeSW61tHsLTseVYP05nxsNWgouAKqLfYDgzngD9gMHhnZ+57Qyr26oqWEAnfgBqoEFoxc0" +
+            "PdObVoZGqQ77NlO8IoN0O7bsc4Q464SRzDkzO/n6McvqpVuov2cN61/Zxs4NbWlN7ztLO3ZUrLI4UtXgmpN4nbEnzfiNkrk/FkCdXezq9YT21bDjFVh/vxCu" +
+            "CVM7vYYxJ49hzHtHEx7cubJtyKHDmHT+Prz545fRlniSeJNWcIJwRdMs9IzfI5fGOMXJK1GFsgiyTx0yeQLUjXGW7cjhUJtnsu1uDIVB1jntloBvO3OO2C2x" +
+            "z0pRY42akV0ikTKkogKJRMAE7huNg20H2+Ieg+/2vnomDxAOkwp7of/HQZd7M7bnJTY5d37TKOASSn04s6ECuGju/B0PLFlU01vlnwyMvbTJWOULwOxiH1wC" +
+            "BuwnDw83X35aWXlNuQzkGuQ5wIWjL932rcZrBud0/ntWI2G1SSEKk0aUmX11A4vPV0ZMruLwj06grLLzJa19R4wXbl5J/d9W0ba5HREIB2RlgktFYtsEghdJ" +
+            "QY1E3FXTnpOwcDuoVZFyRQvO4k24rkXS3kccS4uzorXZZ/t/22h+eQtbn97APp+fTvW+ne2dkSeNYcfzG9lwT0Mna1ekW+JwWiM9hWr/G1uqUF2FOe/DmGPm" +
+            "QEWxigy0UCScdU67JeDLTq6d/dX/7vzk+1YUQeRJFdQi5ZWExo4jPHU64Wn7ERpfhzdsOKa6BiJliFGw7Wh8O0Q3oK0roflldOcraFsD+C24M72fyVhBQnq+" +
+            "31h2J66ncD7wMXb//sqFxGGgZwPX5WNjVjkcV2M9IGAV/eBBoZbdgHwTOA81fwVyqgoIWRUTEHDS4s0m1xgQs2dg5smjGTG5s5OivSnGs79bxut3NaBRS8R0" +
+            "tnpJxJtJI9c0QQtIqWMlX0umBexIloQ0XHJbpJF2gp6Tsh2J7yVSz+M+Wx5Zi7+1jWmXzqJ62qCMY/EqQ4x+/0R2PLue6PqWpCs671Dt/xt8a5FDZ2JOOqpQ" +
+            "tbg9PHYKRcBZ7yi6JOAp150Yjgqf//P+FVNmbYrZydt9Y/tjXoKD90aOovzwoyk/5gQi0/fHGzbMWbw9gu/IuPlFdPM/0a2PoO1rSDmH+g1jUD4X+/eIF8PH" +
+            "bexTQtbc+U3jcbG14qsHDFx4wPy585vuWrKotqEvGxr1jR0R0AuB0cU+KHBOoAPGmNbLTyvzdhPyBTd3F45esGNp48KaHqvEha0ViySJN70pQXrrPRMk5wwZ" +
+            "X8m+x43s5Ii3vvLaX97izb+uxMSsk3tMl3bs0E+3U3/dYDvp8o6kf0dShE06IWdISro3JLB+QZycpBHCtWWEB0WIb48R2x4N1jXsfHED7/z8FaZ+ZzZlozO5" +
+            "sGbmEAYfOoxN/2im0wF3Dcnly0A/+HqzDHLCmOKSL0Ahbmgcsv7NdmcBH+kpH1pd43HnvhVy8dJmvIKNLThwq3ijRlN58ulUnnIG4Un7uBTznOFBZAwydAwy" +
+            "5GS0ZTm6/lbsxjugbU3wI/fbD/1hVP6A66XaF5yNqyUroXvMAuYC1/ZlI2L0aOB9xT4YcJeE8jDxL58Y8ccPMQMiFp0DzgQ9CqeJ2yM4Au5IlilrOCm5qO6a" +
+            "MfnQodSO6Wy0rV+6kbfuWoGJxghJujWdFj9Oi5mmJBwzmyA4d7ImSTSRmJVBwoF8JEmXthtD+pUm4XoO1YQZeeY+DD+xjlBNhPiOKJv+tYqNf1+JvzOGhIQd" +
+            "z61j499WMO6C/Z2FnNhG2DDk+HFseXA1NlqgqjvV4tRuhfrUGyhPx06hLOCsc5r1iKdcd0II53obhsKDE8vkuNXtHNoYoyBWsLVIWRkVx51I9TnnEZm+f/7u" +
+            "hMRDqmYgUy5HRnwAu/pX6OZ/gG2jn4zJocC50f8Mfzxy7KZeSSbOnd80ATiPgZdsM1Dxybnzm25esqh2VW9WHv3N7WGc0taAENywFo7eJ9T23hmhMna/c2AI" +
+            "cP6YbzY9vu7anpUlhdQXEl2GEpZv4nlGCZISqfIYe9BgvHDm37Lf7vPOfW8T29hMxEiGKztDR1nTEpiSHYcgmeksHa3kNCs36ULWFPGSdukSybCQUfDKPMbM" +
+            "nca4eTMxkdQ1uXq/IURqPNb94VXwFbXClvtXMvyUOsonZoYPq6YPpmxcNa0rmnp6NuR2zhSDgLVgsddcBlHIcfScgMHMwmWVIsC2MuHW6RXstyVOVUzza6Rb" +
+            "izdyFDXnXkDV6R9AKroOP6hCU5uyrcWytcXSFnMjKQ8LQyoNgysNteXSBXcLUnMQ3rSfYNcfjm34GbSv7a/Y8BlizYG4BvS9wQeAA/pjoHsIDgA+DPysV2uL" +
+            "HAycUuyDSKAshD93TljLw7uN67kjTlXhYOC/PflyWK0kOwxhM1zGCevXA7CW2qHlDJs6qNM2mt7ezpYX1hMWP6ORfSc1KUl7TzSVbJWwjtOTrRKu5g6JV+BI" +
+            "OEHM4EqPEkgQs6pSWTeMkWfuk0G+AKbMY+T7p7D9obdoa9gBniG2oZntT62lfOL0zPkZXEbV9CG0vLkd8XJyQxfiu/lBsbk3fSCJG6b8IusWu7L5zyJN2N8o" +
+            "/Hd0mH+Pj3D6inY0X4OzlvDUaQy++BuUveuI7NOhsGqrz9MrYjyzMkr9ujjrmyytUSXmu18t7AkVEWFUrWHGmBDvmhzh8Mlh6oZ6ncnYq8SM/TRSORX71nfR" +
+            "5lf7g4THBHOaMwHPnb9jBOgnKcV+c4EBPnn2/KYltyyqXd+L9c9igNRZW4XJw030qCleUeJyecJI4CP0mIB9Ee1MmMnEqwRRYqkZFqZ6TGfRpqY3thJr3B4k" +
+            "XWmHZKu05gaSEvxIlfakYs4kGiKoDdzKignaFSXaB6KpSg1BECMZsWD31MV+y0eWUTYqe8l2aHA55ROqia7ajgrY9ig7X96A/eBUTFmKsE1FiIrJNbk4CXOL" +
+            "uWnervA5IFGEW2QEv3EBhtIzAp5y3YmjCazfdLR7wu3TKpizPsbInbbvJGwtkf1nMfgb33Eu547zoPDq2ji3PdfKA6+107DFJxo0n0tmG6Ypl+hOWLXF59m3" +
+            "Y9zy31bGD/E4ef8yzppTzsxx4U4nqww+DjP959g3voE2Le0PEj499ujI68LHb8ixn62egpMxKyE3HCRwEvCnXFYa/c2m8cAZxR58Aqpw+CQvPrxa8iUN6Mct" +
+            "4lsXQk1HyEC8cL28zhi9oOm6xoW1u5SojGg88ArbJAGnWu0FsV8UI8qgMRWYDu5njVua39hEWGNJ69UpRtkM6zfl4nbkmyTeoESJZNa1Eqoto2xUDWXjaqkY" +
+            "P5jQ0Eq8SAj1LX5TG9HGJtpXbSO2vgl/805HyAkXdHCxUlVMtA3bHsdUdL6fUt+iO9sRVzmMEYiu3UFsUwtl4zLd0JGRFZjKELbVz7+1VgxXcNHdz3RW3eoH" +
+            "ZLOAjyGLbJZRWD4kxD+mlHPeKy1926u1hPedzuBvXE5kemeFrg07LL9/ooWbn2ll7bbUyeh1xZEdCNm3sHKTzw3/buGeF9s4+7AKzjuqklG1mRuQ6gMx+16L" +
+            "Xfal/rCEZwBHk4M61tmf3VGJ6tmUes72BmHgnLnzm/6akzqWcCwwrdiDTyDk4R860bPkUsfZGbq1Rdsff8uPP9vgx1dusuGmNq2wmulVEWDVNkvPvZo5YTpO" +
+            "ynPJrr4YVl8kW/y342tRqkeWJxWnErBxS/vqrYSJpcVxMy1qMrbrXotoUuoRq4iBslE1DD56H2oOraNyv1GEh1YiiT6BGTOs+DujtK/cxM7nV9P8xJu0LV/v" +
+            "7mgCFSwF4ms20frSGqoOn9TpuFte20D7O5sRsW77Rohv3kl8e3snAg4PK8erCGFb4/SAgXO1gAtyAuxyn4XcrW+heSe6eSusWY++swbao8hJRyMTx6UPpEDH" +
+            "n336Mwh48s/e44GeThdNmK3APVPKOWpNlOlb4r1LyApivoMv/kZW8n327RgL723mibeiWO11Z5bkemu3W372wE6eXhHj0tOredekzDtPqT4IM+X7+Msuhuha" +
+            "CujpLQNOj/1n1F/Dx67vUTKWqM7GkXYJvcMxwKHAoz358qhvNoVwfZUHhLtXgaqw6L4jTF9uwPTh5fHma/8VNa+s8Sva490TuUjv/+Z2gTBw6qgFO25dv7D7" +
+            "/s1h4lkJ2GAz3zNK+aBQ52ubVezmJsISc6VHEmgkZyHdFJmn6SmrEh5WyZATZzD0jFmUTxqGhHdx/yOCV11G5axxVM4ax+BTZ9D82Bs03fMC7Ss3AYJ6gt3a" +
+            "zKbfP4VUhKnYfwwSMmjc0vLKOjbc+Ay2qdURvLpt+s1t2J2dK7hC1WFMmUlpDpWQgm9hZ0sG2WrDWljTiG7aBjtbIB6HwA0kF5ydWrdgNwHZWT2DgMXoaFx3" +
+            "mawwCo1Vhjv2Leerz+4kbHMcrSpSVkbNuRdQdmhnPYn7X23nirt2sHKTj2fycyFIbOPxN6Nc/OftXPn+Gk6dmXl/IUOOw9R9CbviCqekVbgchCOwOhrYpRvu" +
+            "E5/eJL6Lmw2ITNzdFINwCWw9ImARGQcDpw+qKgyulPZRtb2+xOqDy+LNX/pLW2TDDi3zTDdepP7BUYKOZxdNASL4gRs2RbqGzNivCHgCZTVZXLmxONLaQpio" +
+            "02FOX1fSypg69dR15Fux32hGfuoYao6Yumvi7QLhkbUM+fAcqg6ewJY/PUnzf5a7siFR2l5dReP/3EvFIRMIDa0mtqmFnc+vJbpuRxr54v5rj2JbOyePe5Uh" +
+            "TCQoierZ9WrgW8C9YT9rYWcrunkbrFuPvr0GfXt1QLZbYWcrxGKpOU3UiwWL7thJ5l1McV3QBwOTu1tBFB6dUMbxq6MctSaamxWsSsVxJ1J1xgc6ffTPV9u5" +
+            "7PYm1m23BblIeAbe2exz2R1NQG0nEjaj5qLbn0Y33FHIW8rJuDneJQH7XmQ8AygTdzfGKXPnN03oWUmSHgzUFXvA6RhUgdSW9+583LxT26+9v91LkO8AQB2u" +
+            "lr1bAg4TS5Gi2KA8KJCmlIQVbIPGBp0PzLbHCdkoERNLdgYSSW9W0KlnbvC+UDVnCiM/fzJl+4zKywFHpoxk5JdPITy6lm13LnVkKobYui1E12wFMagV1BjE" +
+            "eKA2kTLtQmIKtq0zAUvEBEq8Nr04qisMfBu5Jy7odLJdux5tWIO+vSZFts0tAdlqimTBNXXIvlM67TTxVj/NWEcCPpIuJLMSEGBHRLh1WgUHbIpRG+1hWZI6" +
+            "kY3qc85DyjNLjZ59O8aVd+1g3XZbKPcX4Kzhxu2W7/1tB8OrDYemu6O9Ssz4L+A3PQ3tayiQK7oimOO/9+C7xwBTCzcbew2mAcfRs2Sso+gi/FIMqEJZSEKh" +
+            "XgZlH30jHn9lra0YIOQLbm6PAv7W3ZfCxB3BSsLa1VRClqTc0UZcS79O8xaLEyIKEgvKgzqSraVjFyFUqZozleFfOo3I+GHdHoS2R9GYH1hKgoQMEgl36V4w" +
+            "NeUMOfcYxDNsvfVpbJuPGIMaV5pEICmp6idJFzEI1vkBYp099iZsEM8dCyKodtWBMomBbQFnQzSGrtvgyPbtNS5umyDbHTs7k2360pPjyUr6AQP30xQkCXjK" +
+            "dSdW0sNsW6Pw/MgwD9eV8cE32nqcEV158umdMp43NFmuubc56XYuNIy4BK1r7m3mV58YxMi0xCypORAz8iPYVXmREu4KB8ceHVUZPn59l5lscz/bHELtGQyQ" +
+            "WORujhBw+tzPNN+y5HfV8a6+NHrBjurAAh5QCJlet+b1n33Hj8d8vAFEwACHjF7QVN24sLa5qy+EiSESELBmErBJI1EjQigLARMQsJhokoBNhuWbUrsCt4+y" +
+            "aWMZ9rlTuiRfjcWJr1hL9OW3aH/tbeLrtqAtUQiH8IYPJrzPWMoO2ofIfnWY2s4J66Y8zOC5R+JvbabpHy8EnJCmJB3EfFPWl4Ia11Up2vm0lZCzgHGinSC2" +
+            "OxLOVYijoCdA1/tM2++OndhFS7DPvAjNOyEaT7WX6opscx13tq8XMQt6HC5TsUeIeXDHvhW8a12Mcc1+967owPqtPOV9GROmCjc92cKTb0X7NTblGXjyrSg3" +
+            "PdnC199bnTYkQUaeBRvugPbVFMgKng46Fniz6/myk3EWcAn5wZEYO4nu5hwdB+xb7IF2hEjvTsKYj6zaqgMxe34q7lqzrKsvhE0scDlbjAks1jTLNUGmxtCF" +
+            "BRwjRDvGtGf0zk1Pxkq3hr2aSgZ//N1Epo7NOp746g203vMf2p54CX/DtoArUnIc8YZG2p9bxs5/PE1k1hSqP3A05YdM7ZTEYiojDD77SKIr19P26hoQD0QR" +
+            "Nc6I0bTC4eC5qqKxLAQcNm51LIgFzSMJD4AsaF25CvvIU9DWnkViLE9j7ES2WkgpyqxIP3unkoP4gFFYMcjj7n3K8Xf101pL+WFHEZ68T8bbr6yNseSZVnLN" +
+            "5coHrMKSp1t5ZU1mfEUqp2GGnFDIH2Eku3YtH4G7SJWQH9ThXJ/dYSowotgDzRd8xTS3F6Grza4xAtinuy9EJEpYooRNjLBEiUiMiHEx3YhECZsoEWknYmKY" +
+            "LP4B8eNEcN8Lm3Yipp2w1558Hkk899oJmyjVx8+k/MiZnQeiSvSF19nxoxtpvesh7PpNLiZtNFhs2qLozp20P/kyW//3Fpr/9gTa3jl2Gx4/lEEfPgyvOoLg" +
+            "p+Lc2NRj2nMjCnG/k7UmnnFjSLrpbcqd3hkDPwbcEW3tLpu5oCne2sP3CoeOBJxbsb/AfZPLqB8WwnQ5bkUqKik/5oSMYLgq3PZsG2u3FTbu2+WBiytRuu25" +
+            "tkyuFQ8Zdgp4lRTox6iiGwL+6Ge2ecCJ7KJVZAk5wQPePfeCpu6syf3I9fwfyAhKWYs9jCyows11lwhLLFii7tEkCDlFqonn2QhH1AZkGyUSfM+RcDRJxGEv" +
+            "SkjaiYysouLkI5Bw5z+32EvL2Pmrm4kvX+Fc4p4i4mPw3aM44jNY99pYxIDdtJWmm+5l59+fQuOd47eVh+9LxawJAcH6KQJNW0zwHvjZjYFk2ZTfmcAlq5pK" +
+            "bhZwMZZO19v+2m/mLvtlPwHSL0j7k2OxvyhsrDTcPq2CtpBk/4WtEho7rlPsd9UWnwfq23PZXUGQUNnKOK7qg5DyiYUU5d6/yw+NGUP/9PxtB9YCrwMrgO39" +
+            "sM8Etgf7fD0YQ3+cCO9Cum0tOJ2S3Gd/wLCLUFc4SZrRDs8DUpWUZWuyETCWkIkS9toCsm1PEnfIxPBMDE9iGOJEZs/A26dz4rvfuJGWP9yJXbXaWbjiBxZr" +
+            "GlGmW6tJ8vMR4+pQm5c8SNsz9Z0noKqM6pNmYiICSeJM2zZ+ENtNJaJlg9uvdiLfxLg6TUtPUSwC1v4eR8f9FXifWZB+2zepN39NovD4uAhPjQlzwqpo54Qs" +
+            "VcL7Tnf9fNPw9MoYq7b4RbF+EzDidKafWRlj4rC0e4/ISKieCTvre7/x7jGpm88OACYW8LCbgHtwilyvADtw58EE4D24Vn7793rr3aMeuBl4EFgFxIEaYCau" +
+            "ecL7cLW7hcDkYD9ru/i8kHNeQia6neuIiWa6YRNElCQlVyPsGcluAWMJeVHURJPidp0vS4pUVRA+ZH+XwZyOuE/0n49il70ZJHEFpT6BtKQiiAoqQXNCDR7F" +
+            "xV9FBTWC3baNnXf+m7L9J2EGZ3aRLJs+jkjdMNrfXJ8Z3wwyoBPlSO66nd0CRlJZ0C5mbIPHRCavMjCdID1Av8Rhi++CTifgXsW/BNgZFm6bXsGBG+MMaeug" +
+            "E22E8LQZuJS94BAVnlkZJRovujAA0bgby1lzytPaiHlI9Ux0w22F2m13c30YhXOFvg58R5S7b/5tbUd5nVXAE3PnN/0Z+BauHWW+3OBx4M/A1UsW1b7R4bN1" +
+            "wPK5n2u6B8tpwP9QmBuASpxn4f4uPh+dw7ZK6Bu6netwQMAmzaozidfpFl8QB+0IQfEkjpWuBbcExQyuIjS9czjaX7ee+GNPg40hAYNLophJg5rbRE9xTX+u" +
+            "CAaV1PvxZStpe/IVKk/L1DfyRg6ibN/RRN9YGyRrpWVAq7oELQ3Cc+puONJvI0SCHsVB5+REApa7WQg2I7jkrFxJeKBoQRc6I7k7F3Q/IZ3+ep2AYhReHh7m" +
+            "XxM7l1BKpIzQ+EwXT1ObUr8u3tPNFxz16+I0tWVOupRPBilYSWjWuT77gqZyHAEXAsuAzyxZVHt7FvJNYsmi2rdU5UvAr4B8SPMrsAi4OAv5pvb7m9rokkW1" +
+            "d+H68L5aoDmYc/b8pq5+1MEF2mcJndGtulsycSqI9UaMi92Ggvht4rGrGDA4N64J4rRdLd6oYZghnR0ufv1ydMN6jAlitB3isu69RCw480ZB0mK6xlhoayX6" +
+            "wjK0pS1jHxIOEZ4wPFCz8ju4kTXphoYE+XZGKjM85SlAUo+ppKyMmqddY6DEgAvtEs46rf3rgk4n4Br6gLiBu/Ytp6HWSyVkqSLlFXhDh2d8d1uLZX2THRAa" +
+            "piKwvsmyraUD10RGFTIRK+tci4tRzshxWz3BduBbSxbVPtGTL9/y25pmhO8D/8zDvh8EuXLJotqmnnx5yaLaZ4DLgK0FmIf9RehK4qhQru8SOqO2uw+TWcte" +
+            "u4vjBjHcVPw2HpBrFxaukkmIXSzemBHgdXDyWItdtjywflPEJqStS0fCTXyWigMnk6uM4r+9Brutc9lzaPRgTHmoUwzX0MHS7yoJK80tT5J0beCaTsuudqVX" +
+            "A+Bq2w2y8C8FF8TowgLuR6QTcJ/MPaPQUOtx19Ry4mlblUgEU5PJN1t3WlqiAyM6IUBrVNnakYBDtWDKKNAv0tVcT6YwrtA7FLk7lxWW3FC7GfgRfSPCJuDH" +
+            "SxbVbMhlJUH+AdxSgHkYi3ZZAlOe05b6AFVXBteTpS/esFz209d95Yhu5zrkObINSQzPxDES75B9nEZ42TM/k8SYcF2bwHJNt4qltrqz4LwqunE9hngyu1nS" +
+            "rOBOGctprxMWceb7it2yFW1t6zRKU1OBCUunBCo6kHBWR5Qk1tPgeNPrm20m+YqC5EDAA8H6TYyj0JnQ/Xns2c71tOd58bf+a1IZx66OcsiGmItGeB4SydQD" +
+            "aI0pcV8HRnWaQMxX2qIdXNCm3MVhCoOu5nomrkwjn2gCfn/LoppYzmuKPInqI8CHernv/wRLTrh5UY0/d37TH4GzyW8ziiqch+HhLJ/1S9mXEXRYtWgkJGZX" +
+            "Iq6+hZE10itPkYhbd/wQ6VGehSDEfLWbd6r4tuB/md0qvDnr0V18XWNgTb4mTUQDsvfCTbhmEb9Tq8IEVJwbOJtsobS3BS7gVOzXhWYFCfo0SSDE4V6btFhw" +
+            "QlhDgvEaiLajfmdrXcJeMsnLJVIldKDd5oyClUTDhaxHEaxrMtZNCwAHsWHI6SwqWgxYM18XOh7baftphN9PyOtFRxS2lBtum17O9K1xyqN93+begnM+1yRq" +
+            "OaAAm34VeLE3Ky65oaZt7vymfwEfpHe3S/cvWVTb2+bRL+OytI/N83x0leBV8NtBVaipkPZfzi2P7jvSq7W7iLArSllIiPTiPjDiwTUfLKc9nqCP7mEM1K/z" +
+            "o5+7uc00tWmkmPfGyTKaNOKVNBUrgvaBJEkuy/GIRcV2+R1RkFh7kPCUdrQiSHk46MmbyEx2SVIZ5JuehIUiYlJJWpJaBxQp8xAvu2SmqJ+q203qQJMk4e4M" +
+            "VwkI1s1VcJiSSJ1OZVGLiEuIHsjo0gWt9OoOtMc77WIcRWjG0E4esm9F4ekxER4bF+G9K1vB99H2TCauCAshL3F29M+BdgmFsCeUd7jkqG0D9SnQADvdmqil" +
+            "ml0oBPUSry5ZVNsXN/JLQDO55wjspJfED7BkUW3T3PlNr5J/Ap4+94Km6iW/7aRFHKMfGjEYQccMMjq6tifnVe/PPREYXp1bH/b6RvzWaL+Qb7feGEm3gLsh" +
+            "4WTGcJZjT9XTdnU0Cju2uw476d1yRDAjh6NGQfzA6iUo50n16QXTgYgDazdBgEFJEgresFqksvOppTt2QjyW1QJOJ9SsiWaqKRd0evmROjLXYBwSvCddSGRl" +
+            "nZliWMAdyFDTx1Go8ah29i6oov3YjCH9tiwvYggCtIaE26dVsLHSc/0smzPzb4ZUGSojMiBuyRSoiAhDKjvcocabgt7ABUFblveG4mpx843VfVx/C86NnSu2" +
+            "Axv7uO+1fVw/GyYgMjTL+205b6mXKMr1rQdo2KLRWD7y3neNbuc6mYyUFKhIJD9lJjwlegVn2UBmUhR+1oX1a6Gja9gYzPRpSZ3lzPhvx+eJbOiOCVlpMVj1" +
+            "CU0eixncOe/M37AZ2tuc0Ad+dlEN6cZISSNhSWRMS8Jl3zGrOoezbsBkQffHftP3F/xXpCzoHfn66zIK9cNC/HNyObatFX/zpozPB1caRtWaAXEhUoVRtYbB" +
+            "HQk4uh78FgpkAWeb6wnAsFw31AP0lVjiwZIrYuzC0ukBChHEGIxrhtERvbnJ2JNg39xoy33bL2pg3c51Sp6xi+QnUuVBXV1EJEsClUlPnhIfNqxFt23pvP/9" +
+            "ZmBGjUCIJ0uMTIfsZpMxLj9tXOnKVj6mIkz4wP2Qisy8M43F8VetQ+LRtOSpdBJONKHoItFM0zKgA/JNliWlJ2WRcEcXQ3E/B2QrC+qPGHC29/qRmNL/2Ppq" +
+            "rWTAF/jb1ApWVPrYVQ0Zn9WWCzPGDByp4xljQnRseq5tK0ELZgFnm+tx9LEUrAtU93H9cnqXIdzb9dJRiPkYBIzP8n5f3PS7PawSX7PNRvspItTtXAtWpQPR" +
+            "Jaxhk15ri0/2DGE6WakifpCUlUbKTVtg2WudVx8zBnP0MYEVnK38KPU6nXBNusUtgfW770TChx3Ueb43bCH+VoPr1tSh/jfjUQKrtiMCokhvwpC5HZtcN0XE" +
+            "PURRrN8sY0iMuZAWd6d9F3CfWVAwAjYKa6oNd04tp+WtZRmuHhE4bHKEyADg4EjIjSXjLlN9tPnlQt4JZZvrCRSm/++kcz6zoy9WzRh2UbfZBWqDdXuFsy7Y" +
+            "YSiMPGSE7FKgjQXY126D5jY1q7ZqpJ9q87ud68yynDRXb0cS7soCFlKlR6Qt6a9FMa074KVnIdrB0eKF8E46FTNjBqJpVnCn8qMsRJxQ61Ifb2gN5R88FTN0" +
+            "cKchxt9YiV29NpkF3Zk8O1rAncQ008qMMkuOJCnekUbEuWjqFM0F3ekQC79Pz+vQ5rCA+8yC9Avz23n8A3N/BwoP1ZXxbNNKtIMb+rDJYSYM8YrSijABqzBh" +
+            "iMdhkzvwXnQDNL9KATPE3s7y3kQK0wzgQDXa4zaTWfAuoDdt7Srog6pXSHQEMKsA82HI3urxnQLsa7dBU7u2b2q2Bau764Bu5zrlLk6P42ZrguCTzY+YTMJK" +
+            "czeL8TMfxXfk9/J/YeXyzoMYNRrzifMxEyciGs+wpLPX+6ZbvnFMVTllZ51J6LDZnTatLa1EH34KiUXpFPPt9KhZL0MaxCuTFnAaEUNHa1gR0SJeaXuArCTV" +
+            "NXH1eV9B8p1MmdD5s36cqfQLfj3g93ZD2SDAtgqPJTVb2Loys/923VCPk/YveNLpLnHS/mVMGJp53dHmF9G2dwqV/u7j5rojCtX/dxpwdG9WPHt+0xDglD7s" +
+            "+7S585uG9nLdo9hF15w+IFsM+HXyI725W6Jxu9LUVuD2qw4WN9ddIqkmRXq81+/kUjZYRLOLVOABnro6j5CAl7aE0pZtG+DReyHWOd1Aph+A+dwlyIz93Q2B" +
+            "xjMSrpJEnJ7cZWOY4UOJfHIu4dPe6yysDog98wLx15Z1cBtnf6QrsRFNWbopKzewetPIl+R3BngSVlfjyMd4rHU9leNx9zwSQcaMxJx1GuakYzruFAqViJUF" +
+            "6U7gN4AW8hx3MwpPD4px/ztPMvfQo5MnpAicNaece14qTk9gqzB2sOGsOeWZ+1Yf3fxPl4BVGCGOnbi57ojeEtWuUA58eu78Hf9asqgmp0QjgTPomzb1ocD7" +
+            "gcW5rDR3flMNThO6UOpU2eQol+PO/77GzHdLrNpqaY1quB/+DFtwc90lRKymCCQhNpEey1T3Wnzws+QHhkIQNo5gd+VTsgLP/RsOPBSOeHfHgcCMAzEXX4r+" +
+            "6x548lFY30iqxjcoHSIoOaqqwRxwIKEz3oeZNSuzvCmxuzWNRO/+J7Q0I8Yj1cWITiVIroLbIiHpbAX7FtQRrYqmCDlRgyyKqnU14GJVNQfnWjGM5e5c0L2F" +
+            "byHkwZBByJiRyKTxyNRJyOQJMH4MMmpY5xukvu4zR6QT8JvABvJMwAK0h4Q/bnmOY9avZPzYVC/6mePCzD2sgp/+a2e/HXACRmDuYRXMHJfpftaWZditDxfS" +
+            "FNiAm+uOyKfiU0ecBPoZ4Cc9XWHu/KZpwNfpW21sBPja3PlNTy9ZVJtLb8d59M3y3hUGZ3lvOe632RsJWFdt1XZfqeyHG+ENZL8BTSI9GziDeCX1iAms3HiW" +
+            "RPtwGEIJAt7FAalAaxP8/U8wZjxM3Lfzd0aPRT7+GeSo49FXX0SW16ONa9GWViQUgWEjYfJUZOaBmGnToTr7JVRbWone8Tf85W9ijMGqu4lQ9RBRVINjU02W" +
+            "EoFxil0dtxX3wfppVi7JGmQN6oITc6UuWWvgu6A7KmH1VojDWqgoRw45AHPMu5BZ+yGjh0NV5S621Yd97vL4sr+d+mVF1qC6jAKIQRiE+tgm/vLGv/jKmH2S" +
+            "8nAicN6RlTy9IsZjb0T7rTWhb+GYfSOcd2Rlh3lWdP1t0L6WAvZmX0b2+tZBBTzkCPCtufObNmLkT0t+U9PtH+Pc+U0Tgf8DDsrDvmcCP5k7v+kLSxbVrtjV" +
+            "l+fObzob+E4w5kKhM8kKa1HeAqYUcL8DFfrmRlthFekHAn6TXdR3m0RZjWQjXhypCs6dHM9SqRYOBxYwKQLO8HKlP1fAwJo34S/Xw7lfgdFZyvE9D/aZjuwz" +
+            "HdrbkXgssH4lsLgjWd3NSbS1Ebv9TuKP/geD76hVwKrBiMUmrvlZLGHJlq0a9xHrJ7sekUbgLtybEvcQei7CkZqTfkYH/s0YRy7jsRbZZyLmM2djjpoD5Tna" +
+            "D4ld9dMcJFlmxUUPtgAvFGpHFrh9xcO8sjHT+zSy1nDpadVMHt4/CVlWYfJwj0tPq2ZkbSbJ+jtexG64gwJH4V8IH78hmzxjoXoAJzAc+BlWvzN3flPW7OSz" +
+            "P7s9PHd+03uAP+Dcz/nCKcAf5s5vOmXu/B1Z/yLmzm8aOXd+06XAL4C+JI31BJ0IuPGa2mZgaYH3OyAR9Ymt225j/RQFeq5xYW1zd1/I7CwUxDc9UnHb5HPA" +
+            "z2IBhyIpF3SIVBw4uZD5vifOYn7zRfjzz6ChWwMdysqgqhqqa521W17RPfk2NxO75S/E7/kHRNtBNO0mI/WYnniVkdUc7rxtZwGni3B0zoZOjwmTy9W1KDFg" +
+            "hbIO99y5ZiT7PrLvJLwrvoQ58ajcybfQx54FHW+tnsQJN+Q99mZEWNu8kd8+fyvXvOfrVIRSuzh0UpgrP1DDZbc3sW574eLBVmH0IMMV76/h0EmZrudYvIX2" +
+            "huspb18TyMgVBG24Oc6G/ujGMxS4EvjA3PlNfwP+iyuJKgemoZwMnExhBEGOApaA3j93ftP9OE9AG+7G4FDgfcFjf2TidnWz8xROEa6g2YG53tj31hvWk+2L" +
+            "wNYWNWu290sJUjtujrsfE1ZdjDfN4jVkWr8Gd6bEstTql0VcfWGXFnDHspO0CVv+HPzhR3DaJ+HAIyHUt8pAfXsF8dtuI/70fyEaR4K8kqSXs5PFG8SESTRY" +
+            "EEx55zFoNJ50QWuCZANd6syYsBD4oHMYdD9awIkkqWFDkH0nd/4sl7FUV+F97hPItF46sYLM8mLFgMFZwCspTE9aRAz3r3iMQ8fO4txZH8j47JQDyoBarrxr" +
+            "Bys3+Xl3R/vWWb5Xvr+GU2ZmXl8tsG717QzffG+h00BX0rWXob/a4RlgTrC04dSqTLD/QpPfYOBjwFlAK27qw/147Al0VYH+PNAA7JvDtnoMEWhu18i3/9YW" +
+            "GlSxa2kEa2H6KMPXTiojnOMvE/Phfx9oZ9l6my0XKDUmoLkdb+02G+oH9/M79MDL5ohXOxNvtudtWYxpLwzVlbBVUoTdEZr+GJSeaNBMYe2bsOSnsPwFOPo0" +
+            "GDMpdyLetAH71BP4//ontmEVggmSOm2KZDMeE7FHmxybAlIWQSqy6Ei3tkMslqkFjUVFUpnhIqgmXdHFjwGnW4MiEIlAbTUyfgzmQ6cgB3T8s8thyL6POfRA" +
+            "5LCD+zS+/p6mjAuRVV1nRJ6iUAQMtMXb+dWzf2LK4AkcPSGzRu6UA8oYXmW45t5mnngritVd51DsColtHD01wmWnV3eyfAFeW/sMkXeuo0xaXWuxwuFJtEsR" +
+            "gn6KgGcgH2pVvYEh/20Xc0EXdCZrQJ+iQAQMEPPxHn3D9zRh8XSDuA9H7+Px5RPJmYB9C4+95fP4Wz6h7tZ14zCh/jn7nhJYs8tveWnk63VBvBL062ttImU+" +
+            "Jtb3YPAwaHwz9XZnHYvUY8IiTljDFmjdBo/dBa88ATOPhP3mQN00GDTMZTd3amNooWUnNKxEX30J+9+n0BUrXKxWQmnkarp47LC5gEhNTUXWRg62uRWNRpOu" +
+            "Zk3EyoO4dMoKTvpxe/4r5dsCTJBuVaXLRp48AZk6CaZORCaMRUYOcwlSndbJYSzGIIcdBJE+eCzivhOMKpYF/PYlD/tTrjvxH8DHKZAbzoihsXkjP3jsV1x7" +
+            "0gJmjsi81s2ZFOaXnxzE759o4eZnWlm7zQbr5bafxI3M2EGGsw+r4LyjKhlV2/kq89KGN3jxlWv4SORttHCuZ3Dut3vDJ2zIa611Cb1CVkpqXFgTH72g6R/A" +
+            "XAqjSuZ23sPTTHL4blf7CXt920YeEQP+sW5h7a7Pf68j+aYRr5fmghaFpo2ds1a9EIwaB28GPXp3aQFDBk/ZwBJWoGkDPPZXePZBGDwSho2BEeOgZgiEylxt" +
+            "aXOTK09aswo2bYAtW50XGc+RddYuRx0fA/exphGpCmZoDaa2c86gv7UZ2toCmcrOLuj0RCxVi4jpfws4IF4ZNxo54UjMMYciU+pgUE33MfP0H6knGcnq4scy" +
+            "dlQPttkNdjRDa4F6suwyCzqFx3CF8vnIgM0KI4b6TW/xnYd/wtUnfJmZI6dlfD6yxvC191Zz6sxybnuulX+91s6qLT7RoOQv+TeV+F063CxFQjBxiMfJ+5dx" +
+            "1pxyZo4LZ/0NX9rwBoueWMjnK/5LuZFCqzC8HsxtCcVHdxejx3AlSYXozbw3YznK4z36pieKR4p8PTq4oIPXWNjW6EqRwmn2gvFg3FSXiAW7IOCABVVTpGuD" +
+            "9y1Bj16FaDOs2wFr3nLft+I+tzh3Q8xCPFH+k7CQbeb+uiJfBA2+Kx3eC40ZhhnWuUDCbtyKtrY56zogqu6t4BylKPuKQObRnHwM5tNnu9rb3myjJ+NJ3Dj1" +
+            "0V2qK1elCLifrOBOBLzi4ocaAyu4YAQMjoRfXF/PNx68lu8ccyFHT5iT8bkIzBwX4oCxNXz6GFeq9MzKKPXr4qxvsrRGlZjvJinsCRURYVStYcaYEO+aHOHw" +
+            "yWHqhnpd3jw9vmop//PYrzg9/AT7VUT7QwLpH+HjN3SngRunfxKQSuimy1LjwtrVoxc0/Z0SAecb9zReW9uz1pghNEW80Ol5goQx0LIVtjbCyImZ2xizDwwf" +
+            "DVvXBRfmji7jxMVdkoSXlFA26gjW4FxpVlJj8BPEnF6zisuiNuJ07nx1FnC6Sle2RKukxWrd5hKfBXFdUxYhvP8+SAe3qrZGiTesT5VmqXWiHVmtYAVRVc2h" +
+            "FClP5GPOOBHvqxd0di/3eBw5jCUaRRs39l48OBZHn37euaH70WXUVTLKbTgxhF6L6fcERgyvb3qLbzywkAvnfJyPzDiVynBmSFLEyVbWDfU4a045TW3KthbL" +
+            "1hZHwpDq5zu40lBbLt16LFrjbdxefz/XPfsnxtq3+cjk7f0xz+uAW3fxnYJn35aQxK7aHN6OO/8LXQ61t2ADbk57Bk9sMsu5owWceJ5wQ7dugcYVnQl4RB1M" +
+            "ORBeXJfdMkqP+4IjVQ9HuCppVnCapSuBO9Sqa/cmOEKWIInKzzRtkyTcgXw1EfsNlKskPQkr4Ta2Fm/kEMJzZnYaut3eTOzNVcFNSOCCpmMsOHidSvbKhYB7" +
+            "kKHQDawi++2DmX9O78k38eP0lIB9H33mBTjjPXSf9NDFnp5/BfvMi+5cKWIWdHDY9iXB3At8utADMGJY17yJHzz+a/677mXmH/IxZo6c5iTUOkAEBlUIgyo8" +
+            "Jg7LbZIV5dUNb/DbF27lvrf+g9g2vjVhKyPDMaz2zXXRA/xDhZd38Z02etd1qITc0S0BC/q8IvcBnyr2QPcQ3KcqL/T42x5+Kg5MNwlZAvEWWP0yHHCMy35O" +
+            "IBSBg06GhqXQvDlL0lT6YyL2G2zXksUKxr1OEC6kCNnv2r8sCSIPCDZp7UJSuSqVhJUmIRkKU3bikXhjRnSanthbq/AbN7kErGDbGpBVwgrWgMgDIs6VUfpG" +
+            "wALm1OOR0SN6vQl868oAejoSEeyTSzHPvYwcfnBuB9u4Ef+GP8P2JrotGegbsjpZs+5t5cWPxIHfA1voBxgRon6Mu5c/xOf/8V2ufeK3vL55Bb723TFs1bJ8" +
+            "80qufWIRn/vH5dy17AHa4jHeXbuTE2t3oIUn3y3A7yPHbdhVU/uWnmyshLygWyGIdQsHxXD61VuLPdA9AFuBG9dfWxPr8RqexF0zhYRIBikBjmQzheB52MA7" +
+            "z7tYcEeMnwmzz3B1welCHiGBcIftZDRpSPtuehOHxDa89PU6PHZ83wQEm2isQHqXonThjdT3RH3CB+9P5ORjOxNC3Kf9iZcg2p4pwhEIcKRbxOm62TlmQft9" +
+            "anxQXYkcvH/fzprWVucO7mljBICt2/F/9Xv07Z5FOgB0RQP+D65Dl76SuiEqzJKVzLruyCs8gfJX+sEKdrtzdcJrd2zkN8/dzF3LHuD4ie/iPZOPYtbIaQyv" +
+            "HIrXwyxlXy2bWrbw8oblPLjySf7T8Cxrd6wPkg0Nw0Nxzhu+iWrPxy88Ad+JdCm+kY5C+cLbcBm9u1t82cdlzhaiTGqXc63I44LeA5xb7InYzXE3yBM5reER" +
+            "T5JYevw3W1a0MdDcCG88DsPmZm7HeDD7AxBrhpf/Dn6UDHMqWfubeJ6eBU2m5Zvudk64m7O4nUFcGVVaYlcyFpuQrgzithkuaRJhZcE7YD/Kzz8bM7xzf5ZY" +
+            "/UqiLy6HDmSbEfdNt4hTgdRcXNA+va0CUEUqKyFLD+ScsH6TKwnKRZdBBH2pHv/yH+NdeC5y6IHZy5JiMXTdBvTfz2Bvvxd9e1WKfAuHrNn/XRLwioseik25" +
+            "7sRfA6dR4FhwOkww4Y3NG7n51b9z17IHmTBoDPsPn8oBI6YycdA4RlQNpTZSTVnISZe1x6M0RZvZuHMLb29fw2sb3+S1TW+yavs6WuJtCIIRSf6JvH/wNg6p" +
+            "aukP8l0H/CZ83Iae3P3n1Kmoh3gV+CGuN+/HgSPoXW/f/kQr8Czw52BOLiX/fYF37OoL6xfWREcvaPoVThlsdLEnZTdFI/CrxoU1u4q5Z8ITP2VBkrIou0rI" +
+            "wsKyh2HfI2DYpMxtlVXDEZ+Eimp49R+wc7N7X0w6h6WyoBPNjRLizIa0OG/ac9Ieu0pv1tRr8QNyT3Y+kiDUGrikrYWySrw57yJyzscwEztnDWtrO233P47d" +
+            "tCVQ1ArczYlSpETctwMpk6MQFn258VXczUVfBC2sRZevcHPSo3KlNIigL79O/NIfYuYciMyeCaNHuN9qWxO6Zh36VgO8+TbauDHZF7gfkPVvINTdGoo8J+iN" +
+            "wLf6Y4SZ8yh4CG1+lOWbV7Js0wr+uuwBykJhKkMVRLwwnnE/jm99on6Mlngr7fFYUPcmiJgMq9kCU8vaOWfYFkL0S/PXG9XyXA+/+xJOrjFflup24IdLFtX+" +
+            "CWDu/KbbgGOBDwLvBiZSHPGPbFBgNfAwcAfCv5fcULs1GLcFfk3+mlX4wCs9+aJVfcaI3AQsKPYE7aZYrL79b85rebRmunHTH+kcExaBplXwwh1w7Och0iHx" +
+            "J1IFc86GsTNh2f2w/jXYscFdfCFTgMN0eLQaEC+pzOd0cQ/tZjFp9ZHWFRYlVa5ccrJ7Ul2NmbIv5uhj8Y4+CqnO3pCr/T//pf3x51LiG0H8OlsCVuo5gPqK" +
+            "7CoEloJqK33oiqdNzbBxM9SN7d36a9ejL9aT9CLkChFoasY++Bg8/ESKxK11sWU0JaZSeMs3gdZsb3ZLwCsvftBOue7E63FWwLv6Y5QdkXBNJ076mB9nW9wZ" +
+            "i5r2HXCkbUS67OMbFuWcYVuYXNYvZUf/Ba6PvHtDT3d1Ba5LzJeBPmQvJFELXDF3ftM44M9LFtWuBu6e++nmv+PZfYATcb/rocA4dnEuFAA+zkJ6DrgfeEhU" +
+            "37j5t4PiAHPnN40FPgFcQP6S0zbhWjLe0JMvb7h2kE2zgmf3ZJ0SknhO4fr1Px6c+5+aJ+vxmNjJDZ2NhBOPAqz8Nwyvg1kfcu7ndJgQjDsIRs2ArW/Dpjdh" +
+            "y0poWgs7t0D7zqBhexDHtOqs3UQ9sE/qvUQpkq/JsiP3OanvxtPe80lmUwshtLwKUzsUHTEG6iYjk/dBpkxFBnV9jxl/6XXabr0XWtsQ8Zy8c1JoI7CAEx2R" +
+            "0OCamCTiZtT23MOmuoO+VADsbME+/TzenN45rvSeB9FVa4MbnD6QY8Ky9dO8v+klaf3b9Smr122XF90VFz+0esp1J14L/D/y3Cu4t0i2M8xhHV+Fw6p2cubg" +
+            "bf0xxB3AwvDxG3qcDbBkUe3msz/X9ENxFvP3gMP7Ok04ScVrgLlz5zf9DvjrkkXVa3D9WN8457NNN6oyMdjXETh96Cm4pg35JmQfl5DzNo50nwKeUWHFLTfU" +
+            "JuVnzpnfNE6dlf5p4GDyZ6U/DVyJmn8u+W11j//yGhfWNoxe0HQN8DsGyPm/G2AHcM36hbUNvVo7xGqMHJbVDd1dVrRG4ZXbIVIG009zpNtp2xEYMc0tfszF" +
+            "ha0PNu5aG/rR4P0Y+IHRmLRqrRP9SE8sTrd4xYAJp72v7r1QxGVoh8MQjmBCEdfCMBR2nZV2Ab/+TVp+ezP+mkZ3YxHEdjUgqIy+v4nnmTHgbQqbc/gFNtGX" +
+            "trSq6L2PoKee4JSvcln10afwb7mbvOgQDyxsyvZmjy6yKnqXqCwCvlrso+gNFKjxfD41YjPDw/H+iP3+VtG/5brSLb+pVeCfc+c3vQp8CfgMMKSPYxHgEOBn" +
+            "wGfnzm/6C3Anqm/cfENtlICM536m5U+Y2CCQibg/vpnAdGA8LgegFhcXqsAlaGRT143jXC1tuEzjRpxreQXO7fs68LbFbPnLohQJzr1gexiRfYH3q5OBnEn+" +
+            "XPFbgf+H8LMlN9Su6s0GVPirKMcAl+RpTHs6blTlrl6vbWR5RnZxugW8q4SseBO89Cew7TDtDAh3k/LghTNLlwYaVIk//zJtN/0F+9YqJCDfVMJVKqkrQb6a" +
+            "JTEL1Y2IrMthv+/QFwNABH17Nf7P/h/edy5BRgzd9TrxOPZfj2F/9jvYtCWQ8OxXC7XQeCfbmz0i4JUXPRybct2JP8ZZSMcX+0hyhSqcVNvEcTU7+qPm9xHg" +
+            "R5HjN/a87KIDliyqXX3O55ouVctDuCSkY+i7JegBBwbL5xBZANyc3OfvKhXYFiwvAnd87LPNnlFbhbP8huK6GdXiGimUAREcEUdxQiItuMSpbbjyqyZVbbnl" +
+            "t4O6nwuRj+GSxXqhV9clLPA48EMVuf+WG2p6rcG9/pra2OgFTdfi1OF2u/O/n/Fv4Nr119b2+vzH4zWMtGMo60S+uyJhEfCb4bWboXkV7PchGDSp2HOSM3T7" +
+            "dmIP/4foXffhb9wKEsqI9WbEfdMzohP1xmjAzYqKrmqPxHIh4Po+H4CAPvwEfmsr3mc/gRw4o3NGsrXQtAN9/S3s3Q9gH3wcdrb0Z1y2P/F6tjd77GZccfFD" +
+            "66Zcd+JlwB9xbsrdAhYYHYlz7vDNVBjtU3JeD7AC+Fb4+A09P9m7wM2/qfWBe+fOb3oO+CTwBfriFspEGHhrV1/6yw3VPo5Qm+hJF5veYwX5VQFbCfwGWLxk" +
+            "Ue36fGywcWHtmtELmr4F/AmYVMC52J3xNnBZ48Lavp0rntRjeBtPpmeQbqiLrOhOJAxIFFY/DDvegroTYNzRUDEiu1t6AEG3bcO++iqxfz2E/+oytC3RQzit" +
+            "UUPiOSTjvik3NCQs4ICc4wb+e+B93+15EpZry9lC132ze3gwij7+HPHX3sTMnokcMA2GDYa4j27aAqvWoitWoQ1roHln9i5TewZ2AkuzfZDT2bji4oeenHLd" +
+            "iZfiLm59dY32CwT48JCtzKpsLTT5bgUuCx+/oSc1vz3GkkW1G4D/mzu/6Z/AF3G9dPuapPVnX3i2oLORA0T0aVVZQt9dvJtwMqq/WrKodlfKYzmjcWHtE6MX" +
+            "NF0GXI/zBpSQwjbgW40La3Or+c0GY17D05fxmJ5d3IIuErLIlKkUYOc7sOxPsPpBGHkIDDsAauqgchSYSLHnzMWft25FVzdg33gDf+lS7Fsrsa0xZ/Ual3BF" +
+            "houZIAac/j6kiJe0bGi2qthHchqT6kvAKlwIqo+/pcC27dgH/gMPPuZi4mhQpqSpTOREwtSeZ/mCC8O9lO2DXtwO6u0gE4CrGeA1pRbYr7yNjw3dSlA1Vyi0" +
+            "AldJnNsKtYMli2pfPfuCHZeI6B+BzwPvp3elOcuBG269obYfEsF7hptvGGTnzm/6NXA6MLUXm9gO/AO4Xo08ectvanK5288JRry/WPXHAD9ggJ///YhW4CqQ" +
+            "W/KxMfnOfS167Sn34PE+PMqzKk51J1OZqN8VUl2J2tZAw2pY+xBUDIOyoVAxCspHQLgGwtVgypyFbCIumUq8TMlKEw7co2nvJR4Dy5NYLLO8yVr3XjQKsah7" +
+            "bN4JO5pg8ya0sRHdsgW7aQt2+w7USibxpluznUqM0ohXNFDUTGRDJ9//t7W8keNP0IDqk+SDgBNI1toGk9axQcaeSbwJPCFI1vyTnAl4xcUP2yk/P/EXCJXA" +
+            "dxjADQQionxy2BYmRApadhQFrkH0l6H3bCwoqd3y25o48MQ587c/p8hiXMOA04FhPdyED1y/ZFHtskKOszdYsqi2fu78pt8AC+l5vHsLcC+wGNHHltwwqEDN" +
+            "PFNYe02VHfXNpl+KMBgXnx8AZlRREQV+JPCLdQtr8nf+e+Z+PH0Jj8MyBDg6JWaR3Q2dIGJII2KAVmhdBS0NsCXNZ50Q4UgqX5GqA+5YapQsM9LMkiNf3fO4" +
+            "unTEjNcKMXUtC2Pq2hfGfPc9NUGMNwQmTaAjiIV2ItWOseC08qNMdSyaBb11ysNX7lJ4Jh2RVx7wowe856+4hMhCKNHtTWgD/Wv41Qez5qD0KrFnxSUPRYEf" +
+            "A//HrjvLFAW+CodX7+S0wdtzUUHNFVHgf1F+FD5uY7/Nw82LBrUvWVT7ECIX4Czh63Hxt13hQZTf99c4e4HFuCS2XaEBJ87xIYVPL1lU+0B/kG8C66+tjYor" +
+            "7/oxA/T87ydEgf9VuGbdwtq8zoN87d51GPktRloziLaT5nK6jjOZGs4h0jSfE4uBsAfhUPCZgrFgfDBxt0jMxZDJstj27IufWBKlTOnPg9ImG3PlThowuYB4" +
+            "Ap5x9weSci+7+4V0BcmEvnPm9zqa4cle6Y6YH1TR+3v1A6g+gupTBdRG3luWp1Ae7Wqae51Zu+Lih9qAq3CuuNbebqcQUGBwKM684ZsZEooXioBbgR+o8v3w" +
+            "CRuKcvxLbqiJLllU+4SKvQg4FafY9CQu6N8RG4Frlvy2tl8abPTqeBbVbsIRW7aauRZcLe+3gNPU8sUli2r/fcui/F74e4p1C2tbUa4G/ocBdv73E1qBa0S5" +
+            "av3C2sIcv2fuxJN/dmntdiTjrkg4o8kCnb+X3uihq0YLHV3dnmSxvNMs8E6dm7p4ntYwIaOBQpqYhmvcQNr3gucQsK2mGfnJ9deBvW7yA9/f2pupj7z20HZU" +
+            "r0e1bQCQ2O66tKH6q8hrD3WpPd+nlMAVFz/UOuW6E6/BFd5fzgBJzFLglEFNHFndXKia363A1SL8Inz8hqJbQLfcMNgCy4Br585v+i1wGM4yPh6XsR4BrvNC" +
+            "Xd+JDRQYkQet6q9w4Y04LqP5EeAehSdvWVSbi6BAQdF4bW3r6AXbfwiyIxjvgDj/+wFbgatBfrHu2hx1nnOAfPHvm/SG03+Ix/4YmZYk4Wwx4U7JWKRiwRAQ" +
+            "VUIBKXjuPL2p1oMJdauOGs/aocGCl3jEfWYSz0kRa0LCUhIdkUj1De7wXDQRyU1YsWmKVhnqVpl1viqZ+s9p1nAb8POYRvr29656NyK34aowSsgdt+EaunSJ" +
+            "vLDTvr880fiWj+BqOfNVKtMrWGB8OMavJr3DARVthYj9rgQuE+XW0Ak9lpnsd3zsgmZjxE7AkfABwE+WLKpt7ONm+wVz5zeNwVnzrwMPWGTFXxblMb6YZ4y6" +
+            "tMWIxj+Gs4Yn52u7voUjp3jc8plKynPUi2iLwdm/a+HJFT5efhW/VwLfRril8ZrCJ/LpVYcJE0acRUh+isfYTNcz3SdmJYmO7LIxCZnJ9HhvNonJjrHeRPw3" +
+            "Tiq+m3g//b0un6e9jilqBVUPVYPiYYPnVj2U4H31sHjuMfhe8rkG62Cw6qmq92ur5lsTH1i4ra/zH93vhOnAX3D6ASX0HC8BH428/sjy7r6UV/NwynUnHoFz" +
+            "IR5fzCO/ZNQGvjhqQyE2/SgFKDUqYc/A6AVNeT3/ByAB/xu4tHFhbb+e/7r4VI9I6Fw8fkBIxma6jOlMwh01orskYDKJt6fk2x3hdkzEigVkHQs+i2UjZtII" +
+            "N3gMnncg14CoPWz6ZynijqHmz6rm0nH/+t+83WxHpx9/EnAjThWvhF1jNTAvsuzRB3f1xbzeG6+4+KGngHNwyVk5Zd7lA1aFmRWtnDV0a77b/OzAifh/vES+" +
+            "JXSFxoW1T+HaPv4MJ8W5p6A5OKaP9zf5Asi8+3wk/gc8voTH61mzotPFOrLFeLMt6TFibxeknk7uXgdXd4bbm0zLO1tZVPpNQTL5SjskYWUmV0FaclWH+HAQ" +
+            "B94por8QY7+ZT/IFiCx79AHgImD1Hl4u1De4uVkNXNQT8oUCtKNbcfFD69RwKXA+8Ey/HTtQbiznDt/MmEgsn67nZ4FPI7ogfPyGtf11PCXsnmhcWLsW5Ju4" +
+            "87+nrSgHMpYCn1blG31WuOoD5Jz7fEzV7Yh8AsNf8GjukoQzErLohoTJLfFqVwlVHcVAshFuNpIOllQSFnRLvMlkK/cg6KugXxb08jH3/awgrr/IskfvQnUe" +
+            "8OIASG4amAu8hOr5kWWP9lgHvaC6X1OuO3EcTkJxHtC75pA9hK/CyYOa+HHdKqqNzUfm8zpgMej14eM39krEv4S9G6MXNNUBn8N1dhqd6/pFdkE3AjcB1zcu" +
+            "rH2nV1soEPS+MwfhmQ8Rks/iycGEqOg2ISujDjixkQ5u547u53R3cjZ3s0/gTu5B3DeW7TUZMWH1E3HgVIw33b2cxRVtVc1qq95tFu/3o+799Yv9MffRfY+d" +
+            "Bnwb+CglIZoEWoHbEa6KLP/P8lxWLLjw5pSfnmDwzCG4C9FHcKL+eYUCQzyfn01s4OiaPmc+bwH+CvxarTwXeff6AZv8U8LAx+gFWwRCh+HO/w+SQ6Z0kQh4" +
+            "K3A3cL2EeGbdDwaOYlpH6MMfGEXYvIcQZ+DJgYSkDo/aTlrR2S4H6UlYHWO+uyLfrp5nxHm7Idxsr31JJVSRiPWmE7GHVRNVvHVWveWoedSqd5evZtnIe3/b" +
+            "+8YXvUB032PLgfcBX0D1SPZesY42RJ7C6TDcHXnjPzmX4/Wb8vWU604IgzkS+BROvWlMvrZtgXOHbeHbY9fhSa9t30acqtJNCE+Ej9vQryd1CXs2Rl26IyKq" +
+            "R+G8QafRg4bn/UzAG4D7gMWq8vj6ApYX5Rv67IcjCNMJyTQ89sGTGXgyFsNwhGFkbyogQDkWk1S7ylC3IltyVYi4RojRHRnHiWm0ewImCxmDVaOK16bqqaqJ" +
+            "WbytqmazVW+TqveGxatX9Vag3quD7vlD0cvxolOPGYRLOPwAcBSum1lVscdVYOzExXmfxBlqj0befGxbbzfW760nJv/i3SFRmYVrKnA6MIM+yFlaYFIkyq8n" +
+            "vcO+5e25xn6jQD1OR/h2VV6MnLChYDrCJZQw6ptNYREOxLnwTsfp7WaVs+wHAo7h+kHfg6tZfKFx4aDSjWcJOSE29RhPYQLKQaCH4K7pdcBwXCvTCtw5npRT" +
+            "KfaYu0DSH4LjhlZcAu4mXD/f10GeR3gJaIi8+VivW5wmUNTeT1N+fuIohGOAM4AjcG3ecoorGODrYxq5YMSmnsZ923CyjU/iLN7H8tE+sIQScsXoBU1jgeOA" +
+            "k3E9nyeSdjNaIAJux0l5Js//xoW1q4s9FyWUsDdiQDRfnPzzd3siMho4GDgyeJwOjMK5j7xs61ngXVUt9rqJDTI8FM/mfPZxLoMNuDv9pcBTwAtY1oXfvaHP" +
+            "dzAllNBXjLmsyVPLeGAWcDQwG5gat4w4eopXteQzlaY3BDz3dy328RX+zpBhI/Amrs/rE8CLCqvXL6wtnf8llFBEDIju1CsvedjHNXxfA/x9yi9OrEQZC+yL" +
+            "a0+3P846HoFza9QqlJWJhs4Ztjk6MhwTX6WdlLtgA87KrccR75sI68LHbdiZ49BKKKHgWPfDWh/n4noHuGf0gqZqYJxvmVoRkf1EmIY7/0fhkhhrcDemib/f" +
+            "OE4rewcuiXC9CG9XRGS5b3k9ZHhTYM26hbV7Um1yCSWUUEIJJZRQQgkllFBCCSWUUEIJJZRQQgkllFBCCSWUUEIJJZRQwoDBgMiC7oi6+vOqQMbjErD2w2VE" +
+            "T8QloQwBBuHKNSI4TZsYrryoCafk04hLaFmGa2n3FrCmYcbiUhJKCSWUUEIJAwIDgoAnvD7PE5XxoAfiFFUOBqbh1IIq6X3htsWVIW3ClWG8ADwePK5pmLG4" +
+            "JLpRQgkllFBCUVBUAq6rn5cQIngvToigjj6oYvUQnYQIGmYsLgkRFBEjvvXgMZGKqq9EqgadUF47dLDxQmut9e+Lx6I3rl720tOtPzm9VK9aQgkl7HHodwKu" +
+            "e31eCOUQnBTlaTgXc44yA3lDDFgO/J1Aiq9hxk0lKb5+xJAv3/kxkIWgkxBDec0QBo/fl1B5JWrtOt+P/9WPRW/avG7lc5u/d0zJY1FCCSXsMeg3Ap7w+ryI" +
+            "KEfh+qSegovnDiRsAP4JLFajj62aftNuI0a/O2LwJX/xkNAFwA+AYckPVKkaPo4hE/dDghZyau0ma+P3+NHYjU2bNzy17tsHl36bPRzDBg8udX7PIzZv2zYg" +
+            "wo0lZKLgP8qEV88TMXI4cCFwJjm0YysSthG0Y0O9pxv2/92Abce2u2LIV+6KWOt/BeXbOFWnNCjh8ipGTp+NFy5DcSepAmrtVus713TLts3/WXPprLZiH0t/" +
+            "4CtPHGmOb/T2r2zX95a32+NDMWaFozo83IYXiqImLjETk60mSj2WJ7F6/5Ya8+IRVzzeXuyx9xYlAs4vSgQ8MFHQH6Xu9XkTUS7EtSDMW/vBfsJ6YDFwfcOM" +
+            "xQOqIfnujCFfurNSVb+t8DWyxvuVUFklI6bPJhSpgCwtNtTaHdb6//Jj0f/XuqPpkVVf32+PlRi95Z5jZ1XF7KfLonpmJMb4UEy9UBQbiuJ7UTQURb2o2FAU" +
+            "vCjixfBNnI1q5d8Ki9dPan/isG8+u9vF0EsEnF+UCHhgoiA/St3r54dR/QBwKTCn2AfZRywFFqroX1ftV3JL9wWDL7ljsML3cd6QLnTId03AyW+q3Wl9/xEb" +
+            "j/+urXXHA+98ad8dxT7GfOH6B06oGhbVz1TE7ZcjMZ0ciqnvxbBeDBuKoZ4jYU2QcCiKDcWEUFTxYoiJ4hmfTRb+GI1w3aRfP76+2MeUC0oEnF+UCHhgIu8/" +
+            "Sl39vHHAN4BP08m9uNuiGbgRWNgwY/GaYg9md8TgS+4YrbAQOJduz7ueE3ByDdVWa/3H/Fjsd7GW5n+u/PLUbcU+3r7gVw+cNGaoH7+qIq6f9OIa8eLqezHU" +
+            "iwekG3OEm7KAVcMxNBQVTRCwFwMvijE+AjwcDcll42/8z6vFPraeokTA+UWJgAcm8vqj1NXPOxJ3kT222AdWIPwbuKxhxuInij2Q3QmDLrljIvBz4P27/nbu" +
+            "BJxcU7Vdrf+kH4/d2N7a8ve3L5myudjHniuue+jkcUOs/UVF3L7fxFWNr+rF0cD61VBMNRRLJ1/3GI6pI+AYhKKIF1NMDPHiGM/HQ1kaLZcvjb3x30uLfYw9" +
+            "QYmA84sSAQ9M5OVHmfDauUbEOxuX0Tq52AdVYLwDfMtalqw+YHEpQWsXGHTJHfsBvwRO7NEKqoTKKxkxbTahstwIOLUJjVnr/9fGYovb21vvevviyRuKPQ89" +
+            "wf8+fOqwYfi/LPftR00cNXG1Xhw1cdSLq7N8Y9hQVNWLiiPjhAs6hobdexKKaRAPVvHiiOcjJk4I4b/RCJ8d84d/Lyv2se4KJQLOL0oEPDDRW4WpJCbWzysT" +
+            "8b4M/Io9n3zBSWL+0hi+VPf6eYUWDdmtUXvxHYeqcpMqJ6pCjxbSHunhOh0WkLAxoaNCkfLrK6pq75l2Q+O5Y699MVLs+egO33zslHCt6IKQykesGuursT6e" +
+            "xjHWx1gfzz2qsfHE8+SjUatGfRG1pC1i3IKoisSNL++KtMsP1sx79/BiH28JJZTQRwKe8Nq8CoXLcJbv4GIfTD9iMPADVL5VVz+votiDGYiovfiOdwM3AYf1" +
+            "eiN9tYFEPOOF3hWKlN1QPXjUgqFXPlUswZddYoJvPhJCPqdqxFejPkbdo4evRuNq1FfPxvHUx9g0YnbfFaMWg49JEq9iVEVUxagiWBHfxOXUsha96PlvnewV" +
+            "+5hLKGFvR68JuK5+XoUIl+MIuLzYB1IEVOCyvL87oUTCGai9+I4zgf8H7F/ssQCImPJQuOxrw0bXfaDYY8mGhf9+37QyMd8CUx3H+D6eDcjWxhMWr3o2ScIa" +
+            "Ul89TZIvxjqr1xGvj8GKwRfBIqgIjpBFFREvLvPHvuWfVOzjLqGEvR29IuCJ9fPKgAW4Ws4B7dorMCLAVwUurasvuaOHXHKX1F58x8eBG4BJxR5POsSYQV44" +
+            "8tlij6MjPnH/B0MVIpcYzP4+Xjxl+QYWrnrWV0/jeBonZQH7EljJeGrFkXHckbHatMeAkNWKqBVBRSzK0FCMr676xEklV3QJJRQRORNw3aufMgpfwBHw3ky+" +
+            "CUSAb4J8se6VT/c5pr67ovaiW0O++hcC1wGjiz2ebDBe6OBij6EjZlXoCWExZ1vEOldzkmyTz2OOeIOYsFt8QjYunsbFkXJcPPWDJW4855I2gWs6YxFVMXFj" +
+            "ObKinY8X+/hLKGFvRu6EYczZwOXsnW7nrlAOfAfPnl3sgRQDgy65o0zFfAN0ITC0L9tyyVeFSYAVkT6NLd+4+N8fqSwXuRBkaNwlXmki3htXj4CAbYJ0Y4RS" +
+            "BC1pj5Ii4HhgDfsm8Z5R32QhYSRkfOatnfveScWehxJK2FuREwHX1c87CvgfBr6eczEwBPhBUAu916D24jurrOoVwBUK1Urf/iUyr7Qwy4DyUIw2vMcTc6Kv" +
+            "XtzXwOJVD98RrSNeDREnpHFCGteQjUvIxiWsMUIaE2cFxySkcQlpLLB+nQXsSNg3mSTsJ6xiY3xUpoVizC32PJRQwt6KUE+/GChcXcMAi+0NMEwGrqmrn/fx" +
+            "vUExq/bi24co9irg80ApqzYHfPY/Z1VEhPNVTa1ViVkEVUFBsaiogApGUaOoVVELBIsqqokbFhUQUVyOlYoYq8FrEBs8qmCsepp4XxXUGMvZq+eecfP4JX/f" +
+            "4/XOfd9HdWCXF4sInlf6U9pb0CMCrnv9/Aiq32TPVbjKJ44DvllXP+/rDTMW77G9hWsuvmOMoj8CPk4R+krv7hiJd4SB4+JI3KqoWlGrJmBVUVSCf6inor6i" +
+            "RkVDoBYNiFgTRCxK8L8jVlSsW4yCsWDVItYgFoyCqmKsbyz7eHHOBH5R7DkpFFSViooK5hx6KBUVFYli8YEHEVpbW3nu2WdpbW1NtuMsYc9Fzyxg11jh08Ue" +
+            "7G6ETwOPAbcWeyCFQM3Ft08CvQ54X7HHsjvi4Ps/6UXEnmOVIdaamLWCVUHVqFpRtYIgjnIBg2BU1AO1iUUc+VpR3Copy1bEihqLGotaS4p0rbq1FcRaRAyi" +
+            "IbHy4ZWf+NDNk/90524n3dkTqCrDhw/npz//OXV1dVg7MAXsjDE0NDTwofe/n4aGhhIB7wXYJQHX1c+biKt3rS72YHcjVAML6urnPbOntTKsvuj2GTjVsxMK" +
+            "sf2ECtaejHeXyb4e3km+io2rwargrN/ADa0GrOBsXlHjFjzAV/AV9RX1RTXsPNbOJg4sYBWLlYB4xQYWsEXFt4gaZxlbVK0i6ovqLBPlaOBvxZ6bgkGEcDiM" +
+            "53kD2sUbDoehRLx7DbpNSpn4+jyDKzmaXeyB7oaYA1w4vv78vCX+VH1/qVf9vaXV1d9f2uPYfT5RfdHthwE3qXJCbyQieyYjCWm5WHskyo05XfHGRzVk4xoi" +
+            "pmGN2RBRDWtUI8SCx6iGU8+JaFTLNEqZtgdLlHKilNFOGe0SvCdlRCVCVCLaLhGNStgtJqyxYImbULCEbdyErBWv0qh84L8XfHrAKoXlBQPV9by7jbGEvKHb" +
+            "C7kqhwGfKuL4FJd3Ai7OmFh2F5xn0L8CT/V1Q9VXLj0Ry6eA/VCWV1+59A+I92DzFQf1iz+t+qLbT8TFCWf0x/72VJz36PmDQsj7fGs835q4b41a9fDVYK2g" +
+            "6qmqs35Rg6jgrGCDATxFQwg+YFVdPNglW6kaxVoraqyq+Ghg/ar6YC0YH1Wrqh6qvnNTu634onrMoOa2qUB9seeohBL2FnRJwBNenxdB+QL5FVVQoB1oArYF" +
+            "y6Zg2R4sTUALEAdiwSO4LFsvGHMZUIvrN1yDKwEaidNoHhQ8VuFEMopJ2KOBC+vqz1vaMOOmaG82UPn9Z42x5nxc+dfI4O3DgTNQ/yfVVy79efOVs5sKeRDV" +
+            "F93+flw7wYn9N3V7piVQq94hqDkobo0ft55aNfjWw7cGqwa1RtUa1BrEkbCKCiZYPMBHNISrl7YSuKBF1SVh+RC4mK0jXNT6Afn6qFhFfNQYq1ijasH4vlEd" +
+            "bay8mxIBl1BCv6FLAhblaPqWZGNxZLoWWA68CbwNrABWg2wHbRJosYi/asaNfm92UvfaeYIxHtgwKlU4Qh4MjMGVTE0G9gmWscFn/enCPRPkKOCRXFes/v4L" +
+            "Eay9GPgu7oYjHUOBK4FZ1Vcu/U7zlbPfyPfAqy68Q8TTjwM/pn/VrWIiRkCL4movJMISOs1iBrva34B8nQWsVj1UjUvGUoOzgN1jQMBqEDwFP8iG9hW1LvaL" +
+            "FatWLCo+VqwkyDZJvm5RVR/FD6xfH8XDs74Bee/S8z5/0+ybfr2z2PNUQgl7A7Je4OrqzwsD55O74MZ2HMn+F3gCeA3kHdCtDTMWtxfiABr2v0lxVnIcaMVZ" +
+            "0wDPJ4/ntXkRhMHAeBwRHwgcAhyAI+pC6jgPAc6fUP+px1fN+H2Py5Kqr3y+Emu/hdPb7kp1zAM+BkyrunLpZTuvnH1fvgZdddFtIUE/B1xFPwqvGJGVg2qq" +
+            "/xSKRM5XGNdf++0PfPLhC0cYzIlx6xEPrF7feljrBVawh7N+PeeKdlawy5tCgmxooy4ZSyXIiMY66zcgYj9BwKrii5o00u1AwJbkc1GMb5SDwnG7H/Bcseeq" +
+            "hBL2BnRhYcghwCk5bGcbrvXc7cDrYtj8zvSB06y+Yf/FUWBDsCwFbq2rn1eOs4j3B44AjsYR8ogCDOFUwRyMuzHZJaqueG6QolfjBC56YgUeDPy+6sqlCwWu" +
+            "b75ydktfBlt98R1lqvr1oNVkVQHmIytCRh6dOLT88oOOfNempY3Rc/e0fJQKvNmqoWkxNb6vjnDj1sP6nlobcmSsAfmqAfXAGrBGjIo1gSXsq7vzsoAvEMYG" +
+            "yRKBVSsWa6yocQRrxRcVHzU+aFxtknTjCQJWxbeetUNVzXGUCLiEEvoFXV3cP0Iq3rgr7AC+rsqNq/YfOKS7KzTMWNyGc4evAO6pq59XA0zDCWmcDLwLyFe3" +
+            "mJG4Od0lAVdduXQYcC3OA5FL/HoE8EOFmVVXLL1y5/dm96r8qfriO6pV9XLgy/Rfs422srC56bh9R/zozguPXvXxe3dO3cO4F4AQofdYDVXHrRf3raeJJUG+" +
+            "vg2ptR6oh1pP1RrFBi5oazCBS9ooeApWCUqQcC5oLDZIvrLiJ0qNQOPO8iWO1ZBENB6QbghLHBVfLT4hfAFOePzTC244+v8tLLmhSyihwOhEwHX188YDZ+Sw" +
+            "jTvFyu8bDrhxtyHfbGiYsXgH7s7/ubr6eb/BWcOnAWfiXNZ9JaMz6urnXdcDicpvAPPoXfJYGJiHMKPqyqWX7rxy9iO5rFx10e3DVPVqYD79JC0pwpra8vDC" +
+            "qz8480/nHzW5FfD2xPyrDz/4paFo6Ni4hojbEH6SdD18Dal1PX6xNqQauKIJYsJYg8HDJBKyENJkKYMqYE3FfY0vVq2qtYHlG1dVX1TjWOOI2C0+lpAocbX4" +
+            "qMR9o3Z/49t9gJeKPWfFgvV9/DyLdXjGYAZw/XEJxUE2C/hYnCXYE/jAP9854MY9SnKxYcbiFpy1+t+6+nm/Bt6Nk1w8gc7JUD3FdNzcLtnF986h700DDgf+" +
+            "XHXl0qtU9caW781p29UKVRfdPhb4X+Bs+ilz3DPy1NjB5VfUf++0x8A1S5BU2dkehQoiM9DQvjEb8n0b0rgNqa8htdZT34bwfQ+rIbU25GLA1hO1XmABe0jS" +
+            "AhaMivgq6qFiEXXWb/A/1hFrQg1LfUe26jtrl+A18cRrtXjiCNizIesPU/UOYy8m4DvuuINblizBM/kp4fet5ey5cznrox8t9qGVMMCQQcATXp8XQjkVZ0n1" +
+            "BDFc/HePRcOMxRuAWya8fv7dono0TmbyNFy5Uy4IA6fW1Z9/a0P3Gd+D8zT0McBPRGRW5ZVLr265cvbarr5Y9cXbJ+NqfE8v1Dx2QLQsZG5+16RhP7zvS8e+" +
+            "Q2BtJ1l/d6r07iE8Gz7WEhrs25Af9xMWcIg09zM2WDRIzCJwR6Meop7rs4DBOKVosUqitQLO2WxRCaxeElrQQfKViaMad6/TCNhKnIh4quJjrScW3wOO/fvn" +
+            "f3zTGb/++h51Y91TvPnmm9x37715U8zyfZ85hx5a7MMqYQAig4BFGQfk0k6vHFfm0ydMfP38iKpGgvGEg+2GUUJIcowWZ3HHgTYgGjyPGaT97V6WMfUUq/a7" +
+            "sQX4V139vP/g4sRfBN5Lbn2RjwIdD3QXn30q2G4+UAZcCOxfeeXSS1uunN1JEKTqi7cfAPwSOL6Q85eAwIaqstCPv3rytBu/ecp+O8ni6t7Tkq+Ou+/rlaKh" +
+            "4+IalnTy9W0IX0NYP0m+Ym2aFRyQL9ZDrBFRg1ijRkWMI1806Y5WSdYAuzpgtWpFJY4aX5SQI2DpaAEHzyWOlZCqxK1RPTjkx8YDK4s9d8WAMYZQKJQ3AhYR" +
+            "TJ6s6RL2LHR0QR8M1OW4jY/W1Z/3l4YZN23s7ksTXjs/hDBY0FGkanTHAaNUdSSu1KUGp6NcDngIBueOFcgIe8VwYh07ge0W3VxXP28TLst5NbAKWA9sBJry" +
+            "WQIVJG/dX1c/7wngLOByYEoPV68DDqIbAlblh6TqlvOF44EllVcuvRLsn1quPDQGUPnF245Q9BfAnP6Iu3pGlo6oKbvizatPf0hEVJ3qbcc9q+9a/OwxoeCh" +
+            "WjFFbXhW3IZtKv4bxvdDaZavh7VhtdZDbQjVMJq0gg1iPUSNYEWCemBn+aoEcWD3P+KyoJ0lbAVHwKC+OCs4IGBxpOtKlmJYm3get571x1jMIeylBFxCCf2F" +
+            "jgR8FLnXxB4LcnVd/bzvNcxYnHRzTnjt/DIRHQ/MBGaB7g/sB4zCkW05hXE2WpyFvA3YDLxTVz/vVeBVoB7kbVW2rNq/b0ljDTMWNwOL6+rnrceVYPWkfKks" +
+            "mOMuRe9bvjf7kcorln4OZ5VOz+O8TET5JZgDK694biEbV8zEuZ33y+M+ukI87JnbDxg76OrHF5z4Bs7q3Wsk5z3Ch1kbHmlt2Po2pL4N4x5DWBvGaoKAQ6J+" +
+            "CKthVRtS1RBqjYj1VIJkLNQYR8eoutpg14AwYfmiEjwGdcChQAkrLjZhBRNKWr2OiD33aH3CxAlLvEzhGOCOYs9dCSXsyUgScF39vGqcBZwrDC5rdnZd/bx/" +
+            "AGuA0aCH4sh3LIUVusg2nspgGQvMwil6+cB20JUivFRXP+8Z4GngjYBMewWFfwrcBVzQw1UOqaufV93dPlu+N/vByiuWzsMR5Jw8zk0l8GVUjyFSOZpY64Q8" +
+            "bjsrBLZURLyffurIyb/5348e1EQ/ZVcPFNTcNc+IjRzrayTs23DMJVyF1DoSdtav756rWwLi9UQ1hKqnqCfOGeRyoFEjquCpEdfDQsX5DBI50U6iUo0vWB8n" +
+            "PRlCiYvaEGriKZd0YA2nLOIQqnE16Jxbv3jDsI/+8rN7ZIvCEkoYCEi3gMcB+/ZyOwIcGiwDFR5OvnEojtTm4VzUr9bVz3sMeAB4sWHG4u25bHTVjMU2cEd/" +
+            "mp5lL0/FzfWy7r7U8r3ZT1VesfQ88h+fFcS8i5oR0LIN2ncULOhqRF4ZWhX53mMLTrx3wpBKq4rZa8zeAIeZfUapDc/xNWLjNqTWT7mgrQ2ri/+GExnQ6mqA" +
+            "HTGjRlwsOITYlCylugYNqApGEc8Zw6BWXPdbR8HgBeSb0IMOoRIXbAgkLmq9pFVsk3FgH6tx66k/2SLTcYp2JZRQQgGQTsBTKYwK1ECF4AQyRuLKjC4BXqir" +
+            "n3c3cK+oLntn/5t6mtgV7+H3wM3xPuyCgAFavjf71cornzsflevIrTZ71zAhqBoGXgRat4LNaw6bDXvm7n1HVX/vv986+TUSLue9jHwBwpQfoBqpi/lh6zKe" +
+            "w054I0G8NqwavGc1BEEJUvBc1RpJZEK7pCyjqiICogiKBkocCKKoWlFBkfSUCd/1BFYftZ44bWjPuaLFWcVW4qgNLGENEbLxWoR3USLgEkooGNIttv1wLsq9" +
+            "FYNwluaPgftU5Fd19fOOm/Da+T1xn8+m57W7VeQQd225cs5KlM8CSxItc/O2iKAVtWjNSDRUlq9+vtvLw941Hzpk3IUB+Zpch+UHCVgF6TXczxAbOdL6kWrf" +
+            "hjVuwy75ykbU2giJxbdhrIaxNiy+RsRqJGEFB8/DohoSq2GxGhbVMEoEJYTVkPEJG1/C4hOWOBGJEzZxiZi4iUhM0hYTkWhyKZN2U0bUlBH1yiTqldHuldHu" +
+            "lRP1yoh6ZSZuIkf86ku39mf4qIQS9iqkW8DT6bsARF8RpHLi4zKd0y+boWARUpnRhcIE4LPAR0X0vrr6eYtUeGzVfos71UXWvTbvcOBDOWzbkGNyVcv3Z6+t" +
+            "uOL5i0C3UQiVqnAF1IyCli3QtpPe5h8bkeW1FaHv3XHhMX87YsrQeG9dzrZAZNnfJHzIX6+uFFt2pG8jTmbSD6vaML46l7NqWK1TwUq6ndV6oCFUneWbaMwg" +
+            "agAjqMFiRFRUFMCKL+JiwAIqiSNVUF9clbCnuIYLqPHA+kHc1wfriWocVU9UPNT6jtglrp7amcaFS1b078wVF6qKtTZvpUPWWheiL6GEDkgn4P7q9dqM65q0" +
+            "HlcylGiSsB7YGny+E9c3OD1TOVEfXIlToxqRtozBJVwNw1myFXka6xCcMtUpotxaVz/vBtBXG2bc1F732rwqhGOAq3sxdznPdev3DtlcccXSbwRz9xXyrdPs" +
+            "haB6OHhl0LotV5e0hjz554ShlVe8euWpLwJG91KXczqqtWai2sj+cT9s1YbVahhfQ87l7CdINyzq4r+iToZSEvW/6rKfg9fJijxRNSqJextVDGBB0MRlXgVR" +
+            "TTkffEGC5g74qDHB9vxAqMORsFVPXAzYxxfPhtQfDXoQexkBV1VVMXLkSLxQfrph+vE4VVX91tOkhN0I6WfYqAJs38eR6xvAa8CLuN7Aq3ElQs19rdGdsGye" +
+            "iKUS59odjqu1nY7Tcp6Oi20Pp2+ENRT4HPB+kKV19fM24yyDOfROuapXvXVbvze7ufLKpVeo0gR8i3x3KhIDlYMgFIadWyAe7clazWVh74YT9xv5k9s/f9QG" +
+            "Oqpa7cXwbMVsayMj1UasdbW9jng1HNT+hlFNZj+7uKxLwhJVTwUTvOcsXzAB0xpRRK0KImBVCWZc0jz56qLEVh35JnRsDIiHqO9iwgQ1wtbDJvoEOzJG1S8X" +
+            "tUcAdxZ7LvsTY8aMYfacOXm1gMeMGVPswyphACKdgPPV89UC9cC/capOS4F3gmYHeceq6YsVZzHvxJH9a8B9ABPq59WKs4xn4loOHgnM6MOxjiE/yVC9nuuW" +
+            "K2e3l3332WuNmCbg+33ZVpeIVIIXkHB7101xRHi7pjx89c/mHnLr2YdOaFfF29ut3iQeOEBkS9kx1paFrQ3H1XflRU7pKhwQbsr1jCPgRNazBklXopgg49kI" +
+            "ajTwMSOBJawgBg3c9uKyobGgKqAqIoJr3+As4kQXYUk0ewhI1/NR6ws4i9gG/YON+of+6LJHBn/jhydsK/aU9hcSylX5VK/a691BJWRFOgHnqm2cDXHg1wjX" +
+            "Nuy3eFWxD27VjMVNQBPwOnBbXf28wbgEqGNwLQcPxVm3/Y3eNnQAoP37h8Yrv/vcL1VkG/AjemlRdwsvDDUjIBSBlu2BBZX2sZFHxgwq/+7yq09/BqdHnLcS" +
+            "oz1BBOuQrRcNV1s+27dhVd+JbSQs3cDy1aTlaz1Bgy5ImtR/DuqAxSU4Y1zWnEvTcJnPGAHBBlVIwRedxYsiaiVOwvo1ilhNZEarGleiJIE7Wg14jpAT5Kvq" +
+            "Ww9/KtafCjxb7DktoYQ9DekEnI9sx4eByxv2W7yt2AeWDQ0zFm/DWeVP1dXPux4n0nEKTqgjHy0He4pc9KOzouX7cxT4Y/l3lzYBP6cgMXwDFUNcqdLOreBH" +
+            "AVojnrlxzsQhP3roayesIeVyzhdpqm81qGbdfRH2q/ZTPzLF2ohvbUidazmccjenWcAJtzNOdANVT1BPk65nZwEjwT9VJJFtJSIoBhSxoklqRlD3qyi+CC49" +
+            "SxQ1KmIDS1gCCUuDSmANi0HVoHhi1deQ+oNF7LsoEXAJJeQd6T6WnnZA6g7/CEhuwKNhxuKdDTMWP9UwY/H3cG7lTwF/pX+6O+VjrgFo+/7sv4F+BrWF8zhE" +
+            "qqBmJFJWta2qLLTgRx854NKHvnbCWi2QqtWekDBqbMXh1pbV+EFzBVdyFNag9jdRdpQkYQgUsDQUZEF74kQ3jKh6Am5RFUGNKEYUY1SNUYxR8UTx3HuIqIpR" +
+            "8cSKJ1ZC4uOJj2fiYkxcPBMXT+ImLHEJS8yEJCah4DFMzEQkZsLETISYFwnFTfioKy9/Km/nbAkllOCQnzQ/B8W5e3c7JFoOTqyf9zd1ceLP4FoO5j++Wghs" +
+            "WlFLuDJC1TDnMi4EQhG0ZmTID3lDnttWUQa0FyyqtZuHy/a59edltJUdpTZs1IZ8R7LhoM9vQLA2JEHJkQZuZ0kT2wgUr5z1ixpJ3SsbXMqVBL76ICYc+P8t" +
+            "CWs3cCEI7i9TPLdO0iXtapcQE8SGfbdfsUaxatVDxReLZ0Piz0K8MUBDsee2hBL2JKQTcIy+WTQCzJm88pwbV06+uVsbZkL9eSERU4XqcFwZ0XCcItVwXEek" +
+            "KpybNnHVUTI7IG3ByUhuSlu2gWlrmPH/et1k4Z0Zi1uBh+rqz3sM5CjgIlyP3HyVNaXPdZ8R+dxfjPHMp4CFxFpH0rzRlRKFCqWdINVtcXv5n1/YfMDTq5q/" +
+            "/8JFM5azl2k79wTV7aMm4pfNshp25OsHlm2izjeZ8RwK4r2hdKUrAis3ScKCSFDkK6iYoIuUqKs3wpUmoYioCM6Br4hFVVSxQUY0eJrIy/IDZnaSlaIgQTMH" +
+            "i6oVKy5OHMKqFW+cwT+IEgGXUEJekU7A7fQ9NvkRv63sPuDu9Dcn1J9fKWgdLgFqJnAAqlNw5DsMR3AePRcCSYh1xHF1sVuA9WDfrKufV4/Lwn4DWNPgSDUn" +
+            "NMy4KQo8MrF+3n/VxYe/jMuizhfa+rqBsi/eFhbli8CVJBLo4u2wY4Mj4XC+7xmSCMWtfuyNTW37jl/48ndXfn3mA2FPVLWU6JmAsVVzsGWjrIZtinBDENT5" +
+            "kmyykCDgJPmKS15ONFwwiEu0MoHmZBNiVyN2tbWhNSI0g6qoKRfxR4OMR80EFRlmhZC4AmB1KytW1HG5I21ImshWFAlSuVxOtWJBrKhaFFtpjBxDh7/rEkoo" +
+            "oW9IJ+Dt9D0TehTw67r6eUfiNGTDwMGgRwL74yzcfJhnQkoZqzzY7wzghODzVlxJ0rK6+nnPBmN5SVTX5qDvzDszFu8Ebqmrn/c48DPgw3kYO7i57jXKv3BH" +
+            "uVp/gcICOlrn8Sjs2Oh0nssSZcL5D6r6yiGbW+K/G/nDF3/8yYOG/e66MyfsID9KamqTzebzi/64PzD3fsKYxrLjrA2XYUNxEprOmiw1gqDMiJTghkAHl7Mj" +
+            "Xw+IQfxFNfF7VGKPiMTeILy56fkvHZhxY3n8/70YicZGV4kN16GRI0W8MxRzlEVqAN8Rr8vesoI6dSyVlEvaBj+fDaSmDYp1XZWwGDVHfPmqt4b+9PJ9tvTD" +
+            "NJZQwl6BdALeihOx6CvGApfhrDxD/2UWp6MClxU8EXgvjpAbVOSpoGXiEyhrGvZf3KNrfMOMxavr6uddjYsP56OifltvVyz7wq01qv4VuOYR2RNj/Bg0bwT1" +
+            "obwmj9OaCUVHtsb06huXbjrgsXeaf/D8RTNWkgeXtF8oKcqCzUQK0zZ+aCR+2aFqwxYNKTYprpFwNQeWb6BMZT0BLyjbTWQ9O6tXxX9dJXq9muY7X/zaxPXd" +
+            "7ffRrx4UBaK4v+MX333Nmj/EtfYEJXyRYo634CFiJUNNPJgWcQpbjoQlsIaVoNkDirEeZqqI7EepOUMJJeQN6RZLY563XU5xyDcbKnCqWOcBfwTuR/hpXf28" +
+            "Y+vqz+tpA4rluHrifKBXc1124W0jUP4PJ0XZfVaq9aF5M7Q2UWDqicStnrdsU+vvxy186QQSMkx7QCZzbxDyB81UWzbJ2pC1iX6/iZIjDWngfk5kP4viYa0E" +
+            "2c4Gl9WMb01sifWaPvbCN4b9elfkmw0PXzpu538uq/l72G/9hMH/H4TtFvGsGHxELCIWI35qwRfPLXgSF09i4klcPGJ4xCQ0OG5CRxV7fksoYU9COgG/U+zB" +
+            "9BPCOHf1JcBdIEvq6uedVffavO7d76qG/CUcvZ3rCmUX3jYe9FfABfTU1avWqVm1bC94bY9VjtjSEr9p6NUvzP/ug+vKRQKFxL0MJl5+DDZcpYnyoxTxaqK5" +
+            "QtBy0IlsWCHRZMGJNNOmXvtPY+XrL3rxa+N22bJyV3j4O0O2DJaX/8cQ/wpoo4WQYsRijA2I2BfjFozEMRJPELGEiAVkHBfPxE3omAuuWlWw5IISStjbkH4h" +
+            "X05m84O9AUOAM4HfI9xeVz/v7LrXW2Gt2gAAF31JREFUz8uurywyC0fcfYXFzXWPUXbhrVNBfwuclfPe1ELLVrdoYX9ehbEtMfvjnzzWeO2Rv359nAh5bTI8" +
+            "0DF18V8HYcuP0UDpisQSZD8nlK4UL03VKoN8o9Zr+7/WqjeuevXiaXmTbv3bpYfZRy+t/JOnsa+ArrcinsV1VbLO5eyIGBErhjQyTljFEhdP4xI60A+VTS32" +
+            "PJdQwp6CdAJ+HVfiU2woLpbVguuMlJCTbMbFcvNSwtMBFcB7gBtR+UNd/bwTJtafl3Tx1tXPOwCnuzwiD/vaSQ6u7Mjnbz0IuBGn2NU7qELLNmjekmuXo96g" +
+            "PGb1cy82ti6uu/blIwlaTO4N1nA4PnR/8SMz1IYsTt9ZE+pWQfxXXNw3UY+bSLwyAmKtF10Uq2z40bILD+9Tg5Ku8MhlVbcb9b+NapMKRkWwYsRHxHdWsfgq" +
+            "ydeJJbCI1Tehkb4JH13seS6hhD0F6UlYb+LqaQuXteMQxZHpJlwLwsZg2Rgs23BE24orM4oH63m4uHJZMMZhuNrhccEyOlhq6H3suQLX2/c4RR6qq5/3WrCP" +
+            "k4B983T8G4G3evLFyIW3Hg38QuHgvOy5rclZwVVDweRTg6UzfNXjNzTH/jDkqheu+vYJY5d8/diR7T3sD6zxoH3q7sbZJl55HLasFg35iX6+mUuiYW8q2Uqc" +
+            "yIZRE707Ftr6g9e+cEjOZXO5YEj7+j9uKRs9SfEusyLGiGiy/7KIursDAVRVRDSw2RXBoCEj3onnXbX2xpsuH1uQm4QSStibkH4VXoOrnZ2cx+1HcUT7Nq42" +
+            "dxmut+hKYINAkyA7355xY6/Nsikvny/xkFbgSqhGA/vgdJ0PxbmMx5I7IQ8DPprHeUjHG7i57haRC289BfgFrp1i/tDeHEfkfqpHTMKVhhUMChNbYvZnVz64" +
+            "ZuYdr2758ROf36+RHsTRdzfiBdjn/91XK63lJ6Ah17/XegqeSKLRQaq+l8D6dZ9hjEp8edzb8b3Xvjyl4CU+d145yT/p6u0/i3qVByl8wIJvELWujUOi5Ngp" +
+            "bKlrvqQIHoqKqMIcIpVTgVeLPecllLC7I0nADTMWN9fVz3seV7bTV8SBv+EyjuuBdSp2x6r9fp/3IOSKWTcqzl3dAqwDngdum1h/foWiY4FDgHfjOiBNIw+N" +
+            "EPqI5xtmLG7u7guRC2/9MK7Bwrg873sL8GN2bPwF1SOmAb8EDi/w8VbFrH7p+XWt+0+49uXLV31z1lJwqg9dWcO7o55HODp0ptiyA9SGrKTLSWJSJUcJYQ11" +
+            "LQZdNyNtsabtR698dfzL/TXWB74zaNsJV7f+wPfCB4JMsoI1qmpBgi4OCbVLNYjTvBRRq6pGvDEqegIlAi6hhD6jYzbtEzhFrL7iHuCChhmL72yYsfj1hhmL" +
+            "txeCfLvDOzNubG2YsfithhmLb1OPixA5Bfg4Lp5aLEm9duDJ7r4Q+fytZwLXkX/yfQWYF1Ouif723B3Rq+Y8B8wDHuqH4xar+t6NO2N/Gnr1C2f/+YWtIZE9" +
+            "Ky5s4lXvwYYHO9ENk6HpnCTfpAUsgZsXY03strZI41/6e7yPfKfiOVH7E1ViqohVJ3fpGhaK+AguBiyuRMklaIlFQr54p5z9P1t6Wr5XQgkldIGOBPwifSen" +
+            "OHBrw4zFW4t9cAmsmrZYG/a7sbFhxuI7BTsfOBX4NvAC/Zv53YCb464hfAPnNs8XLHAnysei13/0bv31R5O0F71qzusgn8Z5KwoOVabujNpfffaut7978v97" +
+            "Y+iekiU99YYnhostPxEbwukte2nEmyTiIOtZEBVUxVPsm3Fv50+WXzKrz9KkvYFnY38AvV+VkLoGheI6KSFWMVYJiFjEVyNxROIYGxczJxYqm1nseS+hhN0d" +
+            "HTJxdA3Ik/Qt4SjROKHHGF9/vjFoBIggWoZKBSkhj4RHMu62K22gO4GoItFVM27MaV/vzPi9j3OL10+sn7dYnbzk+bhEp3xIKXaHxxFW7+I7h+Rxf00oP1Pk" +
+            "/2K/Pmtbti9Er5r9TuTy5z6HyzT/BIX3ANfGfP3mY+80z5j4o5eveOcbs14BEg0GALAKu1MOVig6+HCxkRmingUD1iCkx3sl0b1IXOMEEZCYNdHrX/3q2NeK" +
+            "Ne6Hv1PVdNwPo//ri3eYICONYq0oxnVucKKUBMoqAkYDqWrMCJXQ6cAzxZ77QsBai+/7eXPRWGuxdm+r8CyhJ8gg4IYZN8Xr6ufdB5xD73vWhoH31dWfd3fD" +
+            "jJsy7uwn1J8fEXQQTrt5Ak76sg4Xq3WNGVQG4Yg3EowvcV0Omi9oDJdFvVXQ9XX181bjkryWA+8orF21ixhrAu/MWLwW+MXE+nl3KJwLfBaYUqC5jgL3Ney3" +
+            "uFurT5V15CfjejlwOda7PXbDh7vdZ/SqOY3hy5+7BCdjeCH5bVOZDcZX/UDjjtjUwVe98N17zt3378dMqvKtIkZQP7jy7Q4MPPKmGz1va8XpxoYqUeMn5SRJ" +
+            "kq848nXWr8uCFk8l/nAstP1PxR5/VduGx3ZUjPm9wtctiARNliSIWKPu3sEGKVnGfSoWOe3MHzb/6u7LqjcU+xjyjTFjxjBnzhzE5Od+XK1lzJh8KNiWsKch" +
+            "y4VW/wOyDNe1qLf4GEhzXf28P+HKifYBZoHOwmVZj8aJYKRbuH2B4rSnNwmsqKuftxR4CngOoaFhv8XdWskBES+sq593D841fTb5t4aXA4/14HuLcR2O+tIA" +
+            "/T6ES2PXf/TFnq4Qu2rO1vB3l16K6g7ga+SnaUa3UDigJWYXnXLT8p8eXVf9q/vP33dbofeZbwzecdg00bLj0ZDjLwyJFoGJsiPFiEu6Ct5Ht1oT/Vn9VyYV" +
+            "PUxz7/fG22N/GP2NSuhUFTkQ1LckUqKDW4agYzCIU4sGFcz+mNAJQL/HrwuNI486isOPOCJvriAFTJ7IvIQ9C53OioYZN60G/tHH7ZYDXwDuAx4E/gR8F1dj" +
+            "ezCOgMvIn7tTcDW8E4DjcVrJfwT+hfLHuvp5n6qrnzdp6vKPd7u/hhmLXxW37lN5Glc6/t4wY/Euy48U/TkuA7o3giM7gR8jem4u5JtA7P+3d+5RVtXXHf/s" +
+            "c84MA4iASIgC0zbRwPhoiINCrantMo/aNu2SylC1rWNtXFQaH/GBMBojzgCKVUsMMFkhDMY0NmqqpYmxyfKZGBWwKtShPoBc8EEYGERgmLnn/Hb/+J07Lxm5" +
+            "M3PvnHtnfp+1DszjPvY55875nv377d93LzrjEEZvA24FcubEdBSOS0d663PbD6z43WWbPiMiUTFVQQfhyPPFBBNRTzFdzDXa531j8ZVYlD0j4SMHR+wciOK3" +
+            "rHhuQelWUfNtVVo1LsZSRIx02hBMLMBxodYII/7sv1iyP+lVBTnH8zyCIMDP0RYEgRNgxxHp6VPxMLadX38ZRUemO9CUYLPtKmA18ERbVHp3eWP12eVbqnuM" +
+            "5zcVDbuAZ3Mcy2+BR7J5YLiq6oAqtwCLsUursmU7cKWqWZheWdXU10DTddPb1Ph3ATcAe3J8HHrCj1Sr3juQ/sHYRS+fb1SLQoNPWr7pExKVfQUTeNrR0xfb" +
+            "WjBub62eKJ4omTW/ZpvxW1dsnff7+XB06zOBpn8E+pTa+XjbCUnFdgWGzP9iRDAiGMQYvD9Ke2VnJB27w1GsHFGAVfQVbPY6WAiwa4CvAf4T5XvljdV/Ut7Y" +
+            "oxDn2g3scWzFdVaE9bNbFFOHbeuYTe/gp4C/Sa+afX9YP6ffF/awblqUvr2yHpgHvJvjY9EjqnzuQFrXbHr7nX9W1ULppNUjJdHYL4opPRX8qLPBRrf53swm" +
+            "tstR9N3N1x+/OenYu/P0wuH7RM29iu5VbRdd2zAiI752mVLma41Ejo/Ev+TL39jr0juHow8c8Q9nx9S1aexcZOJzVHlgHLba9xFgZXljdZeq4/LG6jOB83P4" +
+            "fnsRGlIVDb0SxnDVnLSmw/tU9WpV3a2qHGE7rKrfVvSS9KrZL+b6QKVvr/x3Vb6qylZVayk9ANuE1rZwXhhFE3K9P7nk5PsaR3tR2RxRf1hGaGNzDSBjMRmv" +
+            "91VBVHww64136PtJx94TJW0tT4I+rOCROR9kRDiTDYsYRYyqFWmRr0Qjjzk96dgdjmKk5ztXkV8B65IOMI+MBf4BeKy8sfqu8sbqi8obq2/AGnXkshL6v1T7" +
+            "1sQ8XH2RCeur1gJzsRaendkBXKN414Wrqt7L10EKayt/il2mNZBZWy5bP+aFoHXMeZ4pmQ6ekXbBtaIr7SPoNvMVxFP0Q+O1Lf/f6z/R696+A8XTt45KY8y3" +
+            "VPUtBV9BVDXeYjGGWIxFjKJGmRTh/d0FNduKYtrA4SgkehTg1NQ1bcBK+tg8voiYjK36vR+4Ezg1h6/9PrBiR0VDW39eJKyv+jG2FeESbHHZUtBZYX1VfVR/" +
+            "Yd5N8cPaymeBS8lPcVrRcfLyN8f4pqxa1B8pKtqeAbdnwe0FV3FFNJ5K+B+twe6fJB370fj1wpLNqN5n0LRaYw4Uuya4qwi3CzFGvKp9oyZNSzp2h6PY8I7y" +
+            "25ewQ9FDgXysfW1AcmNWENZX/U9YX7UQT6vD+qoFYf2cDQN5cMLaypexIvyLgXzfQqQ0PebPPC2ZYadGbeYrKmKXz3Zkv2JF2FfRt43f+q9vfP3TRdFByNPo" +
+            "flSfUrsCibgqGlWNh5+7CLEalcmReFect3R/vtePOxyDio8V4NSUBgOsAjYmHWgRshFYmZrakFM/iXDlnMTsG8PayjeAy4FHk4ohaSru3XmiF5V9FfXK4iVG" +
+            "ndf4Agj2ZwKIoq0q6eWbbxhbcIVXPfF8TWmzhy4B2aXgWYvKTGU0xFaVYhRRtVPEKt6FaRn5x0nH/rFk0QszcYohRkfOOGr1Yqqi4TfAHVj3KUd2HADuSFU0" +
+            "JNX0IW+EtZUplLlAg9oloeRli29bcl3k1V/89DHVngbTREWlPeMV6TTsLGKvogLiI9G6MPjggaTPW2/5vYNvPgN6n1oHuvZK6M7nR+0HQNTOBR9vVL7++cVt" +
+            "o5OO/Yiokk6niaKIdDpdkFsmtpx8UB1FQVZDRkbkMU91NXB10gEXCatBH006iHwR1lXu8m/ZcA0qH2CXKuVl6LHQrkOnLmv6A8+UXoqKj10a26naqj3rzfzI" +
+            "UzFvGq/1jtevO7Hobl7/rbZCZ9alV6rnn6O2k1jmbIjtVfgRp1BVkfPE8y/FGskUDCJCU1MT11x1FcOHDy+8D1ZHoLS0tNDU1NRzr07HoCLrs1zeWD0R62h1" +
+            "btJBFzjPAJdk43pV7Pg3bxgOsgBr2pEzR6QgKGHCCScSBDnXdd16+Zg+rVmtuPudcSXp0atFg/NibwpsowKxtlFdxdgDDhqv7ZrX5o8ouuy3MzMWhzPV8x8E" +
+            "fodYdLtfNOLvNW73lBI1s59f4Per9mHcmDE5V8lcNljIFyKC7+d+AcCeffucohcgWV+MYkG5CdiWdNAFzDbgpqEgvgBR7fQWVGuxzl37k44nX5TXP+EF4ai5" +
+            "osG5ghhpN9aIK507spV4KBpVL/xeOGJv0fskv7gweEFUFykc1FhrO08VdPpeDKiBcoN88+zF6eOTjr07vu8TxNaQhbrlQ3wdhUuvsoFURcMLwEIGp0FHf2kG" +
+            "FsbHaMgQ1U1vIzL3YJdy9dkCc6DC7cuTRn8w4wLPlM4VPB9biCQdS4/iEuGOIixfJXo88g7e+frXJvVr+VmhIFHbA6K6AjvnL51zyCPkk6oiXzaef+O5dxzu" +
+            "T0MRh2PQ0+vhuCjQHwGLsF2OHJYW4HYvkqLPePpCtPTMKKqt/C62AUc/s//OuVVuUdXdvX3Oacv2zfS07FbBG4OKauxuFZc4x6mvZP4JELPeeG0LN98wrtBv" +
+            "RrLmhZvL2jwTLRGjD2VOTXcR7rZ5isxrNaVXfOH6d93Qp8PRA70W4HdOXmtUZSXWtGJQ3OH3kzZgGbBi+2lrhnTX7ai28iFrXalv92CdmcXWyQIxx1tkzPre" +
+            "7M9py5pP96Nhy8R4n4p9KESUTulupgI6rnhGt0TSev2mG0f9X9LnIte8UFPSjOqNqP4CY7P+j7lVUoURRuS2A+MmXJx07A5HodKngpQdp6xpxS5N+heGtgi3" +
+            "xcdgaaqioShMFvKNqat8HGtd+VrSsXRGVXdFUbQi28eftmxvhR+V3Yv6n1MwnRW3y5pf+7UPZqvx2q7dNH/UoJ2CeKnGT6E6T9FfqkK7ENut+9ywAuNUvLtm" +
+            "LokuTDp2h6MQ6XMXk1RFQwtwO7Zt3lAcjm7BWkPeHh8LR4ypm/4c1jXr10nHAqCqe6Mo+uY727f9dzaPP+3O5nI/GnGXaDCjc9FVV+HNiC8BmLdU0le9Nn9k" +
+            "wfT4zRfra/w3RM0VoM+1r9fu4kvZRZTVKJ80eHeftST6QtKxOxyFRr/aiMXCswTbNm9v0jszgDRji9EWO/E9MqZu+itANfDzpGJQ1RZjzM+iMLy46d1d3+GO" +
+            "GUedXD7lnl3HeKasRtQ/N/aeoJs9kXSIsAYq0SYjbVe+etOIIWPRub4maBT0coQnMl0XVbqZqHR4WKLKZFVvyYy66KSkY3c4Col+9/FMVTS0RVryLawhw9b+" +
+            "vl4RsB2Y5xtveaqfTRYGO6Zuesa68pGBfF9VPWiMWRdF4UUthw/N3jF3/BMtt52a1fx80HbMRR7BBR1+E+2CC12WvCKKedpI2z++dtPIZwdy/wqB9Qv9N8Fc" +
+            "DvqAQqTtRwW6iHLGsUOYbkSuTTpuh6OQyGmFYnlj9Qzs3PBgNet4BliQqmgoiKHVYsGr2TgedKnajPioN33WiGMiJSVBL02LdL8x+nNjotWtrYef2X315EO9" +
+            "jXXa0taXUP8U2qcyhVhaYsQDbVUxDxo5XLtp/rFDYs13T5y1ODzW4F2ryLUIH7Gh7HqB0aYNC7zx2bxuPow4hjLOiKMw6XcG3JlURcOLoBcD9wIfJr1zOeQA" +
+            "1l7vEie+vcfUVe42qtdiPxfpbJ+XrfiqarMx0Q/T6XDWwQMf/u3OueMf74v42hfzPkMn20UrvvEwtEoAulMlXBAFB68b6uIL8NLCYL+vYa2IXgZs6v77bu0L" +
+            "xyQdr8NRSOTlrmhy46UlgvwVMB+YnvRO9pOXgaWIPpaautYNOfcDufnl4aiZD9wIDO/pcZkM+GhWlKrapGrWRVG0puXggRf3Xv+pfp+fzy5tfUbUr+zi86wA" +
+            "+iFinlQvvOfV+SNy0mJysDF9cXSyIteBzAJspttxhYkEfXTDAi+rimiXAecWlwEXJnk9KeVbqsvjzjnVwAlJ72wveR9YC6yMO0I5coB384YSVb4GfAM+OmQJ" +
+            "RxdgVX1fjXksMtGaQ/v3b2yef1KYq/hOX3rgDE9Lrwb5Q4Ey0D3ARhXzqPEPPbnphuOKrrHCQHLWotZSE5ScDcxS5EzQCSB7gJ96Yr6zfoGf1aiBE+Dc4gS4" +
+            "MMn7SZm46TLxAz0LmAv8JXBc0jt9FJqBdcBKPH0pNWXtkDbXyAs16z1BLsXWC3xkTrCkpJQJJ0z8iC+uqu40xvzYRNHapj3vvtp6y7TEeiM78osT4NziBLgw" +
+            "GbCTMrmxukTgbKxJw58CE5Le+W78FvgZsEY9fX7HFDfcnG+kZsNfY+eFJ2V+pgrHjh7N2HHj2z+cqrrdGPNQFIXff3fLa5tZ/kV3cR7kOAHOLU6AC5MBPynl" +
+            "Wy4LUJ0GzAL+HJgKlCa0/2ngDeAnwMMKr+yoaMi6SMiRA2o2fkngLhE5XUQYPmIEY8aOww8Co6pvGmN+GEXhg+9dOWHQ2Ts6HI6hTaJ3ReWN1ScCnwe+BJyD" +
+            "7Tk6LM9v2wqksC5Nj6P8MnVKw84kj8NQp6z29VNLS0r/aVhZ2Tmlw8pG+76/yxjzRBSFP3jvyglvJB2fw+Fw5IOCGJYob/x7H7xJwGeBmcA0YAp2fnAkfV8u" +
+            "ZYCD2DZ5b2Ermn+F9Sl+J1XRkLPiHYfD4XA4ekNBCHB3yhurR2LnBT+NHaKegs2OPwmMBY4FyoBMv9E0cBjbFL4ZW8G8HTu8vAV4Gyu4roLV4XA4HA6Hw+Fw" +
+            "OBwOh8PhcDgGjP8HF7tXXL56rpkAAAAASUVORK5CYII=";
+
+        private static Image _sheet;
+        private static bool _loadTried;
+
+        public static bool Draw(Graphics graphics, BrandIcon icon, Rectangle bounds, bool enabled)
+        {
+            if (icon == BrandIcon.None || bounds.Width <= 0 || bounds.Height <= 0) { return false; }
+            Image sheet = GetSheet();
+            if (sheet == null) { return false; }
+
+            int index = (int)icon;
+            int sx = (index % Columns) * Cell;
+            int sy = (index / Columns) * Cell;
+
+            InterpolationMode oldInterpolation = graphics.InterpolationMode;
+            PixelOffsetMode oldPixelOffset = graphics.PixelOffsetMode;
+            CompositingQuality oldCompositing = graphics.CompositingQuality;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.CompositingQuality = CompositingQuality.HighQuality;
+
+            if (enabled)
+            {
+                graphics.DrawImage(sheet, bounds, sx, sy, Cell, Cell, GraphicsUnit.Pixel);
+            }
+            else
+            {
+                // Disabled cards keep the mark recognisable but muted.
+                ColorMatrix matrix = new ColorMatrix(new float[][]
+                {
+                    new float[] { 0.299f, 0.299f, 0.299f, 0f, 0f },
+                    new float[] { 0.587f, 0.587f, 0.587f, 0f, 0f },
+                    new float[] { 0.114f, 0.114f, 0.114f, 0f, 0f },
+                    new float[] { 0f, 0f, 0f, 0.55f, 0f },
+                    new float[] { 0f, 0f, 0f, 0f, 1f }
+                });
+                using (ImageAttributes attributes = new ImageAttributes())
+                {
+                    attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+                    graphics.DrawImage(sheet, bounds, sx, sy, Cell, Cell, GraphicsUnit.Pixel, attributes);
+                }
+            }
+
+            graphics.InterpolationMode = oldInterpolation;
+            graphics.PixelOffsetMode = oldPixelOffset;
+            graphics.CompositingQuality = oldCompositing;
+            return true;
+        }
+
+        private static Image GetSheet()
+        {
+            if (_loadTried) { return _sheet; }
+            _loadTried = true;
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(SheetBase64);
+                using (MemoryStream stream = new MemoryStream(bytes))
+                using (Image loaded = Image.FromStream(stream))
+                {
+                    _sheet = new Bitmap(loaded);
+                }
+            }
+            catch
+            {
+                _sheet = null;
+            }
+            return _sheet;
+        }
+    }
+
     /// <summary>Primary call-to-action card: icon tile, title, one-line summary, chevron.</summary>
     internal sealed class ActionCard : Control, IAnimatable
     {
@@ -1165,6 +1740,7 @@ namespace SailuoTools
         public string CardTitle = string.Empty;
         public string CardDescription = string.Empty;
         public string Glyph = "\uE753";
+        public BrandIcon Brand = BrandIcon.None;
         public Color Accent = Theme.Blue;
         public event EventHandler Activated;
 
@@ -1193,7 +1769,7 @@ namespace SailuoTools
         protected override void OnMouseLeave(EventArgs e) { _pressed = false; AnimateTo(0f); base.OnMouseLeave(e); }
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left) { _pressed = true; Invalidate(); }
+            if (e.Button == MouseButtons.Left) { Focus(); _pressed = true; Invalidate(); }
             base.OnMouseDown(e);
         }
 
@@ -1250,29 +1826,56 @@ namespace SailuoTools
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
             int radius = Ui.S(Ui.RadiusMd);
             int pad = Ui.S(Ui.Space4);
-            int tileSize = Ui.S(42);
+            int tileSize = Ui.S(40);
 
             bool enabled = Enabled;
             Color accent = enabled ? Accent : Theme.TextMuted;
-            Color background = enabled ? Gfx.Mix(Theme.Surface, Theme.SurfaceHi, _hover * 0.5f) : Theme.SurfaceLo;
-            if (_pressed) { background = Gfx.Mix(background, Color.Black, 0.08f); }
-            Color border = enabled ? ( _hover > 0.01f ? Theme.BorderStrong : Theme.Border ) : Theme.Border;
+            Color background = enabled
+                ? Gfx.Mix(Theme.Surface, Theme.SurfaceLo, _hover)
+                : Theme.SurfaceLo;
+            if (_pressed) { background = Gfx.Mix(background, Color.Black, 0.03f); }
+            Color border = enabled
+                ? Gfx.Mix(Theme.Border, Theme.BorderStrong, _hover)
+                : Theme.Border;
 
             Gfx.FillRound(graphics, rect, radius, background);
             Gfx.StrokeRound(graphics, rect, radius, border, 1f);
 
             Rectangle tile = new Rectangle(pad, (Height - tileSize) / 2, tileSize, tileSize);
-            Gfx.FillRound(graphics, tile, 0, Theme.SurfaceLo);
-            Gfx.DrawGlyph(graphics, Glyph, UiFonts.GlyphLg, tile, accent, Gfx.Center);
+            bool brandDrawn = false;
+            if (Brand != BrandIcon.None)
+            {
+                // A neutral plate lets the full-colour mark stay legible; the
+                // faint accent wash keeps the tile tied to the rest of the UI.
+                Color plate = enabled
+                    ? Gfx.Mix(Theme.Surface, accent, 0.04f)
+                    : Theme.SurfaceLo;
+                Color plateBorder = enabled
+                    ? Gfx.Mix(Theme.Border, Theme.BorderStrong, _hover)
+                    : Theme.Border;
+                Gfx.FillRound(graphics, tile, Ui.S(10), plate);
+                Gfx.StrokeRound(graphics, tile, Ui.S(10), plateBorder, 1f);
+                int iconSize = Ui.S(30);
+                Rectangle iconRect = new Rectangle(
+                    tile.X + (tile.Width - iconSize) / 2,
+                    tile.Y + (tile.Height - iconSize) / 2,
+                    iconSize, iconSize);
+                brandDrawn = BrandIcons.Draw(graphics, Brand, iconRect, enabled);
+            }
+            if (!brandDrawn)
+            {
+                Gfx.FillRound(graphics, tile, Ui.S(10), Gfx.Mix(Theme.Surface, accent, enabled ? 0.09f : 0.04f));
+                Gfx.DrawGlyph(graphics, Glyph, UiFonts.Glyph, tile, enabled ? accent : Theme.TextMuted, Gfx.Center);
+            }
 
             int textX = pad + tileSize + Ui.S(14);
-            int chevronSpace = Ui.S(40);
+            int chevronSpace = Ui.S(38);
             int textWidth = Math.Max(Ui.S(40), Width - textX - chevronSpace);
             int titleHeight = UiFonts.H2.Height;
             // Two lines maximum; GDI ellipsizes the last visible line cleanly.
             int descHeight = UiFonts.Body.Height * 2;
-            int block = titleHeight + Ui.S(5) + descHeight;
-            int top = Math.Max(Ui.S(12), (Height - block) / 2);
+            int block = titleHeight + Ui.S(4) + descHeight;
+            int top = Math.Max(Ui.S(10), (Height - block) / 2);
 
             Color titleColor = enabled ? Theme.Text : Theme.TextMuted;
             TextRenderer.DrawText(graphics, CardTitle, UiFonts.H2,
@@ -1281,18 +1884,19 @@ namespace SailuoTools
                 TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
 
             TextRenderer.DrawText(graphics, CardDescription, UiFonts.Body,
-                new Rectangle(textX, top + titleHeight + Ui.S(5), textWidth, descHeight),
-                enabled ? Theme.TextSoft : Theme.TextMuted,
+                new Rectangle(textX, top + titleHeight + Ui.S(4), textWidth, descHeight),
+                enabled ? Theme.TextMuted : Theme.TextMuted,
                 TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak |
                 TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
 
-            int chevronSize = Ui.S(20);
-            Rectangle chevron = new Rectangle(Width - Ui.S(20) - chevronSize,
+            int chevronSize = Ui.S(18);
+            int chevronShift = (int)Math.Round(_hover * Ui.S(2));
+            Rectangle chevron = new Rectangle(Width - Ui.S(18) - chevronSize + chevronShift,
                 (Height - chevronSize) / 2, chevronSize, chevronSize);
-            Gfx.DrawGlyph(graphics, "\uE76C", UiFonts.Glyph, chevron,
-                Theme.TextMuted, Gfx.Center);
+            Gfx.DrawGlyph(graphics, "\uE76C", UiFonts.GlyphSm, chevron,
+                _hover > 0.01f ? Theme.TextSoft : Theme.TextMuted, Gfx.Center);
 
-            if (Focused && enabled) { Gfx.FocusRing(graphics, rect, radius, Theme.Blue); }
+            if (Focused && enabled) { Gfx.FocusRing(graphics, rect, radius, Theme.Focus); }
         }
     }
 
@@ -1317,9 +1921,9 @@ namespace SailuoTools
             AccessibleName = title;
             AccessibleDescription = message;
 
-            int width = Ui.S(500);
+            int width = Ui.S(470);
             int pad = Ui.S(Ui.Space5);
-            int titleHeight = UiFonts.H1.Height + Ui.S(2);
+            int titleHeight = UiFonts.Section.Height + Ui.S(4);
             int messageWidth = width - pad * 2;
             int messageHeight = Gfx.TextHeight(message, UiFonts.Body, messageWidth,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak);
@@ -1329,7 +1933,7 @@ namespace SailuoTools
 
             Label titleLabel = new Label();
             titleLabel.Text = title;
-            titleLabel.Font = UiFonts.H1;
+            titleLabel.Font = UiFonts.Section;
             titleLabel.ForeColor = Theme.Text;
             titleLabel.AutoSize = false;
             titleLabel.BackColor = Theme.Surface;
@@ -1339,7 +1943,7 @@ namespace SailuoTools
             Label messageLabel = new Label();
             messageLabel.Text = message;
             messageLabel.Font = UiFonts.Body;
-            messageLabel.ForeColor = Theme.TextSoft;
+            messageLabel.ForeColor = Theme.TextMuted;
             messageLabel.AutoSize = false;
             messageLabel.BackColor = Theme.Surface;
             messageLabel.SetBounds(pad, pad + titleHeight + Ui.S(Ui.Space2), messageWidth, messageHeight);
@@ -1353,7 +1957,7 @@ namespace SailuoTools
 
             _accept = new PillButton();
             _accept.Text = acceptText;
-            _accept.Variant = ButtonVariant.Primary;
+            _accept.Variant = accent == Theme.Red ? ButtonVariant.Destructive : ButtonVariant.Primary;
             _accept.Accent = accent;
             _accept.Font = UiFonts.Button;
             _accept.AccessibleName = acceptText;
@@ -1363,7 +1967,7 @@ namespace SailuoTools
 
             int buttonY = height - pad - buttonHeight;
             _accept.SetBounds(width - pad - _accept.Width, buttonY, _accept.Width, buttonHeight);
-            _cancel.SetBounds(_accept.Left - Ui.S(Ui.Space2) - _cancel.Width, buttonY, _cancel.Width, buttonHeight);
+            _cancel.SetBounds(_accept.Left - Ui.S(Ui.Space3) - _cancel.Width, buttonY, _cancel.Width, buttonHeight);
 
             Controls.Add(titleLabel);
             Controls.Add(messageLabel);
@@ -1375,14 +1979,22 @@ namespace SailuoTools
             Shown += delegate { _accept.Focus(); };
         }
 
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                const int CS_DROPSHADOW = 0x20000;
+                CreateParams parameters = base.CreateParams;
+                parameters.ClassStyle |= CS_DROPSHADOW;
+                return parameters;
+            }
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Gfx.StrokeRound(e.Graphics, new Rectangle(0, 0, Width - 1, Height - 1), Ui.S(Ui.RadiusMd), Theme.BorderStrong, 1f);
-            using (SolidBrush accent = new SolidBrush(Theme.Blue))
-            {
-                e.Graphics.FillRectangle(accent, 0, 0, Width, Ui.S(2));
-            }
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -1409,9 +2021,9 @@ namespace SailuoTools
     /// </summary>
     internal sealed class PageView : Panel
     {
-        public int ContentMaxWidth = 1440;
-        public int SectionGap = 12;
-        public int PagePadding = Ui.Space5;
+        public int ContentMaxWidth = 1240;
+        public int SectionGap = 20;
+        public int PagePadding = Ui.Space6;
 
         public PageView()
         {
@@ -1441,13 +2053,13 @@ namespace SailuoTools
         private void ArrangeSections()
         {
             int scrollbar = SystemInformation.VerticalScrollBarWidth;
-            int padding = Ui.S(PagePadding);
+            int padding = Ui.S(PageMetrics.PaddingFor(ClientSize.Width, PagePadding));
             int available = ClientSize.Width - padding * 2 - scrollbar;
             if (available < Ui.S(220)) { available = Math.Max(Ui.S(180), ClientSize.Width - padding * 2); }
             int contentWidth = Math.Min(available, Ui.S(ContentMaxWidth));
             int left = padding + Math.Max(0, (available - contentWidth) / 2);
             int gap = Ui.S(SectionGap);
-            int y = Ui.S(Ui.Space3);
+            int y = Ui.S(Ui.Space2);
 
             foreach (Control control in Controls)
             {
@@ -1479,7 +2091,7 @@ namespace SailuoTools
             AccessibleRole = AccessibleRole.StaticText;
         }
 
-        public int MeasureHeight(int width) { return Ui.S(24); }
+        public int MeasureHeight(int width) { return Ui.S(30); }
 
         public void SetTitle(string title, string meta)
         {
@@ -1492,21 +2104,16 @@ namespace SailuoTools
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics graphics = e.Graphics;
-            graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            int barHeight = Ui.S(13);
-            Gfx.FillRound(graphics, new Rectangle(0, (Height - barHeight) / 2, Ui.S(3), barHeight), Ui.S(2), Accent);
-
-            int left = Ui.S(12);
             int metaWidth = 0;
             if (!string.IsNullOrEmpty(Meta))
             {
                 metaWidth = TextRenderer.MeasureText(Meta, UiFonts.Small).Width;
                 Gfx.Ellipsis(graphics, Meta, UiFonts.Small,
-                    new Rectangle(Width - metaWidth - Ui.S(2), 0, metaWidth + Ui.S(2), Height), Theme.TextMuted);
+                    new Rectangle(Width - metaWidth, 0, metaWidth, Height), Theme.TextMuted);
             }
-            int titleWidth = Math.Max(0, Width - left - metaWidth - Ui.S(16));
+            int titleWidth = Math.Max(0, Width - metaWidth - Ui.S(Ui.Space4));
             TextRenderer.DrawText(graphics, Title, UiFonts.Section,
-                new Rectangle(left, 0, titleWidth, Height), Theme.Text,
+                new Rectangle(0, 0, titleWidth, Height), Theme.Text,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix |
                 TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
         }
@@ -1519,8 +2126,8 @@ namespace SailuoTools
     internal sealed class CardGrid : Control, ISection
     {
         private readonly List<ActionCard> _cards = new List<ActionCard>();
-        public int MinCardWidth = 300;
-        public int MaxCardWidth = 460;
+        public int MinCardWidth = 340;
+        public int MaxCardWidth = 540;
 
         public CardGrid()
         {
@@ -1538,11 +2145,14 @@ namespace SailuoTools
 
         public int ColumnsFor(int width)
         {
-            int gap = Ui.S(Ui.Space4);
+            int gap = Ui.S(Ui.Space3);
             int min = Ui.S(MinCardWidth);
             int columns = (width + gap) / (min + gap);
             if (columns < 1) { columns = 1; }
             if (columns > 4) { columns = 4; }
+            // Short lists read better as a balanced two-column block; wider
+            // grids are reserved for longer catalogues like Applications.
+            if (_cards.Count <= 6 && columns > 2) { columns = 2; }
             // Avoid a lonely single card on the last row: if the grid would
             // leave exactly one card behind, prefer a narrower layout that
             // balances the rows evenly (e.g. 4 cards -> 2x2 instead of 3+1).
@@ -1561,7 +2171,7 @@ namespace SailuoTools
             if (_cards.Count == 0) { return 0; }
             int columns = ColumnsFor(width);
             int rows = (int)Math.Ceiling((double)_cards.Count / columns);
-            int gap = Ui.S(Ui.Space4);
+            int gap = Ui.S(Ui.Space3);
             return rows * Ui.S(Ui.CardHeight) + (rows - 1) * gap;
         }
 
@@ -1575,7 +2185,7 @@ namespace SailuoTools
         {
             if (_cards.Count == 0) { return; }
             int width = ClientSize.Width;
-            int gap = Ui.S(Ui.Space4);
+            int gap = Ui.S(Ui.Space3);
             int columns = ColumnsFor(width);
             int rows = (int)Math.Ceiling((double)_cards.Count / columns);
             int cardWidth = (width - (columns - 1) * gap) / columns;
@@ -1585,11 +2195,22 @@ namespace SailuoTools
             int left = Math.Max(0, (width - totalWidth) / 2);
             int cardHeight = Ui.S(Ui.CardHeight);
 
+            // A lone card on the final row stretches across the grid instead of
+            // leaving an awkward empty slot beside it.
+            bool loneLast = columns > 1 && _cards.Count % columns == 1;
+
             for (int index = 0; index < _cards.Count; index++)
             {
                 int row = index / columns;
                 int column = index % columns;
-                _cards[index].SetBounds(left + column * (cardWidth + gap), row * (cardHeight + gap), cardWidth, cardHeight);
+                int x = left + column * (cardWidth + gap);
+                int w = cardWidth;
+                if (loneLast && index == _cards.Count - 1)
+                {
+                    x = left;
+                    w = totalWidth;
+                }
+                _cards[index].SetBounds(x, row * (cardHeight + gap), w, cardHeight);
             }
             int height = rows * cardHeight + (rows - 1) * gap;
             if (Height < height) { Height = height; }
@@ -1631,19 +2252,23 @@ namespace SailuoTools
             _scope = MakeLabel(string.Empty, UiFonts.Small, Theme.TextMuted);
 
             _dot = new Dot();
-            _dot.Size = new Size(Ui.S(8), Ui.S(8));
-            _dot.BackColor = Theme.Surface;
+            _dot.Size = new Size(Ui.S(7), Ui.S(7));
+            _dot.BackColor = Theme.BlueSoft;
 
             PrimaryButton = new PillButton();
-            PrimaryButton.Text = "Open permanent folder";
+            PrimaryButton.Text = "Open workspace";
             PrimaryButton.Variant = ButtonVariant.Primary;
-            PrimaryButton.Accent = Theme.Green;
+            PrimaryButton.Accent = Theme.Blue;
+            PrimaryButton.Glyph = "\uE8B7";
+            PrimaryButton.BackColor = Theme.BlueSoft;
             PrimaryButton.AccessibleName = "Open the permanent folder";
             PrimaryButton.AccessibleDescription = "Opens C:\\Persist in File Explorer.";
 
             SecondaryButton = new PillButton();
-            SecondaryButton.Text = "Open Downloads";
+            SecondaryButton.Text = "Downloads";
             SecondaryButton.Variant = ButtonVariant.Secondary;
+            SecondaryButton.Glyph = "\uE838";
+            SecondaryButton.BackColor = Theme.BlueSoft;
             SecondaryButton.AccessibleName = "Open Downloads";
             SecondaryButton.AccessibleDescription = "Opens the Downloads folder in File Explorer.";
 
@@ -1662,7 +2287,7 @@ namespace SailuoTools
             label.Text = text;
             label.Font = font;
             label.ForeColor = color;
-            label.BackColor = Theme.Surface;
+            label.BackColor = Theme.BlueSoft;
             label.AutoSize = false;
             label.AutoEllipsis = true;
             label.UseMnemonic = false;
@@ -1685,7 +2310,7 @@ namespace SailuoTools
 
         public int MeasureHeight(int width)
         {
-            return Wide(width) ? Ui.S(118) : Ui.S(176);
+            return Wide(width) ? Ui.S(120) : Ui.S(208);
         }
 
         protected override void OnLayout(LayoutEventArgs e)
@@ -1701,14 +2326,14 @@ namespace SailuoTools
             bool wide = Wide(width);
 
             int textWidth = wide
-                ? Math.Max(Ui.S(160), width - pad * 2 - buttonsWidth - Ui.S(Ui.Space5))
+                ? Math.Max(Ui.S(180), width - pad * 2 - buttonsWidth - Ui.S(Ui.Space5))
                 : Math.Max(Ui.S(120), width - pad * 2);
 
-            _caption.SetBounds(pad, Ui.S(16), textWidth, Ui.S(13));
-            _state.SetBounds(pad + Ui.S(14), Ui.S(32), Math.Max(Ui.S(60), textWidth - Ui.S(14)), Ui.S(30));
-            _dot.SetBounds(pad, Ui.S(32) + (Ui.S(30) - _dot.Height) / 2, _dot.Width, _dot.Height);
-            _meta.SetBounds(pad, Ui.S(64), textWidth, Ui.S(17));
-            _scope.SetBounds(pad, Ui.S(86), textWidth, Ui.S(16));
+            _caption.SetBounds(pad + Ui.S(13), Ui.S(18), Math.Max(Ui.S(60), textWidth - Ui.S(13)), Ui.S(14));
+            _dot.SetBounds(pad, Ui.S(18) + (Ui.S(14) - _dot.Height) / 2, _dot.Width, _dot.Height);
+            _state.SetBounds(pad, Ui.S(36), textWidth, Ui.S(38));
+            _meta.SetBounds(pad, Ui.S(76), textWidth, Ui.S(18));
+            _scope.SetBounds(pad, Ui.S(96), textWidth, Ui.S(16));
 
             if (wide)
             {
@@ -1729,14 +2354,9 @@ namespace SailuoTools
             Graphics graphics = e.Graphics;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            Gfx.FillRound(graphics, rect, Ui.S(Ui.RadiusLg), Theme.Surface);
-            Gfx.StrokeRound(graphics, rect, Ui.S(Ui.RadiusLg), Theme.BorderStrong, 1f);
-            // 1px inner highlight keeps the panel from looking flat on dark screens.
-            using (Pen highlight = new Pen(Gfx.Alpha(Color.White, 10), 1f))
-            using (GraphicsPath path = Gfx.Round(new Rectangle(1, 1, Width - 3, Height - 3), Ui.S(Ui.RadiusLg - 1)))
-            {
-                graphics.DrawPath(highlight, path);
-            }
+            Color border = Color.FromArgb(216, 228, 247);
+            Gfx.FillRound(graphics, rect, Ui.S(Ui.RadiusLg), Theme.BlueSoft);
+            Gfx.StrokeRound(graphics, rect, Ui.S(Ui.RadiusLg), border, 1f);
         }
     }
 
@@ -1787,8 +2407,8 @@ namespace SailuoTools
 
         private int Columns(int width)
         {
-            if (width >= Ui.S(760)) { return 3; }
-            if (width >= Ui.S(440)) { return 2; }
+            if (width >= Ui.S(700)) { return 3; }
+            if (width >= Ui.S(460)) { return 2; }
             return 1;
         }
 
@@ -1796,8 +2416,10 @@ namespace SailuoTools
         {
             int columns = Columns(width);
             int rows = (TileCount + columns - 1) / columns;
-            int gap = Ui.S(Ui.Space4);
-            return rows * Ui.S(88) + (rows - 1) * gap;
+            int pad = Ui.S(Ui.Space4);
+            int rowHeight = Ui.S(72);
+            int rowGap = Ui.S(Ui.Space4);
+            return pad * 2 + rows * rowHeight + (rows - 1) * rowGap;
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -1805,46 +2427,74 @@ namespace SailuoTools
             Graphics graphics = e.Graphics;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             int width = ClientSize.Width;
+            int height = ClientSize.Height;
             int columns = Columns(width);
-            int gap = Ui.S(Ui.Space4);
-            int tileHeight = Ui.S(88);
-            int tileWidth = (width - (columns - 1) * gap) / columns;
+            int rows = (TileCount + columns - 1) / columns;
+            int pad = Ui.S(Ui.Space4);
+            int gap = Ui.S(Ui.Space5);
+            int rowHeight = Ui.S(72);
+            int rowGap = Ui.S(Ui.Space4);
+            int tileWidth = (width - pad * 2 - (columns - 1) * gap) / columns;
+
+            Rectangle card = new Rectangle(0, 0, width - 1, height - 1);
+            Gfx.FillRound(graphics, card, Ui.S(Ui.RadiusMd), Theme.Surface);
+            Gfx.StrokeRound(graphics, card, Ui.S(Ui.RadiusMd), Theme.Border, 1f);
+
+            for (int column = 1; column < columns; column++)
+            {
+                int x = pad + column * (tileWidth + gap) - gap / 2;
+                using (Pen divider = new Pen(Theme.ChromeLine, 1f))
+                {
+                    graphics.DrawLine(divider, x, pad, x, height - pad);
+                }
+            }
+            for (int row = 1; row < rows; row++)
+            {
+                int y = pad + row * (rowHeight + rowGap) - rowGap / 2;
+                using (Pen divider = new Pen(Theme.ChromeLine, 1f))
+                {
+                    graphics.DrawLine(divider, pad, y, width - pad, y);
+                }
+            }
 
             for (int index = 0; index < TileCount; index++)
             {
                 int row = index / columns;
                 int column = index % columns;
-                Rectangle tile = new Rectangle(column * (tileWidth + gap), row * (tileHeight + gap), tileWidth, tileHeight);
-                if (tile.Width <= 0) { continue; }
+                int x = pad + column * (tileWidth + gap);
+                int y = pad + row * (rowHeight + rowGap);
+                if (tileWidth <= 0) { continue; }
 
-                Gfx.FillRound(graphics, tile, Ui.S(Ui.RadiusMd), Theme.Surface);
-                Gfx.StrokeRound(graphics, tile, Ui.S(Ui.RadiusMd), Theme.Border, 1f);
+                int markerSize = Ui.S(6);
+                using (SolidBrush marker = new SolidBrush(_accents[index]))
+                {
+                    graphics.FillEllipse(marker, x, y + Ui.S(5), markerSize, markerSize);
+                }
 
-                int pad = Ui.S(Ui.Space4);
                 TextRenderer.DrawText(graphics, _captions[index], UiFonts.Micro,
-                    new Rectangle(tile.X + pad, tile.Y + Ui.S(10), tile.Width - pad * 2, Ui.S(14)),
+                    new Rectangle(x + Ui.S(13), y, tileWidth - Ui.S(13), Ui.S(14)),
                     Theme.TextMuted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPrefix |
                     TextFormatFlags.EndEllipsis);
 
                 TextRenderer.DrawText(graphics, _values[index], UiFonts.Value,
-                    new Rectangle(tile.X + pad, tile.Y + Ui.S(26), tile.Width - pad * 2, Ui.S(26)),
+                    new Rectangle(x, y + Ui.S(19), tileWidth, Ui.S(28)),
                     Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPrefix |
                     TextFormatFlags.EndEllipsis);
 
                 TextRenderer.DrawText(graphics, _metas[index], UiFonts.Small,
-                    new Rectangle(tile.X + pad, tile.Y + Ui.S(53), tile.Width - pad * 2, Ui.S(16)),
-                    Theme.TextSoft, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPrefix |
+                    new Rectangle(x, y + Ui.S(49), tileWidth, Ui.S(16)),
+                    Theme.TextMuted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPrefix |
                     TextFormatFlags.EndEllipsis);
 
                 if (_progress[index] >= 0f)
                 {
-                    int barY = tile.Y + tileHeight - Ui.S(12);
-                    int barWidth = tile.Width - pad * 2;
-                    Gfx.FillRound(graphics, new Rectangle(tile.X + pad, barY, barWidth, Ui.S(4)), Ui.S(2), Theme.SurfaceLo);
+                    int barY = y + rowHeight - Ui.S(4);
+                    int barWidth = tileWidth;
+                    Gfx.FillRound(graphics, new Rectangle(x, barY, barWidth, Ui.S(4)), Ui.S(2), Theme.SurfaceHi);
                     int filled = (int)Math.Round(barWidth * Math.Max(0f, Math.Min(1f, _progress[index])));
                     if (filled > 0)
                     {
-                        Gfx.FillRound(graphics, new Rectangle(tile.X + pad, barY, filled, Ui.S(4)), Ui.S(2), _accents[index]);
+                        Gfx.FillRound(graphics, new Rectangle(x, barY, filled, Ui.S(4)), Ui.S(2), _accents[index]);
                     }
                 }
             }
@@ -1964,28 +2614,28 @@ namespace SailuoTools
 
         public int MeasureHeight(int width)
         {
-            return Wide(width) ? Ui.S(286) : Ui.S(432);
+            return Wide(width) ? Ui.S(312) : Ui.S(468);
         }
 
         protected override void OnLayout(LayoutEventArgs e)
         {
             base.OnLayout(e);
-            int pad = Ui.S(Ui.Space4);
+            int pad = Ui.S(Ui.Space5);
             int width = ClientSize.Width;
             int height = ClientSize.Height;
-            int headerHeight = Ui.S(30);
+            int headerHeight = Ui.S(28);
             bool wide = Wide(width);
 
             int refreshWidth = _refresh.Width;
             int viewWidth = _viewLog.Width;
             int buttonsWidth = refreshWidth + Ui.S(Ui.Space2) + viewWidth;
-            _refresh.SetBounds(width - pad - buttonsWidth, Ui.S(14), refreshWidth, _refresh.Height);
-            _viewLog.SetBounds(width - pad - viewWidth, Ui.S(14), viewWidth, _viewLog.Height);
+            _refresh.SetBounds(width - pad - buttonsWidth, Ui.S(16), refreshWidth, _refresh.Height);
+            _viewLog.SetBounds(width - pad - viewWidth, Ui.S(16), viewWidth, _viewLog.Height);
 
-            _title.SetBounds(pad, Ui.S(14), Math.Max(Ui.S(120), width - pad * 2 - buttonsWidth - Ui.S(Ui.Space4)), headerHeight);
-            _status.SetBounds(pad, Ui.S(44), Math.Max(Ui.S(80), width - pad * 2), Ui.S(18));
+            _title.SetBounds(pad, Ui.S(16), Math.Max(Ui.S(120), width - pad * 2 - buttonsWidth - Ui.S(Ui.Space4)), headerHeight);
+            _status.SetBounds(pad, Ui.S(46), Math.Max(Ui.S(80), width - pad * 2), Ui.S(18));
 
-            int contentTop = Ui.S(68);
+            int contentTop = Ui.S(76);
             int contentHeight = height - contentTop - pad;
             if (contentHeight < Ui.S(80)) { contentHeight = Ui.S(80); }
 
@@ -1999,13 +2649,13 @@ namespace SailuoTools
             }
             else
             {
-                int listHeight = Ui.S(150);
+                int listHeight = Ui.S(164);
                 RunsList.SetBounds(pad, contentTop, width - pad * 2, listHeight);
                 int logTop = contentTop + listHeight + Ui.S(Ui.Space3);
                 int logHeight = Math.Max(Ui.S(90), height - logTop - pad);
                 LogView.SetBounds(pad, logTop, width - pad * 2, logHeight);
             }
-            RunsList.ItemHeight = Math.Max(Ui.S(18), UiFonts.Small.Height + Ui.S(4));
+            RunsList.ItemHeight = Math.Max(Ui.S(28), UiFonts.Small.Height + Ui.S(10));
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -2024,28 +2674,41 @@ namespace SailuoTools
                 LogView.Width + Ui.S(2), LogView.Height + Ui.S(2));
             Gfx.FillRound(graphics, listWell, Ui.S(Ui.RadiusSm), Theme.SurfaceLo);
             Gfx.FillRound(graphics, logWell, Ui.S(Ui.RadiusSm), Theme.SurfaceLo);
-            Gfx.StrokeRound(graphics, listWell, Ui.S(Ui.RadiusSm), Theme.BorderControl, 1f);
-            Gfx.StrokeRound(graphics, logWell, Ui.S(Ui.RadiusSm), Theme.BorderControl, 1f);
+            Gfx.StrokeRound(graphics, listWell, Ui.S(Ui.RadiusSm), Theme.Border, 1f);
+            Gfx.StrokeRound(graphics, logWell, Ui.S(Ui.RadiusSm), Theme.Border, 1f);
         }
 
         private void DrawRunItem(object sender, DrawItemEventArgs e)
         {
             if (e.Index < 0) { return; }
             bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-            Color background = selected ? Theme.SurfaceHi : Theme.SurfaceLo;
+            Color background = selected ? Theme.BlueSoft : Theme.SurfaceLo;
             using (SolidBrush brush = new SolidBrush(background))
             {
                 e.Graphics.FillRectangle(brush, e.Bounds);
             }
             if (selected)
             {
-                Gfx.FillRound(e.Graphics, new Rectangle(e.Bounds.X + Ui.S(2), e.Bounds.Y + Ui.S(3), Ui.S(2),
-                    Math.Max(Ui.S(6), e.Bounds.Height - Ui.S(6))), 1, Theme.Blue);
+                Gfx.FillRound(e.Graphics, new Rectangle(e.Bounds.X + Ui.S(2), e.Bounds.Y + Ui.S(5), Ui.S(2),
+                    Math.Max(Ui.S(6), e.Bounds.Height - Ui.S(10))), 1, Theme.Blue);
             }
-            string text = RunsList.Items[e.Index] as string;
+            string text = RunsList.Items[e.Index] as string ?? string.Empty;
+            int split = text.IndexOf(' ');
+            Color markerColor = Theme.TextMuted;
+            if (split > 0)
+            {
+                string marker = text.Substring(0, split);
+                if (marker == "\u2713") { markerColor = Theme.Green; }
+                else if (marker == "\u2717") { markerColor = Theme.Red; }
+                else if (marker == "\u25CF") { markerColor = Theme.Blue; }
+                Gfx.Ellipsis(e.Graphics, marker, UiFonts.Body,
+                    new Rectangle(e.Bounds.X + Ui.S(10), e.Bounds.Y, Ui.S(16), e.Bounds.Height),
+                    markerColor);
+                text = text.Substring(split + 1);
+            }
             Gfx.Ellipsis(e.Graphics, text, UiFonts.Small,
-                new Rectangle(e.Bounds.X + Ui.S(10), e.Bounds.Y, e.Bounds.Width - Ui.S(14), e.Bounds.Height),
-                selected ? Theme.Text : Theme.TextSoft);
+                new Rectangle(e.Bounds.X + Ui.S(26), e.Bounds.Y, e.Bounds.Width - Ui.S(32), e.Bounds.Height),
+                selected ? Theme.Text : Theme.TextMuted);
         }
     }
 
@@ -2077,18 +2740,18 @@ namespace SailuoTools
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-            BackColor = Theme.BgDeep;
+            BackColor = Theme.Surface;
             Padding = new Padding(0);
 
             _dot = new Dot();
-            _dot.Size = new Size(Ui.S(8), Ui.S(8));
-            _dot.BackColor = Theme.BgDeep;
+            _dot.Size = new Size(Ui.S(7), Ui.S(7));
+            _dot.BackColor = Theme.Surface;
 
             _status = new Label();
             _status.Text = "Ready";
             _status.Font = UiFonts.H2;
             _status.ForeColor = Theme.Text;
-            _status.BackColor = Theme.BgDeep;
+            _status.BackColor = Theme.Surface;
             _status.AutoSize = false;
             _status.AutoEllipsis = true;
 
@@ -2096,7 +2759,7 @@ namespace SailuoTools
             _detail.Text = string.Empty;
             _detail.Font = UiFonts.Small;
             _detail.ForeColor = Theme.TextMuted;
-            _detail.BackColor = Theme.BgDeep;
+            _detail.BackColor = Theme.Surface;
             _detail.AutoSize = false;
             _detail.AutoEllipsis = true;
 
@@ -2114,10 +2777,10 @@ namespace SailuoTools
             };
 
             _logCaption = new Label();
-            _logCaption.Text = "ACTIVITY";
+            _logCaption.Text = "ACTIVITY LOG";
             _logCaption.Font = UiFonts.Micro;
             _logCaption.ForeColor = Theme.TextMuted;
-            _logCaption.BackColor = Theme.BgDeep;
+            _logCaption.BackColor = Theme.Surface;
             _logCaption.AutoSize = false;
             _logCaption.TextAlign = ContentAlignment.MiddleLeft;
 
@@ -2136,7 +2799,7 @@ namespace SailuoTools
             _clear.Click += delegate { if (ClearRequested != null) { ClearRequested(this, EventArgs.Empty); } };
 
             Log = new RichTextBox();
-            Log.BackColor = Theme.BgDeep;
+            Log.BackColor = Theme.SurfaceLo;
             Log.ForeColor = Theme.TextSoft;
             Log.Font = UiFonts.Mono;
             Log.BorderStyle = BorderStyle.None;
@@ -2162,8 +2825,8 @@ namespace SailuoTools
         }
 
         public bool Collapsed { get { return _collapsed; } }
-        public int StatusBandHeight { get { return Ui.S(52); } }
-        public int LogBandHeight { get { return Ui.S(26) + _logBoxHeight + Ui.S(8); } }
+        public int StatusBandHeight { get { return Ui.S(48); } }
+        public int LogBandHeight { get { return Ui.S(30) + _logBoxHeight + Ui.S(8); } }
         public int PreferredHeight { get { return StatusBandHeight + (_collapsed ? 0 : LogBandHeight); } }
 
         public int LogBoxHeight
@@ -2197,7 +2860,9 @@ namespace SailuoTools
             _logCaption.Visible = visible;
             _copy.Visible = visible;
             _clear.Visible = visible;
-        }        protected override void OnLayout(LayoutEventArgs e)
+        }
+
+        protected override void OnLayout(LayoutEventArgs e)
         {
             base.OnLayout(e);
             int width = ClientSize.Width;
@@ -2208,17 +2873,17 @@ namespace SailuoTools
             _toggle.SetBounds(width - left - toggleSize, (statusBand - toggleSize) / 2, toggleSize, toggleSize);
             Progress.SetBounds(0, statusBand - Progress.Height, width, Progress.Height);
 
-            int statusLeft = left + Ui.S(16);
+            int statusLeft = left + Ui.S(15);
             int statusWidth = Math.Max(Ui.S(80), _toggle.Left - statusLeft - Ui.S(Ui.Space4));
             _dot.SetBounds(left, statusBand / 2 - _dot.Height / 2, _dot.Width, _dot.Height);
-            _status.SetBounds(statusLeft, Ui.S(8), statusWidth, Ui.S(20));
-            _detail.SetBounds(statusLeft, Ui.S(29), Math.Max(Ui.S(80), statusWidth + Ui.S(0)), Ui.S(16));
+            _status.SetBounds(statusLeft, Ui.S(7), statusWidth, Ui.S(20));
+            _detail.SetBounds(statusLeft, Ui.S(26), Math.Max(Ui.S(80), statusWidth), Ui.S(16));
             _detail.Visible = width > Ui.S(760);
 
             if (!_collapsed)
             {
                 int logTop = statusBand;
-                int captionHeight = Ui.S(26);
+                int captionHeight = Ui.S(30);
                 _logCaption.SetBounds(left, logTop, Ui.S(120), captionHeight);
 
                 int clearWidth = _clear.Width;
@@ -2227,7 +2892,7 @@ namespace SailuoTools
                 _copy.SetBounds(_clear.Left - Ui.S(Ui.Space1) - copyWidth, logTop + (captionHeight - _copy.Height) / 2, copyWidth, _copy.Height);
 
                 Log.SetBounds(left, logTop + captionHeight, Math.Max(Ui.S(120), width - left * 2),
-                    Math.Max(Ui.S(40), ClientSize.Height - logTop - captionHeight - Ui.S(8)));
+                    Math.Max(Ui.S(40), ClientSize.Height - logTop - captionHeight - Ui.S(10)));
             }
         }
 
@@ -2238,14 +2903,30 @@ namespace SailuoTools
             {
                 e.Graphics.DrawLine(pen, 0, 0, Width, 0);
             }
+            // Subtle inset around the activity log keeps the white status bar
+            // visually separate from the scrollable log well.
+            if (!_collapsed && Log.Width > 0)
+            {
+                Graphics graphics = e.Graphics;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Rectangle well = new Rectangle(Log.Left - Ui.S(1), Log.Top - Ui.S(1),
+                    Log.Width + Ui.S(2), Log.Height + Ui.S(2));
+                Gfx.StrokeRound(graphics, well, Ui.S(Ui.RadiusSm), Theme.ChromeLine, 1f);
+            }
         }
     }
 
-    /// <summary>Page title block that keeps the same content column as PageView.</summary>
+    /// <summary>
+    /// Page title block with live session / user status on the right. It shares
+    /// the PageView content column so titles and cards line up exactly.
+    /// </summary>
     internal sealed class PageHeader : Panel
     {
         private readonly Label _title;
         private readonly Label _subtitle;
+        private readonly Chip _session;
+        private readonly Chip _user;
+        private bool _showUser = true;
 
         public PageHeader()
         {
@@ -2261,6 +2942,7 @@ namespace SailuoTools
             _title.BackColor = Theme.Bg;
             _title.AutoSize = false;
             _title.AutoEllipsis = true;
+            _title.UseMnemonic = false;
 
             _subtitle = new Label();
             _subtitle.Text = string.Empty;
@@ -2269,9 +2951,22 @@ namespace SailuoTools
             _subtitle.BackColor = Theme.Bg;
             _subtitle.AutoSize = false;
             _subtitle.AutoEllipsis = true;
+            _subtitle.UseMnemonic = false;
+
+            _session = new Chip("Session active", Theme.Green);
+            _session.BackColor = Theme.Bg;
+            _session.AccessibleDescription = "The dashboard session is connected.";
+
+            _user = new Chip(Environment.UserName, Theme.Slate);
+            _user.Glyph = "\uE77B";
+            _user.BackColor = Theme.Bg;
+            _user.SetLabel(Environment.UserName);
+            _user.AccessibleName = "Signed in as " + Environment.UserName;
 
             Controls.Add(_title);
             Controls.Add(_subtitle);
+            Controls.Add(_session);
+            Controls.Add(_user);
         }
 
         public void SetPage(string title, string subtitle)
@@ -2283,20 +2978,52 @@ namespace SailuoTools
             Invalidate();
         }
 
+        public void SetUser(string name)
+        {
+            _user.SetLabel(name ?? string.Empty);
+            _user.AccessibleName = "Signed in as " + name;
+            PerformLayout();
+        }
+
+        public void SetCompact(bool compact)
+        {
+            _showUser = !compact;
+            PerformLayout();
+        }
+
         protected override void OnLayout(LayoutEventArgs e)
         {
             base.OnLayout(e);
             int left;
             int width;
-            PageMetrics.ContentBounds(ClientSize.Width, UiConstants.PagePadding, UiConstants.ContentMaxWidth, out left, out width);
-            _title.SetBounds(left, Ui.S(8), width, Ui.S(30));
-            _subtitle.SetBounds(left, Ui.S(40), width, Ui.S(18));
+            int padding = PageMetrics.PaddingFor(ClientSize.Width, UiConstants.PagePadding);
+            PageMetrics.ContentBounds(ClientSize.Width, padding, UiConstants.ContentMaxWidth, out left, out width);
+
+            bool showUser = _showUser && width >= Ui.S(620);
+            _user.Visible = showUser;
+            int chipsWidth = _session.Width + (showUser ? Ui.S(Ui.Space2) + _user.Width : 0);
+            int textWidth = Math.Max(Ui.S(180), width - chipsWidth - Ui.S(Ui.Space5));
+
+            _title.SetBounds(left, Ui.S(20), textWidth, Ui.S(38));
+            _subtitle.SetBounds(left, Ui.S(58), textWidth, Ui.S(20));
+
+            int chipY = Ui.S(29);
+            if (showUser)
+            {
+                _user.SetBounds(left + width - _user.Width, chipY, _user.Width, _user.Height);
+            }
+            _session.SetBounds(left + width - chipsWidth, chipY, _session.Width, _session.Height);
         }
     }
 
     /// <summary>Shared horizontal metrics so the header, page and footer line up.</summary>
     internal static class PageMetrics
     {
+        public static int PaddingFor(int clientWidth, int fallbackDip)
+        {
+            return clientWidth < Ui.S(900) ? Math.Min(fallbackDip, Ui.Space5) : fallbackDip;
+        }
+
         public static void ContentBounds(int clientWidth, int paddingDip, int maxWidthDip, out int left, out int width)
         {
             int scrollbar = SystemInformation.VerticalScrollBarWidth;
@@ -2310,10 +3037,10 @@ namespace SailuoTools
 
     internal static class UiConstants
     {
-        public const int PagePadding = Ui.Space5;
-        public const int ContentMaxWidth = 1440;
-        public const int SidebarWidth = 232;
-        public const int SidebarRailWidth = 76;
+        public const int PagePadding = Ui.Space6;
+        public const int ContentMaxWidth = 1240;
+        public const int SidebarWidth = 240;
+        public const int SidebarRailWidth = 72;
     }
 
     /// <summary>
@@ -2325,6 +3052,10 @@ namespace SailuoTools
     {
         public readonly NavItem[] Items = new NavItem[3];
 
+        private readonly LogoMark _logo;
+        private readonly Label _brand;
+        private readonly Label _brandSub;
+        private readonly Label _navCaption;
         private readonly SurfacePanel _workspaceCard;
         private readonly Label _workspaceCaption;
         private readonly Label _workspaceValue;
@@ -2338,7 +3069,18 @@ namespace SailuoTools
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-            BackColor = Theme.BgDeep;
+            BackColor = Theme.Sidebar;
+
+            _logo = new LogoMark();
+            _logo.BackColor = Theme.Sidebar;
+            Controls.Add(_logo);
+
+            _brand = MakeChromeLabel("Sailuo", UiFonts.Brand, Theme.SidebarStrong);
+            _brandSub = MakeChromeLabel("Control Center", UiFonts.BrandSub, Theme.SidebarMuted);
+            _navCaption = MakeChromeLabel("NAVIGATION", UiFonts.Micro, Theme.SidebarMuted);
+            Controls.Add(_brand);
+            Controls.Add(_brandSub);
+            Controls.Add(_navCaption);
 
             string[] captions = new string[] { "Overview", "Applications", "System" };
             string[] glyphs = new string[] { "\uE80F", "\uE71D", "\uE713" };
@@ -2359,29 +3101,42 @@ namespace SailuoTools
             }
 
             _workspaceCard = new SurfacePanel();
-            _workspaceCard.SurfaceColor = Theme.SurfaceLo;
-            _workspaceCard.BorderColor = Theme.ChromeLine;
-            _workspaceCard.Radius = Ui.RadiusMd;
-            _workspaceCard.BackColor = Theme.BgDeep;
+            _workspaceCard.SurfaceColor = Theme.SidebarCard;
+            _workspaceCard.BorderColor = Theme.SidebarBorder;
+            _workspaceCard.Radius = Ui.RadiusSm;
+            _workspaceCard.BackColor = Theme.Sidebar;
 
-            _workspaceCaption = MakeCardLabel("WORKSPACE", UiFonts.Micro, Theme.TextMuted);
-            _workspaceValue = MakeCardLabel("C:\\Persist", UiFonts.Value, Theme.Text);
-            _workspaceMeta = MakeCardLabel("Permanent files folder", UiFonts.Small, Theme.TextMuted);
+            _workspaceCaption = MakeCardLabel("WORKSPACE", UiFonts.Micro, Theme.SidebarMuted);
+            _workspaceValue = MakeCardLabel("C:\\Persist", UiFonts.H2, Theme.SidebarStrong);
+            _workspaceMeta = MakeCardLabel("Permanent files", UiFonts.Small, Theme.SidebarMuted);
             _workspaceCard.Controls.Add(_workspaceCaption);
             _workspaceCard.Controls.Add(_workspaceValue);
             _workspaceCard.Controls.Add(_workspaceMeta);
             Controls.Add(_workspaceCard);
 
             _version = new Label();
-            _version.Text = "Dashboard 2.0";
+            _version.Text = "Control Center 2.0";
             _version.Font = UiFonts.Small;
-            _version.ForeColor = Theme.TextMuted;
-            _version.BackColor = Theme.BgDeep;
+            _version.ForeColor = Theme.SidebarMuted;
+            _version.BackColor = Theme.Sidebar;
             _version.AutoSize = false;
             _version.TextAlign = ContentAlignment.MiddleLeft;
             Controls.Add(_version);
 
             UpdateMode();
+        }
+
+        private Label MakeChromeLabel(string text, Font font, Color color)
+        {
+            Label label = new Label();
+            label.Text = text;
+            label.Font = font;
+            label.ForeColor = color;
+            label.BackColor = Theme.Sidebar;
+            label.AutoSize = false;
+            label.AutoEllipsis = true;
+            label.UseMnemonic = false;
+            return label;
         }
 
         private Label MakeCardLabel(string text, Font font, Color color)
@@ -2390,9 +3145,10 @@ namespace SailuoTools
             label.Text = text;
             label.Font = font;
             label.ForeColor = color;
-            label.BackColor = Theme.SurfaceLo;
+            label.BackColor = Theme.SidebarCard;
             label.AutoSize = false;
             label.AutoEllipsis = true;
+            label.UseMnemonic = false;
             return label;
         }
 
@@ -2416,10 +3172,14 @@ namespace SailuoTools
             foreach (NavItem item in Items)
             {
                 item.Rail = _rail;
-                item.Height = Ui.S(_rail ? 48 : Ui.NavHeight);
+                item.Height = Ui.S(_rail ? 46 : Ui.NavHeight);
             }
+            _brand.Visible = !_rail;
+            _brandSub.Visible = !_rail;
+            _navCaption.Visible = !_rail;
             _workspaceCard.Visible = !_rail;
             _version.Visible = !_rail;
+            _logo.Size = new Size(Ui.S(34), Ui.S(34));
             PerformLayout();
         }
 
@@ -2433,40 +3193,63 @@ namespace SailuoTools
         {
             base.OnLayout(e);
             if (_workspaceCard == null || _version == null) { return; }
-            int padding = Ui.S(Ui.Space3);
             int width = ClientSize.Width;
             int height = ClientSize.Height;
+            int padding = _rail ? Ui.S(Ui.Space2) : Ui.S(Ui.Space4);
+            int logoSize = Ui.S(34);
 
-            int itemWidth = _rail ? Math.Max(Ui.S(40), Math.Min(Ui.S(56), width - padding)) : Math.Max(Ui.S(120), width - padding * 2);
-            int itemLeft = _rail ? (width - itemWidth) / 2 : padding;
-            int y = Ui.S(Ui.Space4);
-            int gap = Ui.S(_rail ? Ui.Space2 : 6);
+            if (_rail)
+            {
+                _logo.SetBounds((width - logoSize) / 2, Ui.S(Ui.Space5), logoSize, logoSize);
+                int railItemWidth = Math.Max(Ui.S(40), Math.Min(Ui.S(48), width - padding * 2));
+                int railItemLeft = (width - railItemWidth) / 2;
+                int railY = Ui.S(78);
+                foreach (NavItem item in Items)
+                {
+                    item.SetBounds(railItemLeft, railY, railItemWidth, item.Height);
+                    railY += item.Height + Ui.S(Ui.Space2);
+                }
+                return;
+            }
+
+            _logo.SetBounds(padding, Ui.S(Ui.Space5), logoSize, logoSize);
+            int brandLeft = padding + logoSize + Ui.S(Ui.Space3);
+            _brand.SetBounds(brandLeft, Ui.S(22), Math.Max(Ui.S(80), width - brandLeft - padding), Ui.S(22));
+            _brandSub.SetBounds(brandLeft, Ui.S(44), Math.Max(Ui.S(80), width - brandLeft - padding), Ui.S(16));
+            _navCaption.SetBounds(padding, Ui.S(88), Math.Max(Ui.S(80), width - padding * 2), Ui.S(14));
+
+            int itemWidth = Math.Max(Ui.S(120), width - padding * 2);
+            int y = Ui.S(108);
             foreach (NavItem item in Items)
             {
-                item.SetBounds(itemLeft, y, itemWidth, item.Height);
-                y += item.Height + gap;
+                item.SetBounds(padding, y, itemWidth, item.Height);
+                y += item.Height + Ui.S(Ui.Space1);
             }
 
-            if (!_rail)
-            {
-                int cardHeight = Ui.S(112);
-                int versionHeight = Ui.S(18);
-                int cardBottom = height - padding - versionHeight - Ui.S(Ui.Space2);
-                _workspaceCard.SetBounds(padding, cardBottom - cardHeight, Math.Max(Ui.S(80), width - padding * 2), cardHeight);
-                int innerPad = Ui.S(Ui.Space3);
-                _workspaceCaption.SetBounds(innerPad, Ui.S(12), _workspaceCard.Width - innerPad * 2, Ui.S(13));
-                _workspaceValue.SetBounds(innerPad, Ui.S(28), _workspaceCard.Width - innerPad * 2, Ui.S(26));
-                _workspaceMeta.SetBounds(innerPad, Ui.S(58), _workspaceCard.Width - innerPad * 2, Ui.S(16));
-                _version.SetBounds(padding, height - padding - versionHeight, Math.Max(Ui.S(80), width - padding * 2), versionHeight);
-            }
+            int cardHeight = Ui.S(88);
+            int versionHeight = Ui.S(18);
+            int cardBottom = height - Ui.S(Ui.Space5) - versionHeight - Ui.S(Ui.Space2);
+            _workspaceCard.SetBounds(padding, cardBottom - cardHeight, Math.Max(Ui.S(80), width - padding * 2), cardHeight);
+            int innerPad = Ui.S(Ui.Space3);
+            _workspaceCaption.SetBounds(innerPad, Ui.S(11), _workspaceCard.Width - innerPad * 2, Ui.S(13));
+            _workspaceValue.SetBounds(innerPad, Ui.S(30), _workspaceCard.Width - innerPad * 2, Ui.S(22));
+            _workspaceMeta.SetBounds(innerPad, Ui.S(56), _workspaceCard.Width - innerPad * 2, Ui.S(16));
+            _version.SetBounds(padding, height - Ui.S(Ui.Space5) - versionHeight, Math.Max(Ui.S(80), width - padding * 2), versionHeight);
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            using (Pen pen = new Pen(Theme.ChromeLine))
+            using (Pen border = new Pen(Theme.SidebarBorder))
             {
-                e.Graphics.DrawLine(pen, Width - 1, 0, Width - 1, Height);
+                e.Graphics.DrawLine(border, Width - 1, 0, Width - 1, Height);
+            }
+            if (!_rail)
+            {
+                using (Pen divider = new Pen(Theme.SidebarBorder))
+                {
+                    e.Graphics.DrawLine(divider, Ui.S(Ui.Space4), Ui.S(72), Width - Ui.S(Ui.Space4), Ui.S(72));
+                }
             }
         }
     }
@@ -2552,104 +3335,6 @@ namespace SailuoTools
         }
     }
 
-    /// <summary>Top application chrome: brand on the left, live status chips on the right.</summary>
-    internal sealed class AppHeader : Panel
-    {
-        private readonly LogoMark _logo;
-        private readonly Label _brand;
-        private readonly Label _brandSub;
-        private readonly Chip _session;
-        private readonly Chip _user;
-        private bool _showUser = true;
-
-        public AppHeader()
-        {
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
-                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-            BackColor = Theme.BgDeep;
-            Margin = new Padding(0);
-
-            _logo = new LogoMark();
-            _logo.BackColor = Theme.BgDeep;
-
-            _brand = new Label();
-            _brand.Text = "Sailuo";
-            _brand.Font = UiFonts.Brand;
-            _brand.ForeColor = Theme.Text;
-            _brand.BackColor = Theme.BgDeep;
-            _brand.AutoSize = false;
-            _brand.UseMnemonic = false;
-
-            _brandSub = new Label();
-            _brandSub.Text = "Control Center";
-            _brandSub.Font = UiFonts.BrandSub;
-            _brandSub.ForeColor = Theme.TextMuted;
-            _brandSub.BackColor = Theme.BgDeep;
-            _brandSub.AutoSize = false;
-            _brandSub.UseMnemonic = false;
-
-            _session = new Chip("Session active", Theme.Green);
-            _session.BackColor = Theme.BgDeep;
-
-            _user = new Chip("User: " + Environment.UserName, Theme.Slate);
-            _user.BackColor = Theme.BgDeep;
-
-            Controls.Add(_logo);
-            Controls.Add(_brand);
-            Controls.Add(_brandSub);
-            Controls.Add(_session);
-            Controls.Add(_user);
-        }
-
-        public void SetUser(string name)
-        {
-            _user.SetLabel("User: " + name);
-            _user.AccessibleDescription = "Signed in as " + name;
-            PerformLayout();
-        }
-
-        public void SetCompact(bool compact) { _showUser = !compact; PerformLayout(); }
-
-        protected override void OnLayout(LayoutEventArgs e)
-        {
-            base.OnLayout(e);
-            int pad = Ui.S(Ui.Space5);
-            int width = ClientSize.Width;
-            int height = ClientSize.Height;
-
-            int logoSize = Ui.S(32);
-            _logo.SetBounds(pad, (height - logoSize) / 2, logoSize, logoSize);
-
-            int brandLeft = pad + logoSize + Ui.S(Ui.Space3);
-            int brandHeight = UiFonts.Brand.Height;
-            int subHeight = UiFonts.BrandSub.Height;
-            int blockHeight = brandHeight + subHeight;
-            int brandTop = (height - blockHeight) / 2 + Ui.S(1);
-            int brandWidth = Math.Max(Ui.S(60), TextRenderer.MeasureText("Sailuo", UiFonts.Brand).Width + Ui.S(4));
-            _brand.SetBounds(brandLeft, brandTop, brandWidth, brandHeight);
-            _brandSub.SetBounds(brandLeft, brandTop + brandHeight, Math.Max(Ui.S(80), width / 3), subHeight);
-
-            int gap = Ui.S(Ui.Space2);
-            int right = width - pad;
-            _user.Visible = _showUser;
-            if (_showUser)
-            {
-                _user.SetBounds(right - _user.Width, (height - _user.Height) / 2, _user.Width, _user.Height);
-                right = _user.Left - gap;
-            }
-            _session.SetBounds(right - _session.Width, (height - _session.Height) / 2, _session.Width, _session.Height);
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            using (Pen pen = new Pen(Theme.ChromeLine))
-            {
-                e.Graphics.DrawLine(pen, 0, Height - 1, Width, Height - 1);
-            }
-        }
-    }
-
     // ========================================================================
     //  MainForm
     // ========================================================================
@@ -2657,9 +3342,7 @@ namespace SailuoTools
     {
         // Chrome
         private TableLayoutPanel _root;
-        private TableLayoutPanel _body;
         private TableLayoutPanel _content;
-        private AppHeader _header;
         private SidebarPanel _sidebar;
         private PageHeader _pageHeader;
         private Panel _pagesHost;
@@ -2803,8 +3486,8 @@ namespace SailuoTools
             try { work = Screen.FromPoint(Cursor.Position).WorkingArea; }
             catch { work = Screen.PrimaryScreen.WorkingArea; }
 
-            int width = Math.Min(Ui.S(1120), Math.Max(Ui.S(860), work.Width - Ui.S(100)));
-            int height = Math.Min(Ui.S(760), Math.Max(Ui.S(560), work.Height - Ui.S(40)));
+            int width = Math.Min(Ui.S(1240), Math.Max(Ui.S(960), work.Width - Ui.S(80)));
+            int height = Math.Min(Ui.S(820), Math.Max(Ui.S(620), work.Height - Ui.S(40)));
             MinimumSize = ClampMinimumSize(work);
             ClientSize = new Size(width, height);
             StartPosition = FormStartPosition.CenterScreen;
@@ -2826,30 +3509,14 @@ namespace SailuoTools
         {
             _root = new TableLayoutPanel();
             _root.Dock = DockStyle.Fill;
-            _root.ColumnCount = 1;
-            _root.RowCount = 3;
+            _root.ColumnCount = 2;
+            _root.RowCount = 1;
             _root.BackColor = Theme.Bg;
             _root.Margin = new Padding(0);
             _root.Padding = new Padding(0);
-            _root.RowStyles.Add(new RowStyle(SizeType.Absolute, Ui.S(Ui.HeaderHeight)));
-            _root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-            _root.RowStyles.Add(new RowStyle(SizeType.Absolute, Ui.S(160)));
+            _root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Ui.S(UiConstants.SidebarWidth)));
+            _root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
             Controls.Add(_root);
-
-            _header = new AppHeader();
-            _header.Dock = DockStyle.Fill;
-            _root.Controls.Add(_header, 0, 0);
-
-            _body = new TableLayoutPanel();
-            _body.Dock = DockStyle.Fill;
-            _body.ColumnCount = 2;
-            _body.RowCount = 1;
-            _body.BackColor = Theme.Bg;
-            _body.Margin = new Padding(0);
-            _body.Padding = new Padding(0);
-            _body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Ui.S(UiConstants.SidebarWidth)));
-            _body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-            _root.Controls.Add(_body, 0, 1);
 
             _sidebar = new SidebarPanel();
             _sidebar.Dock = DockStyle.Fill;
@@ -2858,18 +3525,22 @@ namespace SailuoTools
                 PageEventArgs args = e as PageEventArgs;
                 if (args != null) { ShowPage(args.Index, false); }
             };
-            _body.Controls.Add(_sidebar, 0, 0);
+            _root.Controls.Add(_sidebar, 0, 0);
 
+            // The main column owns the page title, scrollable content and the
+            // compact status / activity panel. The navigation rail runs the
+            // full height of the window.
             _content = new TableLayoutPanel();
             _content.Dock = DockStyle.Fill;
             _content.ColumnCount = 1;
-            _content.RowCount = 2;
+            _content.RowCount = 3;
             _content.BackColor = Theme.Bg;
             _content.Margin = new Padding(0);
             _content.Padding = new Padding(0);
             _content.RowStyles.Add(new RowStyle(SizeType.Absolute, Ui.S(Ui.PageHeader)));
             _content.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-            _body.Controls.Add(_content, 1, 0);
+            _content.RowStyles.Add(new RowStyle(SizeType.Absolute, Ui.S(160)));
+            _root.Controls.Add(_content, 1, 0);
 
             _pageHeader = new PageHeader();
             _pageHeader.Dock = DockStyle.Fill;
@@ -2893,7 +3564,7 @@ namespace SailuoTools
             _footer.CopyRequested += delegate { CopyLogToClipboard(); };
             _footer.ClearRequested += delegate { ClearLog(); };
             _footer.CollapseToggled += delegate { ApplyChrome(); };
-            _root.Controls.Add(_footer, 0, 2);
+            _content.Controls.Add(_footer, 0, 2);
 
             _tips.SetToolTip(_hero.PrimaryButton, "Open the permanent folder (C:\\Persist)");
             _tips.SetToolTip(_hero.SecondaryButton, "Open the Downloads folder");
@@ -2919,8 +3590,8 @@ namespace SailuoTools
             PageView page = NewPage();
 
             _hero = new HeroSection();
-            _hero.SetMeta("Your files stay on this machine. Keep what you need in the permanent folder below.");
-            _hero.SetScope("C:\\Persist \u00B7 Downloads \u00B7 Desktop \u00B7 Documents");
+            _hero.SetMeta("Your files stay on this machine. Keep what you need.");
+            _hero.SetScope("C:\\Persist  \u00B7  Downloads  \u00B7  Desktop  \u00B7  Documents");
             _hero.PrimaryButton.Click += delegate { OpenPersistFolder(); };
             _hero.SecondaryButton.Click += delegate { OpenDownloadsFolder(); };
             page.Controls.Add(_hero);
@@ -2941,7 +3612,7 @@ namespace SailuoTools
                 e.SuppressKeyPress = true;
             };
 
-            CardGroup quick = new CardGroup("Quick actions", "Everyday shortcuts", Theme.Blue);
+            CardGroup quick = new CardGroup("Quick actions", "Common tasks for this session", Theme.Blue);
             quick.AddCard(Card("Open permanent folder", "Files kept on this machine in C:\\Persist.",
                 "\uE8B7", Theme.Blue, delegate { OpenPersistFolder(); }));
             quick.AddCard(Card("Performance boost", "Raw mouse input, audio refresh, lower latency.",
@@ -2956,7 +3627,7 @@ namespace SailuoTools
                 {
                     ConfirmAction("Clear temporary files?",
                         "User and Windows temporary files are deleted and cached memory is released. Open files are not affected.",
-                        "Clear now", Theme.Amber, CleanTemporaryFiles);
+                        "Clear now", Theme.Red, CleanTemporaryFiles);
                 }));
             quick.AddCard(Card("Open Downloads", "Open the Downloads folder in File Explorer.",
                 "\uE838", Theme.Cyan, delegate { OpenDownloadsFolder(); }));
@@ -3037,7 +3708,7 @@ namespace SailuoTools
 
             CardGroup essentials = new CardGroup("Essentials", "One-click installs", Theme.Violet);
             essentials.AddCard(Card("Install Google Chrome", "A current browser build with sign-in data preserved across sessions.",
-                "\uE774", Theme.Blue, delegate
+                "\uE774", Theme.Blue, BrandIcon.Chrome, delegate
                 {
                     RunTask("Installing Google Chrome...", @"
                         & winget install --id Google.Chrome --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
@@ -3045,7 +3716,7 @@ namespace SailuoTools
                     ");
                 }));
             essentials.AddCard(Card("Install Discord", "Voice, video and text chat for your communities.",
-                "\uE8BD", Theme.Violet, delegate
+                "\uE8BD", Theme.Violet, BrandIcon.Discord, delegate
                 {
                     RunTask("Installing Discord...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'discord'
@@ -3055,49 +3726,49 @@ namespace SailuoTools
 
             CardGroup apps = new CardGroup("Apps", "Install one at a time", Theme.Cyan);
             apps.AddCard(Card("Facebook", "Installs the Facebook app with its own window and desktop shortcut.",
-                "\uE8D4", Theme.Blue, delegate
+                "\uE8D4", Theme.Blue, BrandIcon.Facebook, delegate
                 {
                     RunTask("Installing Facebook...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'facebook'
                     ");
                 }));
             apps.AddCard(Card("Instagram", "Installs the Instagram app from the Microsoft Store.",
-                "\uE722", Theme.Violet, delegate
+                "\uE722", Theme.Violet, BrandIcon.Instagram, delegate
                 {
                     RunTask("Installing Instagram...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'instagram'
                     ");
                 }));
             apps.AddCard(Card("Apple Music", "Installs the Apple Music app for Windows.",
-                "\uE90B", Theme.Red, delegate
+                "\uE90B", Theme.Red, BrandIcon.AppleMusic, delegate
                 {
                     RunTask("Installing Apple Music...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'apple-music'
                     ");
                 }));
             apps.AddCard(Card("Spotify", "Installs the Spotify desktop player.",
-                "\uE768", Theme.Green, delegate
+                "\uE768", Theme.Green, BrandIcon.Spotify, delegate
                 {
                     RunTask("Installing Spotify...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'spotify'
                     ");
                 }));
             apps.AddCard(Card("Visual Studio Code", "Installs the standalone VS Code editor.",
-                "\uE943", Theme.Blue, delegate
+                "\uE943", Theme.Blue, BrandIcon.VisualStudioCode, delegate
                 {
                     RunTask("Installing Visual Studio Code...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'vscode'
                     ");
                 }));
             apps.AddCard(Card("Antigravity IDE", "Installs Google's standalone Antigravity IDE.",
-                "\uE945", Theme.Amber, delegate
+                "\uE945", Theme.Amber, BrandIcon.Antigravity, delegate
                 {
                     RunTask("Installing Antigravity IDE...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'antigravity'
                     ");
                 }));
             apps.AddCard(Card("OpenCode Desktop", "Installs the OpenCode desktop application.",
-                "\uE756", Theme.Cyan, delegate
+                "\uE756", Theme.Cyan, BrandIcon.OpenCode, delegate
                 {
                     RunTask("Installing OpenCode Desktop...", @"
                         & 'C:\Sailuo\scripts\install-app.ps1' -App 'opencode'
@@ -3204,10 +3875,16 @@ namespace SailuoTools
 
         private ActionCard Card(string title, string description, string glyph, Color accent, EventHandler action)
         {
+            return Card(title, description, glyph, accent, BrandIcon.None, action);
+        }
+
+        private ActionCard Card(string title, string description, string glyph, Color accent, BrandIcon brand, EventHandler action)
+        {
             ActionCard card = new ActionCard();
             card.CardTitle = title;
             card.CardDescription = description;
             card.Glyph = glyph;
+            card.Brand = brand;
             card.Accent = accent;
             card.AccessibleName = title;
             card.AccessibleDescription = description;
@@ -3226,9 +3903,9 @@ namespace SailuoTools
             int height = ClientSize.Height;
             if (width <= 0 || height <= 0) { return; }
 
-            bool rail = width < Ui.S(1040);
+            bool rail = width < Ui.S(1000);
             int sidebarWidth = Ui.S(rail ? UiConstants.SidebarRailWidth : UiConstants.SidebarWidth);
-            _body.ColumnStyles[0].Width = sidebarWidth;
+            _root.ColumnStyles[0].Width = sidebarWidth;
             _appliedSidebarWidth = sidebarWidth;
 
             int pageHeaderHeight = Ui.S(Ui.PageHeader);
@@ -3238,16 +3915,16 @@ namespace SailuoTools
                 _appliedPageHeaderHeight = pageHeaderHeight;
             }
 
-            // On short windows the activity log starts collapsed so the actions
-            // stay above the fold; the reader can expand it at any time.
+            // On typical window sizes the activity log starts collapsed so the
+            // actions stay above the fold; the reader can expand it at any time.
             if (!_autoCollapseDone)
             {
                 _autoCollapseDone = true;
-                if (height < Ui.S(690) && !_footer.Collapsed) { _footer.SetCollapsed(true); }
+                if (height < Ui.S(1000) && !_footer.Collapsed) { _footer.SetCollapsed(true); }
             }
 
-            int logLines = height >= Ui.S(880) ? 8 : (height >= Ui.S(720) ? 6 : 4);
-            if (height < Ui.S(640)) { logLines = 3; }
+            int logLines = height >= Ui.S(900) ? 8 : (height >= Ui.S(780) ? 6 : 4);
+            if (height < Ui.S(680)) { logLines = 3; }
             int logBoxHeight = logLines * (UiFonts.Mono.Height + Ui.S(2)) + Ui.S(6);
             _footer.LogBoxHeight = logBoxHeight;
             int footerHeight = _footer.PreferredHeight;
@@ -3255,11 +3932,11 @@ namespace SailuoTools
             if (footerHeight > footerCap) { footerHeight = footerCap; }
             if (footerHeight != _appliedFooterHeight)
             {
-                _root.RowStyles[2].Height = footerHeight;
+                _content.RowStyles[2].Height = footerHeight;
                 _appliedFooterHeight = footerHeight;
             }
 
-            _header.SetCompact(width < Ui.S(820));
+            _pageHeader.SetCompact(width - sidebarWidth < Ui.S(760));
             _chromeReady = true;
             _root.PerformLayout();
         }
@@ -3297,15 +3974,15 @@ namespace SailuoTools
 
             if (index == 0)
             {
-                _pageHeader.SetPage("Overview", "Session workspace, shortcuts and quick maintenance.");
+                _pageHeader.SetPage("Overview", "Session status, workspace shortcuts, and system maintenance.");
             }
             else if (index == 1)
             {
-                _pageHeader.SetPage("Applications", "Install the essentials, refresh the wallpaper or update the engine.");
+                _pageHeader.SetPage("Applications", "Install essential apps, personalize the desktop, and update Sailuo.");
             }
             else
             {
-                _pageHeader.SetPage("System", "Display tuning, taskbar theme and diagnostics.");
+                _pageHeader.SetPage("System", "Display tuning, taskbar appearance, and diagnostics.");
             }
 
             PageView active = ActivePage;
@@ -4072,7 +4749,6 @@ namespace SailuoTools
         Muted
     }
 }
-
 
 '@
 
