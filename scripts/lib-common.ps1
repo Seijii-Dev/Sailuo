@@ -1108,12 +1108,104 @@ function ConvertTo-SailuoDib32([System.Drawing.Bitmap]$Bitmap) {
   return $result
 }
 
+function New-SailuoLogoIconFromPng([string]$PngPath, [string]$OutIcoPath) {
+  # Builds a multi-resolution .ico from a PNG logo image so the shell icon
+  # (taskbar, title bar, Desktop shortcut, exe) matches the dashboard logo.
+  # Uses the same ICO layout as New-SailuoAppIcon: DIB frames under 64px and
+  # PNG frames at 64px and above. Returns $OutIcoPath on success, $null else.
+  try {
+    if (-not $PngPath -or -not (Test-Path -LiteralPath $PngPath)) { return $null }
+    $dir = Split-Path -Path $OutIcoPath -Parent
+    if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
+    $src = New-Object System.Drawing.Bitmap($PngPath)
+    $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
+    $frames = @()
+    foreach ($size in $sizes) {
+      $bmp = New-Object System.Drawing.Bitmap($size, $size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+      $graphics = [System.Drawing.Graphics]::FromImage($bmp)
+      $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+      $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+      $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+      $graphics.Clear([System.Drawing.Color]::Transparent)
+      # Fit the source image inside the frame with a small margin.
+      $margin = [float][Math]::Max(0.0, $size * 0.04)
+      $inner = [float]($size - 2 * $margin)
+      if ($inner -lt 1) { $inner = [float]$size }
+      $scale = [Math]::Min($inner / $src.Width, $inner / $src.Height)
+      $destW = [float]($src.Width * $scale)
+      $destH = [float]($src.Height * $scale)
+      $destX = ([float]$size - $destW) / 2
+      $destY = ([float]$size - $destH) / 2
+      $graphics.DrawImage($src, $destX, $destY, $destW, $destH)
+      $graphics.Dispose()
+      $frames += $bmp
+    }
+    $src.Dispose()
+
+    $payloads = @()
+    foreach ($frame in $frames) {
+      if ($frame.Width -ge 64) {
+        $png = New-Object System.IO.MemoryStream
+        $frame.Save($png, [System.Drawing.Imaging.ImageFormat]::Png)
+        $payloads += [pscustomobject]@{ Size = $frame.Width; Bytes = $png.ToArray() }
+        $png.Dispose()
+      }
+      else {
+        $payloads += [pscustomobject]@{ Size = $frame.Width; Bytes = (ConvertTo-SailuoDib32 -Bitmap $frame) }
+      }
+    }
+
+    $ms = New-Object System.IO.MemoryStream
+    $writer = New-Object System.IO.BinaryWriter($ms)
+    $writer.Write([uint16]0)
+    $writer.Write([uint16]1)
+    $writer.Write([uint16]$frames.Count)
+    $offset = 6 + 16 * $frames.Count
+    foreach ($payload in $payloads) {
+      $dimension = if ($payload.Size -ge 256) { 0 } else { $payload.Size }
+      $writer.Write([byte]$dimension)
+      $writer.Write([byte]$dimension)
+      $writer.Write([byte]0)
+      $writer.Write([byte]0)
+      $writer.Write([uint16]1)
+      $writer.Write([uint16]32)
+      $writer.Write([uint32]$payload.Bytes.Length)
+      $writer.Write([uint32]$offset)
+      $offset += $payload.Bytes.Length
+    }
+    foreach ($payload in $payloads) { $writer.Write([byte[]]$payload.Bytes) }
+    $writer.Flush()
+    [System.IO.File]::WriteAllBytes($OutIcoPath, $ms.ToArray())
+    $writer.Dispose()
+    $ms.Dispose()
+    foreach ($frame in $frames) { $frame.Dispose() }
+    return $OutIcoPath
+  }
+  catch {
+    return $null
+  }
+}
+
 function Ensure-SailuoDesktopIcons {
   $icoDir = 'C:\Sailuo\icons'
   New-Item -ItemType Directory -Path $icoDir -Force -ErrorAction SilentlyContinue | Out-Null
   # -Force upgrades icons produced by the old single-frame generator.
-  # Dashboard badge matches the in-app brand mark (cyan -> indigo gradient, "S").
-  New-SailuoAppIcon "$icoDir\sailuo-dashboard.ico"   'S'   2   132 199 67  56  202 ''          -Force | Out-Null
+  # Dashboard icon: use the logo image when it is available
+  # (C:\Sailuo\assets\sailuo-logo.png), otherwise fall back to the drawn "S".
+  $logoPng = 'C:\Sailuo\assets\sailuo-logo.png'
+  if (Test-Path -LiteralPath $logoPng) {
+    $made = New-SailuoLogoIconFromPng $logoPng "$icoDir\sailuo-dashboard.ico"
+    if (-not $made) {
+      New-SailuoAppIcon "$icoDir\sailuo-dashboard.ico"   'S'   2   132 199 67  56  202 ''          -Force | Out-Null
+    }
+  } else {
+    New-SailuoAppIcon "$icoDir\sailuo-dashboard.ico"   'S'   2   132 199 67  56  202 ''          -Force | Out-Null
+  }
+  # Keep a copy of the logo next to the icons for the dashboard header.
+  if (Test-Path -LiteralPath $logoPng) {
+    Copy-Item -LiteralPath $logoPng -Destination "$icoDir\sailuo-logo.png" -Force -ErrorAction SilentlyContinue
+  }
   New-SailuoAppIcon "$icoDir\cloud-save.ico"         'CLD' 56  189 248 3   105 161 'SAVE'      -Force | Out-Null
   New-SailuoAppIcon "$icoDir\persist-folder.ico"     'DIR' 234 179 8   161 98  7   'PERSIST'   -Force | Out-Null
   New-SailuoAppIcon "$icoDir\bluestacks.ico"         'BS5' 59  130 246 29  78  216 'ANDROID'   -Force | Out-Null

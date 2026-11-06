@@ -105,44 +105,41 @@ namespace SailuoTools
     // ========================================================================
     internal static class Theme
     {
-        // Surfaces (darker to lighter)
-        public static readonly Color Bg        = Color.FromArgb(11, 15, 20);   // window / page canvas
-        public static readonly Color BgDeep    = Color.FromArgb(8, 11, 15);    // chrome (header, sidebar, activity)
-        public static readonly Color SurfaceLo = Color.FromArgb(14, 21, 29);   // inset wells, subtle fills
-        public static readonly Color Surface   = Color.FromArgb(18, 26, 35);   // cards, panels
-        public static readonly Color SurfaceHi = Color.FromArgb(24, 34, 46);   // hover / raised
+        // Classic flat Win32 look: light dialog surfaces, thin borders, black
+        // text, no gradients or glow. Colours match the standard Windows
+        // client area (white) and dialog (light grey) faces.
+        public static readonly Color Bg        = Color.FromArgb(240, 240, 240); // window / page canvas
+        public static readonly Color BgDeep    = Color.FromArgb(255, 255, 255); // header, sidebar, activity
+        public static readonly Color SurfaceLo = Color.FromArgb(240, 240, 240); // inset wells, subtle fills
+        public static readonly Color Surface   = Color.FromArgb(255, 255, 255); // cards, panels
+        public static readonly Color SurfaceHi = Color.FromArgb(225, 225, 225); // hover / raised
 
         // Lines
-        public static readonly Color Border       = Color.FromArgb(34, 48, 65);
-        public static readonly Color BorderStrong = Color.FromArgb(54, 74, 98);
-        public static readonly Color ChromeLine   = Color.FromArgb(26, 37, 50);
-        // Interactive boundaries (buttons, list/log wells) need 3:1 against the
-        // surrounding surface (WCAG 1.4.11); decorative hairlines do not.
-        public static readonly Color BorderControl = Color.FromArgb(92, 112, 134); // ~3.4:1 on Surface
+        public static readonly Color Border       = Color.FromArgb(171, 173, 179);
+        public static readonly Color BorderStrong = Color.FromArgb(120, 120, 120);
+        public static readonly Color ChromeLine   = Color.FromArgb(220, 220, 220);
+        public static readonly Color BorderControl = Color.FromArgb(120, 120, 120);
 
-        // Text.  Ratios measured against Surface (#121A23):
-        //   Text       #E8EEF6 -> 14.6:1   TextSoft #A7B4C4 -> 7.9:1
-        //   TextMuted  #7D8B9C -> 5.1:1    (still AA for small text)
-        public static readonly Color Text      = Color.FromArgb(232, 238, 246);
-        public static readonly Color TextSoft  = Color.FromArgb(167, 180, 196);
-        public static readonly Color TextMuted = Color.FromArgb(125, 139, 156);
+        // Text (dark on light for AA contrast on White and #F0F0F0).
+        public static readonly Color Text      = Color.FromArgb(26, 26, 26);
+        public static readonly Color TextSoft  = Color.FromArgb(51, 51, 51);
+        public static readonly Color TextMuted = Color.FromArgb(102, 102, 102);
 
-        // Accents.  All accents clear 4.5:1 on Surface and SurfaceLo.
-        public static readonly Color Blue   = Color.FromArgb(90, 167, 255);
-        public static readonly Color Green  = Color.FromArgb(74, 222, 128);
-        public static readonly Color Violet = Color.FromArgb(167, 139, 250);
-        public static readonly Color Amber  = Color.FromArgb(251, 191, 36);
-        public static readonly Color Cyan   = Color.FromArgb(56, 189, 248);
-        public static readonly Color Red    = Color.FromArgb(248, 113, 113);
-        public static readonly Color Slate  = Color.FromArgb(148, 163, 184);
+        // Accents: solid classic Windows colours, no gradients.
+        public static readonly Color Blue   = Color.FromArgb(0, 120, 212);
+        public static readonly Color Green  = Color.FromArgb(16, 124, 16);
+        public static readonly Color Violet = Color.FromArgb(92, 45, 145);
+        public static readonly Color Amber  = Color.FromArgb(200, 120, 0);
+        public static readonly Color Cyan   = Color.FromArgb(0, 130, 114);
+        public static readonly Color Red    = Color.FromArgb(209, 52, 56);
+        public static readonly Color Slate  = Color.FromArgb(102, 102, 102);
 
         // Text placed on top of a filled accent control.
-        public static readonly Color OnAccent = Color.FromArgb(9, 13, 18);
+        public static readonly Color OnAccent = Color.White;
 
-        // Brand gradient for the logo mark. Dark enough that the white "S" keeps
-        // contrast on both ends (4.1:1 / 7.9:1) instead of the old 2.14:1.
-        public static readonly Color BrandFrom = Color.FromArgb(2, 132, 199);
-        public static readonly Color BrandTo   = Color.FromArgb(67, 56, 202);
+        // Brand colour (flat; logo comes from the image when available).
+        public static readonly Color BrandFrom = Color.FromArgb(0, 120, 212);
+        public static readonly Color BrandTo   = Color.FromArgb(0, 120, 212);
 
         public static Color SurfaceFor(bool raised) { return raised ? SurfaceHi : Surface; }
     }
@@ -162,10 +159,10 @@ namespace SailuoTools
         public const int Space5 = 24;
         public const int Space6 = 32;
 
-        // Corner radii (DIP)
-        public const int RadiusSm = 8;
-        public const int RadiusMd = 12;
-        public const int RadiusLg = 16;
+        // Corner radii (DIP) - classic Win32 uses square corners.
+        public const int RadiusSm = 0;
+        public const int RadiusMd = 0;
+        public const int RadiusLg = 0;
 
         // Control heights (DIP)
         public const int HeaderHeight   = 64;
@@ -434,9 +431,8 @@ namespace SailuoTools
 
         public static void DarkScroll(Control control)
         {
-            if (control == null) { return; }
-            if (control.IsHandleCreated) { ApplyDarkScroll(control.Handle); }
-            else { control.HandleCreated += delegate { ApplyDarkScroll(control.Handle); }; }
+            // Classic light theme: keep the normal system scrollbar.
+            return;
         }
 
         private static void ApplyDarkScroll(IntPtr handle)
@@ -534,6 +530,9 @@ namespace SailuoTools
 
     internal sealed class LogoMark : Control
     {
+        private static Image _logoImage;
+        private static bool _logoTried;
+
         public LogoMark()
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
@@ -543,17 +542,57 @@ namespace SailuoTools
             TabStop = false;
             AccessibleRole = AccessibleRole.Graphic;
             AccessibleName = "Sailuo logo";
+            LoadLogoImage();
+        }
+
+        private static void LoadLogoImage()
+        {
+            if (_logoTried) { return; }
+            _logoTried = true;
+            string[] candidates = new string[]
+            {
+                @"C:\Sailuo\assets\sailuo-logo.png",
+                @"C:\Sailuo\icons\sailuo-logo.png"
+            };
+            foreach (string candidate in candidates)
+            {
+                try
+                {
+                    if (File.Exists(candidate))
+                    {
+                        using (FileStream stream = File.OpenRead(candidate))
+                        using (Image loaded = Image.FromStream(stream))
+                        {
+                            _logoImage = new Bitmap(loaded);
+                        }
+                        return;
+                    }
+                }
+                catch { }
+            }
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics graphics = e.Graphics;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (SolidBrush brush = new SolidBrush(Theme.BrandFrom))
-            using (GraphicsPath path = Gfx.Round(rect, Ui.S(9)))
+            if (_logoImage != null)
             {
-                graphics.FillPath(brush, path);
+                int margin = Math.Max(1, Ui.S(1));
+                Rectangle dest = new Rectangle(margin, margin,
+                    Math.Max(1, Width - margin * 2), Math.Max(1, Height - margin * 2));
+                try { graphics.DrawImage(_logoImage, dest); } catch { }
+                return;
+            }
+            // Fallback when sailuo-logo.png is not present: plain square mark.
+            using (SolidBrush brush = new SolidBrush(Theme.BrandFrom))
+            using (Pen pen = new Pen(Theme.BorderStrong, 1f))
+            {
+                graphics.FillRectangle(brush, rect);
+                graphics.DrawRectangle(pen, rect);
             }
             using (Font font = new Font(UiFonts.Brand.FontFamily, 14f * Ui.FontScale, FontStyle.Bold))
             {
@@ -1215,27 +1254,15 @@ namespace SailuoTools
 
             bool enabled = Enabled;
             Color accent = enabled ? Accent : Theme.TextMuted;
-            Color background = enabled ? Gfx.Mix(Theme.Surface, Theme.SurfaceHi, _hover) : Theme.SurfaceLo;
-            if (_pressed) { background = Gfx.Mix(background, Color.Black, 0.16f); }
-            Color border = enabled
-                ? Gfx.Mix(Theme.Border, accent, 0.35f * _hover)
-                : Theme.Border;
+            Color background = enabled ? Gfx.Mix(Theme.Surface, Theme.SurfaceHi, _hover * 0.5f) : Theme.SurfaceLo;
+            if (_pressed) { background = Gfx.Mix(background, Color.Black, 0.08f); }
+            Color border = enabled ? ( _hover > 0.01f ? Theme.BorderStrong : Theme.Border ) : Theme.Border;
 
             Gfx.FillRound(graphics, rect, radius, background);
             Gfx.StrokeRound(graphics, rect, radius, border, 1f);
 
-            // Accent rail on the left edge communicates the action family at a glance.
-            if (enabled && _hover > 0.01f)
-            {
-                int barHeight = Height - Ui.S(28);
-                Rectangle bar = new Rectangle(Ui.S(1), Ui.S(14), Math.Max(1, Ui.S(2)), barHeight);
-                Gfx.FillRound(graphics, bar, 1, Gfx.Alpha(accent, (int)(210 * _hover)));
-            }
-
             Rectangle tile = new Rectangle(pad, (Height - tileSize) / 2, tileSize, tileSize);
-            Gfx.FillRound(graphics, tile, Ui.S(10), enabled
-                ? Gfx.Mix(Theme.SurfaceLo, accent, 0.16f + 0.06f * _hover)
-                : Gfx.Mix(Theme.SurfaceLo, Theme.TextMuted, 0.10f));
+            Gfx.FillRound(graphics, tile, 0, Theme.SurfaceLo);
             Gfx.DrawGlyph(graphics, Glyph, UiFonts.GlyphLg, tile, accent, Gfx.Center);
 
             int textX = pad + tileSize + Ui.S(14);
@@ -1247,7 +1274,7 @@ namespace SailuoTools
             int block = titleHeight + Ui.S(5) + descHeight;
             int top = Math.Max(Ui.S(12), (Height - block) / 2);
 
-            Color titleColor = enabled ? Gfx.Mix(Theme.Text, accent, 0.10f * _hover) : Theme.TextMuted;
+            Color titleColor = enabled ? Theme.Text : Theme.TextMuted;
             TextRenderer.DrawText(graphics, CardTitle, UiFonts.H2,
                 new Rectangle(textX, top, textWidth, titleHeight), titleColor,
                 TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPrefix |
@@ -1260,11 +1287,10 @@ namespace SailuoTools
                 TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
 
             int chevronSize = Ui.S(20);
-            int chevronShift = (int)(_hover * Ui.S(3));
-            Rectangle chevron = new Rectangle(Width - Ui.S(20) - chevronSize + chevronShift,
+            Rectangle chevron = new Rectangle(Width - Ui.S(20) - chevronSize,
                 (Height - chevronSize) / 2, chevronSize, chevronSize);
             Gfx.DrawGlyph(graphics, "\uE76C", UiFonts.Glyph, chevron,
-                enabled ? Gfx.Mix(Theme.TextMuted, accent, _hover) : Theme.TextMuted, Gfx.Center);
+                Theme.TextMuted, Gfx.Center);
 
             if (Focused && enabled) { Gfx.FocusRing(graphics, rect, radius, Theme.Blue); }
         }
