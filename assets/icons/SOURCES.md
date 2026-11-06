@@ -26,6 +26,8 @@ copy inside `scripts/setup-tools-hub.ps1`.
 | Visual Studio Code | `svg/vscode.svg` | [gilbarbara/logos](https://github.com/gilbarbara/logos) |
 | Antigravity IDE | `svg/antigravity.svg` | [gilbarbara/logos](https://github.com/gilbarbara/logos) |
 | OpenCode Desktop | `svg/opencode-app-clean.svg` | [opencode.ai favicon](https://opencode.ai/favicon.svg) |
+| Telegram Web | `svg/telegram.svg` | [gilbarbara/logos](https://github.com/gilbarbara/logos) |
+| TikTok Web | `svg/tiktok.svg` | [gilbarbara/logos](https://github.com/gilbarbara/logos) |
 
 `svg/vscode-streamline.svg` is the Streamline SVG supplied as the visual
 reference. The build uses the flatter official mark instead because it stays

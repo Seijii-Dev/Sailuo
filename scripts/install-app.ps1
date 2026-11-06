@@ -5,7 +5,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('facebook', 'instagram', 'apple-music', 'spotify', 'vscode', 'antigravity', 'opencode', 'discord', 'chrome')]
+  [ValidateSet('facebook', 'instagram', 'apple-music', 'spotify', 'vscode', 'antigravity', 'opencode', 'discord', 'chrome', 'telegram', 'tiktok')]
   [string]$App,
 
   # Used by validation runs so a shortcut can be tested without opening a window.
@@ -125,12 +125,40 @@ function Convert-PngToIco([string]$PngPath, [string]$IcoPath) {
 
 function Ensure-WebIcon([string]$Name, [string]$Url) {
   $icoPath = Join-Path $iconsDir ($Name.ToLower() + '.ico')
-  if (Test-Path -LiteralPath $icoPath) { return $icoPath }
+  if (Test-Path -LiteralPath $icoPath) {
+    # Some sites serve a PNG from favicon.ico. Windows needs a real ICO file
+    # for shortcut icons, so convert the PNG payload when we detect one.
+    try {
+      $bytes = [IO.File]::ReadAllBytes($icoPath)
+      if ($bytes.Length -gt 8 -and $bytes[0] -eq 0x89 -and $bytes[1] -eq 0x50 -and
+          $bytes[2] -eq 0x4E -and $bytes[3] -eq 0x47) {
+        $pngPath = [IO.Path]::ChangeExtension($icoPath, '.png')
+        Copy-Item -LiteralPath $icoPath -Destination $pngPath -Force
+        if (Convert-PngToIco $pngPath $icoPath) {
+          Remove-Item -LiteralPath $pngPath -Force -ErrorAction SilentlyContinue
+        }
+      }
+    } catch {
+      Write-Step "Could not normalise $Name icon: $($_.Exception.Message)"
+    }
+    return $icoPath
+  }
   try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $client = New-Object System.Net.WebClient
     $client.DownloadFile($Url, $icoPath)
-    if (Test-Path -LiteralPath $icoPath) { return $icoPath }
+    if (Test-Path -LiteralPath $icoPath) {
+      $bytes = [IO.File]::ReadAllBytes($icoPath)
+      if ($bytes.Length -gt 8 -and $bytes[0] -eq 0x89 -and $bytes[1] -eq 0x50 -and
+          $bytes[2] -eq 0x4E -and $bytes[3] -eq 0x47) {
+        $pngPath = [IO.Path]::ChangeExtension($icoPath, '.png')
+        Copy-Item -LiteralPath $icoPath -Destination $pngPath -Force
+        if (Convert-PngToIco $pngPath $icoPath) {
+          Remove-Item -LiteralPath $pngPath -Force -ErrorAction SilentlyContinue
+        }
+      }
+      return $icoPath
+    }
   } catch {
     Write-Step "Could not download $Name icon: $($_.Exception.Message)"
   }
@@ -351,6 +379,16 @@ switch ($App) {
   }
   'apple-music' {
     Install-StoreApp '9PFHDD62MXS1' 'Apple Music' 'https://music.apple.com/' 'AppleInc.AppleMusicWin_nzyj5cx40ttqa!App' $null
+  }
+  'telegram' {
+    Write-Step 'Installing the Telegram Web app...'
+    $iconUrl = 'https://web.telegram.org/favicon.ico'
+    New-WebAppShortcut 'Telegram Web' 'https://web.telegram.org/' $iconUrl
+  }
+  'tiktok' {
+    Write-Step 'Installing the TikTok Web app...'
+    $iconUrl = 'https://www.tiktok.com/favicon.ico'
+    New-WebAppShortcut 'TikTok Web' 'https://www.tiktok.com/' $iconUrl
   }
 }
 

@@ -17,7 +17,9 @@ $icons = @(
     @{ Name = 'spotify';     File = 'spotify.svg';           Target = 92; Trim = $true  },
     @{ Name = 'vscode';      File = 'vscode.svg';            Target = 88; Trim = $true  },
     @{ Name = 'antigravity'; File = 'antigravity.svg';       Target = 88; Trim = $true  },
-    @{ Name = 'opencode';    File = 'opencode-app-clean.svg';Target = 84; Trim = $false }
+    @{ Name = 'opencode';    File = 'opencode-app-clean.svg';Target = 84; Trim = $false },
+    @{ Name = 'telegram';    File = 'telegram.svg';          Target = 92; Trim = $true  },
+    @{ Name = 'tiktok';      File = 'tiktok.svg';            Target = 88; Trim = $true  }
 )
 
 $cell = 96
@@ -42,7 +44,7 @@ foreach ($icon in $icons) {
 }
 
 $sheet = Join-Path $root 'brand-icons.png'
-& $magick montage @cells -tile 5x2 -geometry "${cell}x${cell}+0+0" -background none "PNG32:$sheet"
+& $magick montage @cells -tile 6x2 -geometry "${cell}x${cell}+0+0" -background none "PNG32:$sheet"
 if ($LASTEXITCODE -ne 0) { throw 'Failed to build sprite sheet.' }
 
 $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($sheet))
