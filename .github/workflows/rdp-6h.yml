@@ -223,13 +223,6 @@ jobs:
         continue-on-error: true
         run: ./scripts/setup-tools-hub.ps1
 
-      - name: Configure taskbar theme (best effort)
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
-        shell: pwsh
-        timeout-minutes: 20
-        continue-on-error: true
-        run: ./scripts/setup-taskbar.ps1
-
       - name: Sailuo Remote host setup
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && (inputs.sailuo || 'yes') != 'no' }}
         shell: pwsh

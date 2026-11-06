@@ -3159,7 +3159,7 @@ namespace SailuoTools
             page.Controls.Add(display);
 
             CardGroup automation = new CardGroup("Automation", "Taskbar and appearance", Theme.Green);
-            automation.AddCard(Card("Apply Liquid Glass taskbar", "Install or repair the Windhawk clear taskbar theme.",
+            automation.AddCard(Card("Apply Liquid Glass taskbar", "From inside this VM, install or repair the Windhawk clear taskbar theme.",
                 "\uE790", Theme.Green, delegate
                 {
                     RunTask("Applying the Liquid Glass taskbar theme...", @"
@@ -4183,7 +4183,6 @@ try {
   }
 } catch {}
 
-# Taskbar theme setup runs in its own bounded, best-effort workflow step so its
-# download and configuration output remains visible in the Actions log.
-Log 'Dashboard setup complete; taskbar theme runs in its own workflow step.'
+# Taskbar theme setup is launched on demand from the Dashboard's Automation card.
+Log 'Dashboard setup complete; apply the taskbar theme from the Dashboard inside the VM.'
 exit 0

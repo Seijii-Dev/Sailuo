@@ -207,7 +207,6 @@ Update-Status @{ win10 = [ordered]@{
 Log "SELESAI - win10 look=ok badge=$badgeStatus wallpaper=$wallStatus search=$searchStatus"
 try { Probe-Rdp 'akhir step' | Out-Null } catch {}
 
-# Taskbar setup runs in its own bounded, best-effort workflow step so download
-# and configuration progress is visible in the Actions log.
+# Taskbar setup is launched on demand from the Dashboard's Automation card.
 
 exit 0
