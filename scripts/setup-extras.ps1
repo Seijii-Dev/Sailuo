@@ -390,7 +390,7 @@ $adminTxt = $(if ($adminOk) { 'YES' } else { 'NO' })
 Log ("SELESAI - lightshot={0} wallpaper={1} admin={2}" -f $resLightshot, $resWall, $adminTxt)
 try { Probe-Rdp 'akhir step' | Out-Null } catch {}
 
-# Dashboard and taskbar setup run in their own workflow steps so their output
-# stays visible and slow best-effort work cannot block this extras step.
+# Dashboard setup runs in its own workflow step; taskbar setup is launched
+# on demand from the Dashboard's Automation card inside the VM.
 
 exit 0
