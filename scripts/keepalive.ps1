@@ -4,9 +4,6 @@
 #  1. Keeps TermService, UmRdpService, Audiosrv & listener 3389 alive
 #  2. Ensures Desktop shortcuts have unique names & icons (anti-swap)
 #  3. Automatically opens the SailuoRemote Dashboard on the user's first RDP login
-#  4. Runs a cross-session Auto-Checkpoint every 4 minutes to GitHub Release
-#     so Google logins and files in Downloads and Desktop stay safe
-#     even if the runner is forcibly stopped at any time.
 # ============================================================================
 
 $SailuoTag = 'Sailuo:keepalive'
@@ -28,11 +25,9 @@ function Sync-And-Heal-DesktopShortcuts {
 
     $dashExe      = 'C:\Sailuo\tools\SailuoDashboard.exe'
     $dashIco      = Join-Path $icoDir 'sailuo-dashboard.ico'
-    $persistIco   = Join-Path $icoDir 'persist-folder.ico'
-    $cloudSaveIco = Join-Path $icoDir 'cloud-save.ico'
-    $persistPs1   = Join-Path $PSScriptRoot 'persist-state.ps1'
+    $publicDesk   = 'C:\Users\Public\Desktop'
 
-    $allDesks = @("C:\Users\$u\Desktop", "C:\Users\Public\Desktop") + @(Get-AllUserProfileDirs $u | ForEach-Object { Join-Path $_ 'Desktop' }) | Select-Object -Unique
+    $allDesks = @("C:\Users\$u\Desktop", $publicDesk) + @(Get-AllUserProfileDirs $u | ForEach-Object { Join-Path $_ 'Desktop' }) | Select-Object -Unique
     foreach ($desk in $allDesks) {
       if (-not (Test-Path $desk)) {
         New-Item -ItemType Directory -Path $desk -Force -ErrorAction SilentlyContinue | Out-Null
@@ -44,43 +39,32 @@ function Sync-And-Heal-DesktopShortcuts {
         Remove-Item -LiteralPath (Join-Path $desk $oldItem) -Force -ErrorAction SilentlyContinue
       }
 
-      # 1. SailuoRemote Dashboard shortcut (blue-cyan 'XY DASHBOARD' icon)
-      if (Test-Path $dashExe) {
-        $lnkDash = Join-Path $desk 'SailuoRemote Dashboard.lnk'
+      # Exactly one dashboard shortcut: the shared Public desktop. Older copies
+      # on user desktops made the merged desktop show the icon twice.
+      Remove-Item -LiteralPath (Join-Path $desk 'SailuoRemote Dashboard.lnk') -Force -ErrorAction SilentlyContinue
+      if ($desk -ne $publicDesk) {
+        Remove-Item -LiteralPath (Join-Path $desk 'Sailuo Dashboard.lnk') -Force -ErrorAction SilentlyContinue
+      } elseif (Test-Path $dashExe) {
+        $lnkDash = Join-Path $desk 'Sailuo Dashboard.lnk'
         if (-not (Test-Path $lnkDash)) {
           $sc = $wsh.CreateShortcut($lnkDash)
           $sc.TargetPath = $dashExe
           $sc.WorkingDirectory = 'C:\Sailuo\tools'
-          $sc.Description = 'SailuoRemote Dashboard - System Management & Cloud Save Hub'
+          $sc.Description = 'Sailuo Dashboard - System Management & Tools'
           if (Test-Path $dashIco) { $sc.IconLocation = "$dashIco,0" }
           $sc.Save()
         }
       }
 
-      # 2. Permanent Folder (C:\Persist) shortcut (gold 'DIR PERSIST' icon)
-      $lnkPersist = Join-Path $desk 'Permanent Folder (Anti-Reset).lnk'
-      if (-not (Test-Path $lnkPersist)) {
-        $sc2 = $wsh.CreateShortcut($lnkPersist)
-        $sc2.TargetPath = 'C:\Persist'
-        $sc2.Description = 'Every file in this folder is saved automatically to the next RDP session'
-        if (Test-Path $persistIco) { $sc2.IconLocation = "$persistIco,0" }
-        else { $sc2.IconLocation = 'shell32.dll,43' }
-        $sc2.Save()
-      }
-
-      # 3. Save Session Data Now (Cloud Save) shortcut (sky-blue 'CLD SAVE' icon)
-      if (Test-Path $persistPs1) {
-        $lnkSave = Join-Path $desk 'Save Session Data Now (Cloud Save).lnk'
-        if (-not (Test-Path $lnkSave)) {
-          $sc3 = $wsh.CreateShortcut($lnkSave)
-          $sc3.TargetPath = 'powershell.exe'
-          $sc3.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$persistPs1`" -Checkpoint"
-          $sc3.WorkingDirectory = 'C:\Sailuo\scripts'
-          $sc3.Description = 'Instant backup of Browser Logins (Chrome/Edge), Downloads & Desktop to the Cloud'
-          if (Test-Path $cloudSaveIco) { $sc3.IconLocation = "$cloudSaveIco,0" }
-          else { $sc3.IconLocation = 'shell32.dll,167' }
-          $sc3.Save()
-        }
+      # Remove the retired save/restore session shortcuts from older sessions.
+      foreach ($retiredShortcut in @(
+        'Permanent Folder (Anti-Reset).lnk',
+        'Save Session Data Now (Cloud Save).lnk',
+        'Save Session.lnk',
+        'Restore Session.lnk',
+        'Restore Session Data.lnk'
+      )) {
+        Remove-Item -LiteralPath (Join-Path $desk $retiredShortcut) -Force -ErrorAction SilentlyContinue
       }
     }
   } catch {}
@@ -88,17 +72,22 @@ function Sync-And-Heal-DesktopShortcuts {
 
 Sync-And-Heal-DesktopShortcuts
 
+# Drop the retired save/restore session helpers if an older setup copied them
+# back. They are no longer part of Sailuo.
+foreach ($retiredScript in @('persist-state.ps1', 'restore-state.ps1', 'save-snapshot.ps1', 'install-state-sync.ps1')) {
+  Remove-Item -LiteralPath (Join-Path 'C:\Sailuo\scripts' $retiredScript) -Force -ErrorAction SilentlyContinue
+}
+Remove-Item -LiteralPath 'C:\Sailuo\tools\last-checkpoint-sig.txt' -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath 'C:\Sailuo\restore-work' -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath 'C:\Sailuo\state-work' -Recurse -Force -ErrorAction SilentlyContinue
+
 $i = 0
-# Set $lastCheckpointUtc back 2 minutes so the first checkpoint runs at minute 2 after the session becomes active!
-$lastCheckpointUtc = [DateTime]::UtcNow.AddMinutes(-2)
-$checkpointJob = $null
 $dashboardAutoOpened = $false
 
 while ([DateTime]::UtcNow -lt $exp) {
   Start-Sleep -Seconds 60
   $i++
-  $now = [DateTime]::UtcNow
-  $rem = [int][math]::Max(0, ($exp - $now).TotalMinutes)
+  $rem = [int][math]::Max(0, ($exp - [DateTime]::UtcNow).TotalMinutes)
 
   # 1. Ensure TermService, UmRdpService, & listener :3389 are always healthy
   try {
@@ -179,42 +168,6 @@ while ([DateTime]::UtcNow -lt $exp) {
     $listen = Get-RdpListenerState 3389
     Log "heartbeat #$i | $rem minutes left | RDP=$listen | tailscale=$tsIp"
   }
-
-  # 4. Every 4 minutes: run the cross-session Auto-Checkpoint in the background (non-blocking) to Release 'sailuo-state-latest'
-  if (($now - $lastCheckpointUtc).TotalMinutes -ge 4 -and $rem -gt 2) {
-    $canRun = $true
-    if ($checkpointJob) {
-      if ($checkpointJob.State -eq 'Running') {
-        $canRun = $false
-      } else {
-        Remove-Job -Job $checkpointJob -Force -ErrorAction SilentlyContinue
-        $checkpointJob = $null
-      }
-    }
-    if ($canRun) {
-      $lastCheckpointUtc = $now
-      try {
-        Log 'Running the 4-minute auto-checkpoint in the background (persist-state.ps1 -Checkpoint)...'
-        $persistPath = Join-Path $PSScriptRoot 'persist-state.ps1'
-        $checkpointJob = Start-Job -ScriptBlock {
-          param($p, $tok, $repo, $usr, $pwd)
-          try { [System.Threading.Thread]::CurrentThread.Priority = [System.Threading.ThreadPriority]::Lowest } catch {}
-          if ($tok)  { $env:GITHUB_TOKEN      = $tok }
-          if ($repo) { $env:GITHUB_REPOSITORY = $repo }
-          if ($usr)  { $env:RDP_USER          = $usr }
-          if ($pwd)  { $env:RDP_PASSWORD      = $pwd }
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Checkpoint 2>&1 | Out-Null
-        } -ArgumentList $persistPath, $env:GITHUB_TOKEN, $env:GITHUB_REPOSITORY, $env:RDP_USER, $env:RDP_PASSWORD
-      } catch {
-        Log "Auto-checkpoint warning: $($_.Exception.Message)"
-      }
-    }
-  }
-}
-
-if ($checkpointJob) {
-  try { Wait-Job -Job $checkpointJob -Timeout 25 | Out-Null } catch {}
-  Remove-Job -Job $checkpointJob -Force -ErrorAction SilentlyContinue
 }
 
 Log 'Session time completed safely - continuing to final storage & next session handoff.'

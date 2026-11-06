@@ -187,12 +187,6 @@ jobs:
         shell: pwsh
         run: ./scripts/setup-rdp.ps1
 
-      - name: Restore the previous session snapshot
-        if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
-        shell: pwsh
-        continue-on-error: true
-        run: ./scripts/restore-state.ps1
-
       - name: Optimize runner storage
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') && ((inputs.storage_boost || 'yes') != 'no' || (inputs.debloat || 'light') != 'none') }}
         shell: pwsh
@@ -223,7 +217,7 @@ jobs:
         continue-on-error: true
         run: ./scripts/setup-extras.ps1
 
-      - name: Build Sailuo Dashboard (control center + cloud save)
+      - name: Build Sailuo Dashboard (control center)
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         continue-on-error: true
@@ -251,26 +245,10 @@ jobs:
         continue-on-error: true
         run: ./scripts/publish-status.ps1
 
-      - name: Keep the session alive (keepalive + 15-minute autosave)
+      - name: Keep the session alive (keepalive)
         if: ${{ !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
         shell: pwsh
         run: ./scripts/keepalive.ps1
-
-      - name: Save the session (persist-state.ps1)
-        if: ${{ always() && !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
-        shell: pwsh
-        continue-on-error: true
-        run: ./scripts/persist-state.ps1
-
-      - name: Upload the session snapshot
-        if: ${{ always() && !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: sailuo-state
-          path: C:\Sailuo\persist\sailuo-state.zip
-          retention-days: 30
-          if-no-files-found: ignore
 
       - name: Finalize (stop the session and clear status)
         if: ${{ always() && !startsWith(inputs.runner || 'windows-2022', 'ubuntu') }}

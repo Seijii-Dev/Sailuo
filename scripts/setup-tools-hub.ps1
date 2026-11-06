@@ -5,12 +5,13 @@
 #  with the .NET Framework 4.x C# compiler bundled with Windows Server 2022/2025.
 #  The dashboard opens automatically the first time the user signs in to the
 #  RDP desktop and provides one-click control for:
-#    1. Overview  - cloud save/restore status, workspace shortcuts, maintenance
-#    2. Apps      - Chrome, Discord, VLC, 7-Zip, wallpaper, engine updates
-#    3. System    - display tuning, auto-save repair, diagnostics
+#    1. Overview  - workspace shortcuts, session status and maintenance
+#    2. Apps      - Chrome, Discord, Facebook, Instagram, Apple Music, Spotify,
+#                   VS Code, Antigravity IDE, OpenCode Desktop, wallpaper,
+#                   engine updates
+#    3. System    - display tuning, taskbar theme, diagnostics
 #
-#  It also registers the "Sailuo Cloud Save" scheduled task (every 4 minutes)
-#  and the dashboard auto-start entry.
+#  It also registers the dashboard auto-start entry.
 # ============================================================================
 
 $XyTag = 'Sailuo:dashboard'
@@ -22,9 +23,9 @@ $u = if ($env:RDP_USER) { $env:RDP_USER.Trim() } else { $cfg.rdp_user }
 $toolsDir = 'C:\Sailuo\tools'
 New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
 
-# The dashboard starts cloud save/restore helpers from C:\Sailuo\scripts. The
-# Actions checkout (D:\a\...) disappears when the session ends, so keep a
-# durable copy next to the dashboard and refresh it on every setup run.
+# The dashboard starts helper scripts from C:\Sailuo\scripts. The Actions
+# checkout (D:\a\...) disappears when the session ends, so keep a durable copy
+# next to the dashboard and refresh it on every setup run.
 $scriptsDir = 'C:\Sailuo\scripts'
 New-Item -ItemType Directory -Path $scriptsDir -Force -ErrorAction SilentlyContinue | Out-Null
 if (Test-Path $PSScriptRoot) {
@@ -37,8 +38,8 @@ if (Test-Path $repoAssets) {
   Copy-Item -Path (Join-Path $repoAssets '*') -Destination $assetsDir -Force -ErrorAction SilentlyContinue
 }
 
-# Persist the session context so the dashboard and the scheduled task can run
-# cloud save/restore without inheriting the setup process environment.
+# Persist the session context so the dashboard can read GitHub Actions logs
+# without inheriting the setup process environment.
 $envFile = Join-Path $toolsDir 'session-env.json'
 @{
   RDP_USER          = $u
@@ -95,7 +96,7 @@ using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("Sailuo Dashboard")]
 [assembly: System.Reflection.AssemblyProduct("Sailuo")]
-[assembly: System.Reflection.AssemblyDescription("Sailuo control center for cloud save, applications and system tools.")]
+[assembly: System.Reflection.AssemblyDescription("Sailuo control center for applications and system tools.")]
 
 namespace SailuoTools
 {
@@ -1575,9 +1576,9 @@ namespace SailuoTools
     }
 
     /// <summary>
-    /// Cloud-backup hero: state, freshness, backup scope and the two primary
-    /// actions. Buttons sit beside the text when there is room and wrap below
-    /// it when the window is narrow.
+    /// Workspace hero: current session state, where persistent files live and
+    /// the two primary shortcuts. Buttons sit beside the text when there is
+    /// room and wrap below it when the window is narrow.
     /// </summary>
     internal sealed class HeroSection : Control, ISection
     {
@@ -1587,8 +1588,8 @@ namespace SailuoTools
         private readonly Label _scope;
         private readonly Dot _dot;
 
-        public readonly PillButton SaveButton;
-        public readonly PillButton RestoreButton;
+        public readonly PillButton PrimaryButton;
+        public readonly PillButton SecondaryButton;
 
         public HeroSection()
         {
@@ -1598,8 +1599,8 @@ namespace SailuoTools
             TabStop = false;
             AccessibleRole = AccessibleRole.Grouping;
 
-            _caption = MakeLabel("CLOUD BACKUP", UiFonts.Micro, Theme.TextMuted);
-            _state = MakeLabel("No snapshot yet", UiFonts.Hero, Theme.Text);
+            _caption = MakeLabel("SESSION WORKSPACE", UiFonts.Micro, Theme.TextMuted);
+            _state = MakeLabel("This session is ready", UiFonts.Hero, Theme.Text);
             _meta = MakeLabel(string.Empty, UiFonts.Body, Theme.TextSoft);
             _scope = MakeLabel(string.Empty, UiFonts.Small, Theme.TextMuted);
 
@@ -1607,26 +1608,26 @@ namespace SailuoTools
             _dot.Size = new Size(Ui.S(8), Ui.S(8));
             _dot.BackColor = Theme.Surface;
 
-            SaveButton = new PillButton();
-            SaveButton.Text = "Save now";
-            SaveButton.Variant = ButtonVariant.Primary;
-            SaveButton.Accent = Theme.Green;
-            SaveButton.AccessibleName = "Save session now";
-            SaveButton.AccessibleDescription = "Creates a cloud checkpoint of this session (Ctrl+S).";
+            PrimaryButton = new PillButton();
+            PrimaryButton.Text = "Open permanent folder";
+            PrimaryButton.Variant = ButtonVariant.Primary;
+            PrimaryButton.Accent = Theme.Green;
+            PrimaryButton.AccessibleName = "Open the permanent folder";
+            PrimaryButton.AccessibleDescription = "Opens C:\\Persist in File Explorer.";
 
-            RestoreButton = new PillButton();
-            RestoreButton.Text = "Restore";
-            RestoreButton.Variant = ButtonVariant.Secondary;
-            RestoreButton.AccessibleName = "Restore from cloud";
-            RestoreButton.AccessibleDescription = "Replaces this session with the latest snapshot (Ctrl+R).";
+            SecondaryButton = new PillButton();
+            SecondaryButton.Text = "Open Downloads";
+            SecondaryButton.Variant = ButtonVariant.Secondary;
+            SecondaryButton.AccessibleName = "Open Downloads";
+            SecondaryButton.AccessibleDescription = "Opens the Downloads folder in File Explorer.";
 
             Controls.Add(_caption);
             Controls.Add(_state);
             Controls.Add(_meta);
             Controls.Add(_scope);
             Controls.Add(_dot);
-            Controls.Add(SaveButton);
-            Controls.Add(RestoreButton);
+            Controls.Add(PrimaryButton);
+            Controls.Add(SecondaryButton);
         }
 
         private Label MakeLabel(string text, Font font, Color color)
@@ -1647,7 +1648,7 @@ namespace SailuoTools
             _state.Text = text ?? string.Empty;
             _state.ForeColor = color;
             _dot.SetColor(color);
-            AccessibleName = "Cloud backup: " + (text ?? string.Empty);
+            AccessibleName = "Session workspace: " + (text ?? string.Empty);
             Invalidate();
         }
 
@@ -1668,9 +1669,9 @@ namespace SailuoTools
             int width = ClientSize.Width;
             int height = ClientSize.Height;
             int buttonHeight = Ui.S(Ui.ButtonHeight);
-            int saveWidth = SaveButton.Width;
-            int restoreWidth = RestoreButton.Width;
-            int buttonsWidth = saveWidth + Ui.S(Ui.Space3) + restoreWidth;
+            int primaryWidth = PrimaryButton.Width;
+            int secondaryWidth = SecondaryButton.Width;
+            int buttonsWidth = primaryWidth + Ui.S(Ui.Space3) + secondaryWidth;
             bool wide = Wide(width);
 
             int textWidth = wide
@@ -1686,14 +1687,14 @@ namespace SailuoTools
             if (wide)
             {
                 int buttonY = (height - buttonHeight) / 2;
-                SaveButton.SetBounds(width - pad - buttonsWidth, buttonY, saveWidth, buttonHeight);
-                RestoreButton.SetBounds(width - pad - restoreWidth, buttonY, restoreWidth, buttonHeight);
+                PrimaryButton.SetBounds(width - pad - buttonsWidth, buttonY, primaryWidth, buttonHeight);
+                SecondaryButton.SetBounds(width - pad - secondaryWidth, buttonY, secondaryWidth, buttonHeight);
             }
             else
             {
                 int buttonY = height - pad - buttonHeight;
-                SaveButton.SetBounds(pad, buttonY, saveWidth, buttonHeight);
-                RestoreButton.SetBounds(pad + saveWidth + Ui.S(Ui.Space3), buttonY, restoreWidth, buttonHeight);
+                PrimaryButton.SetBounds(pad, buttonY, primaryWidth, buttonHeight);
+                SecondaryButton.SetBounds(pad + primaryWidth + Ui.S(Ui.Space3), buttonY, secondaryWidth, buttonHeight);
             }
         }
 
@@ -1713,7 +1714,7 @@ namespace SailuoTools
         }
     }
 
-    /// <summary>Three responsive status tiles: storage, uptime and last snapshot.</summary>
+    /// <summary>Three responsive status tiles: storage, uptime and taskbar theme.</summary>
     internal sealed class StatStrip : Control, ISection
     {
         private const int TileCount = 3;
@@ -2023,9 +2024,9 @@ namespace SailuoTools
     }
 
     /// <summary>
-    /// Bottom activity panel: live status line, auto-save countdown and the
-    /// scrollable activity log. The log band can be collapsed to give the page
-    /// more room on short windows.
+    /// Bottom activity panel: live status line and the read-only, scrollable
+    /// activity log. The log band can be collapsed to give the page more room
+    /// on short windows.
     /// </summary>
     internal sealed class ActivityFooter : Panel
     {
@@ -2035,7 +2036,6 @@ namespace SailuoTools
         private readonly Dot _dot;
         private readonly Label _status;
         private readonly Label _detail;
-        private readonly Label _countdown;
         private readonly Label _logCaption;
         private readonly PillButton _toggle;
         private readonly PillButton _copy;
@@ -2073,14 +2073,6 @@ namespace SailuoTools
             _detail.BackColor = Theme.BgDeep;
             _detail.AutoSize = false;
             _detail.AutoEllipsis = true;
-
-            _countdown = new Label();
-            _countdown.Text = "Auto-save in --:--";
-            _countdown.Font = UiFonts.Small;
-            _countdown.ForeColor = Theme.TextSoft;
-            _countdown.BackColor = Theme.BgDeep;
-            _countdown.AutoSize = false;
-            _countdown.TextAlign = ContentAlignment.MiddleRight;
 
             _toggle = new PillButton();
             _toggle.Variant = ButtonVariant.Ghost;
@@ -2135,7 +2127,6 @@ namespace SailuoTools
             Controls.Add(_dot);
             Controls.Add(_status);
             Controls.Add(_detail);
-            Controls.Add(_countdown);
             Controls.Add(_toggle);
             Controls.Add(_logCaption);
             Controls.Add(_copy);
@@ -2160,12 +2151,6 @@ namespace SailuoTools
             _status.Text = text ?? string.Empty;
             _detail.Text = detail ?? string.Empty;
             _dot.SetColor(color);
-            Invalidate();
-        }
-
-        public void SetCountdown(string text)
-        {
-            _countdown.Text = text ?? string.Empty;
             Invalidate();
         }
 
@@ -2195,16 +2180,10 @@ namespace SailuoTools
 
             int toggleSize = Ui.S(28);
             _toggle.SetBounds(width - left - toggleSize, (statusBand - toggleSize) / 2, toggleSize, toggleSize);
-
-            // Measure against the longest countdown string so the label never clips.
-            Size countdownSize = TextRenderer.MeasureText("Auto-save in 00:00", _countdown.Font);
-            int countdownWidth = Math.Max(Ui.S(96), countdownSize.Width + Ui.S(4));
-            int countdownRight = _toggle.Left - Ui.S(Ui.Space2);
-            _countdown.SetBounds(Math.Max(left, countdownRight - countdownWidth), Ui.S(8), countdownWidth, Ui.S(20));
             Progress.SetBounds(0, statusBand - Progress.Height, width, Progress.Height);
 
             int statusLeft = left + Ui.S(16);
-            int statusWidth = Math.Max(Ui.S(80), _countdown.Left - statusLeft - Ui.S(Ui.Space4));
+            int statusWidth = Math.Max(Ui.S(80), _toggle.Left - statusLeft - Ui.S(Ui.Space4));
             _dot.SetBounds(left, statusBand / 2 - _dot.Height / 2, _dot.Width, _dot.Height);
             _status.SetBounds(statusLeft, Ui.S(8), statusWidth, Ui.S(20));
             _detail.SetBounds(statusLeft, Ui.S(29), Math.Max(Ui.S(80), statusWidth + Ui.S(0)), Ui.S(16));
@@ -2313,17 +2292,17 @@ namespace SailuoTools
 
     /// <summary>
     /// Left navigation. Expands to a labelled sidebar on wide windows and
-    /// collapses to an icon rail on narrow ones; the last-save summary is only
+    /// collapses to an icon rail on narrow ones; the workspace summary is only
     /// shown when the labels fit.
     /// </summary>
     internal sealed class SidebarPanel : Panel
     {
         public readonly NavItem[] Items = new NavItem[3];
 
-        private readonly SurfacePanel _saveCard;
-        private readonly Label _saveCaption;
-        private readonly Label _saveValue;
-        private readonly Label _saveMeta;
+        private readonly SurfacePanel _workspaceCard;
+        private readonly Label _workspaceCaption;
+        private readonly Label _workspaceValue;
+        private readonly Label _workspaceMeta;
         private readonly Label _version;
         private bool _rail;
 
@@ -2353,19 +2332,19 @@ namespace SailuoTools
                 Controls.Add(item);
             }
 
-            _saveCard = new SurfacePanel();
-            _saveCard.SurfaceColor = Theme.SurfaceLo;
-            _saveCard.BorderColor = Theme.ChromeLine;
-            _saveCard.Radius = Ui.RadiusMd;
-            _saveCard.BackColor = Theme.BgDeep;
+            _workspaceCard = new SurfacePanel();
+            _workspaceCard.SurfaceColor = Theme.SurfaceLo;
+            _workspaceCard.BorderColor = Theme.ChromeLine;
+            _workspaceCard.Radius = Ui.RadiusMd;
+            _workspaceCard.BackColor = Theme.BgDeep;
 
-            _saveCaption = MakeCardLabel("LAST CLOUD SAVE", UiFonts.Micro, Theme.TextMuted);
-            _saveValue = MakeCardLabel("--:--", UiFonts.Value, Theme.Text);
-            _saveMeta = MakeCardLabel("No snapshot yet", UiFonts.Small, Theme.TextMuted);
-            _saveCard.Controls.Add(_saveCaption);
-            _saveCard.Controls.Add(_saveValue);
-            _saveCard.Controls.Add(_saveMeta);
-            Controls.Add(_saveCard);
+            _workspaceCaption = MakeCardLabel("WORKSPACE", UiFonts.Micro, Theme.TextMuted);
+            _workspaceValue = MakeCardLabel("C:\\Persist", UiFonts.Value, Theme.Text);
+            _workspaceMeta = MakeCardLabel("Permanent files folder", UiFonts.Small, Theme.TextMuted);
+            _workspaceCard.Controls.Add(_workspaceCaption);
+            _workspaceCard.Controls.Add(_workspaceValue);
+            _workspaceCard.Controls.Add(_workspaceMeta);
+            Controls.Add(_workspaceCard);
 
             _version = new Label();
             _version.Text = "Dashboard 2.0";
@@ -2402,25 +2381,18 @@ namespace SailuoTools
             for (int index = 0; index < Items.Length; index++) { Items[index].Selected = index == page; }
         }
 
-        public void SetLastSave(string value, string meta)
-        {
-            _saveValue.Text = value ?? string.Empty;
-            _saveMeta.Text = meta ?? string.Empty;
-            _saveCaption.AccessibleName = "Last cloud save " + (value ?? string.Empty) + ", " + (meta ?? string.Empty);
-        }
-
         public bool Rail { get { return _rail; } }
 
         private void UpdateMode()
         {
-            if (_saveCard == null || _version == null) { return; }
+            if (_workspaceCard == null || _version == null) { return; }
             _rail = Width < Ui.S(160);
             foreach (NavItem item in Items)
             {
                 item.Rail = _rail;
                 item.Height = Ui.S(_rail ? 48 : Ui.NavHeight);
             }
-            _saveCard.Visible = !_rail;
+            _workspaceCard.Visible = !_rail;
             _version.Visible = !_rail;
             PerformLayout();
         }
@@ -2434,7 +2406,7 @@ namespace SailuoTools
         protected override void OnLayout(LayoutEventArgs e)
         {
             base.OnLayout(e);
-            if (_saveCard == null || _version == null) { return; }
+            if (_workspaceCard == null || _version == null) { return; }
             int padding = Ui.S(Ui.Space3);
             int width = ClientSize.Width;
             int height = ClientSize.Height;
@@ -2454,11 +2426,11 @@ namespace SailuoTools
                 int cardHeight = Ui.S(112);
                 int versionHeight = Ui.S(18);
                 int cardBottom = height - padding - versionHeight - Ui.S(Ui.Space2);
-                _saveCard.SetBounds(padding, cardBottom - cardHeight, Math.Max(Ui.S(80), width - padding * 2), cardHeight);
+                _workspaceCard.SetBounds(padding, cardBottom - cardHeight, Math.Max(Ui.S(80), width - padding * 2), cardHeight);
                 int innerPad = Ui.S(Ui.Space3);
-                _saveCaption.SetBounds(innerPad, Ui.S(12), _saveCard.Width - innerPad * 2, Ui.S(13));
-                _saveValue.SetBounds(innerPad, Ui.S(28), _saveCard.Width - innerPad * 2, Ui.S(26));
-                _saveMeta.SetBounds(innerPad, Ui.S(58), _saveCard.Width - innerPad * 2, Ui.S(16));
+                _workspaceCaption.SetBounds(innerPad, Ui.S(12), _workspaceCard.Width - innerPad * 2, Ui.S(13));
+                _workspaceValue.SetBounds(innerPad, Ui.S(28), _workspaceCard.Width - innerPad * 2, Ui.S(26));
+                _workspaceMeta.SetBounds(innerPad, Ui.S(58), _workspaceCard.Width - innerPad * 2, Ui.S(16));
                 _version.SetBounds(padding, height - padding - versionHeight, Math.Max(Ui.S(80), width - padding * 2), versionHeight);
             }
         }
@@ -2560,7 +2532,7 @@ namespace SailuoTools
         private readonly LogoMark _logo;
         private readonly Label _brand;
         private readonly Label _brandSub;
-        private readonly Chip _cloud;
+        private readonly Chip _session;
         private readonly Chip _user;
         private bool _showUser = true;
 
@@ -2590,8 +2562,8 @@ namespace SailuoTools
             _brandSub.AutoSize = false;
             _brandSub.UseMnemonic = false;
 
-            _cloud = new Chip("Cloud idle", Theme.Amber);
-            _cloud.BackColor = Theme.BgDeep;
+            _session = new Chip("Session active", Theme.Green);
+            _session.BackColor = Theme.BgDeep;
 
             _user = new Chip("User: " + Environment.UserName, Theme.Slate);
             _user.BackColor = Theme.BgDeep;
@@ -2599,16 +2571,8 @@ namespace SailuoTools
             Controls.Add(_logo);
             Controls.Add(_brand);
             Controls.Add(_brandSub);
-            Controls.Add(_cloud);
+            Controls.Add(_session);
             Controls.Add(_user);
-        }
-
-        public void SetCloud(string text, Color color)
-        {
-            _cloud.SetLabel(text);
-            _cloud.DotColor = color;
-            _cloud.Invalidate();
-            PerformLayout();
         }
 
         public void SetUser(string name)
@@ -2647,7 +2611,7 @@ namespace SailuoTools
                 _user.SetBounds(right - _user.Width, (height - _user.Height) / 2, _user.Width, _user.Height);
                 right = _user.Left - gap;
             }
-            _cloud.SetBounds(right - _cloud.Width, (height - _cloud.Height) / 2, _cloud.Width, _cloud.Height);
+            _session.SetBounds(right - _session.Width, (height - _session.Height) / 2, _session.Width, _session.Height);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -2665,11 +2629,6 @@ namespace SailuoTools
     // ========================================================================
     public class MainForm : Form
     {
-        private const int AutoSaveMinutes = 4;
-        private const string CloudStatusPath = @"C:\Persist\System\last-cloud-save.json";
-        private const string OperationStatusPath = @"C:\Persist\System\last-operation.json";
-        private const string SyncLockPath = @"C:\Persist\System\sync.lock";
-
         // Chrome
         private TableLayoutPanel _root;
         private TableLayoutPanel _body;
@@ -2692,14 +2651,7 @@ namespace SailuoTools
         // State
         private readonly List<Control> _busyControls = new List<Control>();
         private System.Windows.Forms.Timer _clock;
-        private DateTime _lastSaveUtc = DateTime.MinValue;
-        private DateTime _lastCheckUtc = DateTime.MinValue;
-        private DateTime _nextCheckUtc;
-        private int _lastSaveFiles;
-        private double _lastSaveMb;
         private bool _running;
-        private bool _syncBusy;
-        private bool _backgroundStatus;
         private int _ticks;
         private string _runningLabel = string.Empty;
         private int _initialPage;
@@ -2736,18 +2688,15 @@ namespace SailuoTools
             BuildUi();
             ApplyChrome();
 
-            RefreshCloudStatus(false);
             RefreshSystemInfo();
             SetStatus("Ready", Theme.Green, "Choose an action below to get started.");
-            AppendLog("Dashboard started. Sign-in data is backed up automatically every " + AutoSaveMinutes + " minutes.", LogKind.Muted);
+            AppendLog("Dashboard started. Session tools and shortcuts are ready.", LogKind.Muted);
 
             KeyDown += OnFormKeyDown;
-            _nextCheckUtc = DateTime.UtcNow.AddSeconds(15);
             _clock = new System.Windows.Forms.Timer();
             _clock.Interval = 1000;
             _clock.Tick += OnClock;
             _clock.Start();
-            UpdateCountdown();
 
             ShowPage(_initialPage, false);
         }
@@ -2756,7 +2705,6 @@ namespace SailuoTools
         {
             base.OnShown(e);
             _loadedShown = true;
-            ThreadPool.QueueUserWorkItem(delegate { EnsureSyncTask(); });
             if (_currentPage == 0) { LoadGitHubRunsOnce(); }
             // Keep keyboard focus on the current page so the focus ring matches the selection.
             _sidebar.Items[_currentPage].Focus();
@@ -2921,8 +2869,8 @@ namespace SailuoTools
             _footer.CollapseToggled += delegate { ApplyChrome(); };
             _root.Controls.Add(_footer, 0, 2);
 
-            _tips.SetToolTip(_hero.SaveButton, "Create a cloud checkpoint now (Ctrl+S)");
-            _tips.SetToolTip(_hero.RestoreButton, "Replace this session with the latest snapshot (Ctrl+R)");
+            _tips.SetToolTip(_hero.PrimaryButton, "Open the permanent folder (C:\\Persist)");
+            _tips.SetToolTip(_hero.SecondaryButton, "Open the Downloads folder");
             _tips.SetToolTip(_footer.Log, "Activity history (Ctrl+Shift+L toggles this panel)");
             _tips.SetToolTip(_sidebar.Items[0], "Overview (Ctrl+1)");
             _tips.SetToolTip(_sidebar.Items[1], "Applications (Ctrl+2)");
@@ -2945,15 +2893,16 @@ namespace SailuoTools
             PageView page = NewPage();
 
             _hero = new HeroSection();
-            _hero.SetScope("Browsers \u00B7 Desktop \u00B7 Documents \u00B7 Downloads \u00B7 C:\\Persist");
-            _hero.SaveButton.Click += delegate { StartCheckpoint(true); };
-            _hero.RestoreButton.Click += delegate { ConfirmRestore(); };
+            _hero.SetMeta("Your files stay on this machine. Keep what you need in the permanent folder below.");
+            _hero.SetScope("C:\\Persist \u00B7 Downloads \u00B7 Desktop \u00B7 Documents");
+            _hero.PrimaryButton.Click += delegate { OpenPersistFolder(); };
+            _hero.SecondaryButton.Click += delegate { OpenDownloadsFolder(); };
             page.Controls.Add(_hero);
 
             _stats = new StatStrip();
             _stats.SetTile(0, "STORAGE", "-- GB free", "Checking the C: drive...", -1f);
             _stats.SetTile(1, "SYSTEM UPTIME", "--", "Waiting for the session clock", -1f);
-            _stats.SetTile(2, "LAST SNAPSHOT", "--:--", "No snapshot yet", -1f);
+            _stats.SetTile(2, "TASKBAR THEME", "--", "Checking the Windhawk mod", -1f);
             page.Controls.Add(_stats);
 
             _github = new GitHubSection();
@@ -2967,13 +2916,8 @@ namespace SailuoTools
             };
 
             CardGroup quick = new CardGroup("Quick actions", "Everyday shortcuts", Theme.Blue);
-            quick.AddCard(Card("Open permanent folder", "Persistent files included in every cloud backup.",
-                "\uE8B7", Theme.Blue, delegate
-                {
-                    Directory.CreateDirectory(@"C:\Persist");
-                    Process.Start("explorer.exe", @"C:\Persist");
-                    AppendLog("Opened C:\\Persist.", LogKind.Info);
-                }));
+            quick.AddCard(Card("Open permanent folder", "Files kept on this machine in C:\\Persist.",
+                "\uE8B7", Theme.Blue, delegate { OpenPersistFolder(); }));
             quick.AddCard(Card("Performance boost", "Raw mouse input, audio refresh, lower latency.",
                 "\uE945", Theme.Amber, delegate
                 {
@@ -2988,14 +2932,8 @@ namespace SailuoTools
                         "User and Windows temporary files are deleted and cached memory is released. Open files are not affected.",
                         "Clear now", Theme.Amber, CleanTemporaryFiles);
                 }));
-            quick.AddCard(Card("Open Downloads", "Open the Downloads folder included in your backup.",
-                "\uE838", Theme.Cyan, delegate
-                {
-                    string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-                    Directory.CreateDirectory(path);
-                    Process.Start("explorer.exe", path);
-                    AppendLog("Opened the Downloads folder.", LogKind.Info);
-                }));
+            quick.AddCard(Card("Open Downloads", "Open the Downloads folder in File Explorer.",
+                "\uE838", Theme.Cyan, delegate { OpenDownloadsFolder(); }));
             quick.AddCard(Card("Sharpen text", "Enable ClearType font smoothing for sharper text on this display.",
                 "\uE8D2", Theme.Violet, delegate
                 {
@@ -3009,6 +2947,35 @@ namespace SailuoTools
             page.Controls.Add(_github);
 
             return page;
+        }
+
+        private void OpenPersistFolder()
+        {
+            try
+            {
+                Directory.CreateDirectory(@"C:\Persist");
+                Process.Start("explorer.exe", @"C:\Persist");
+                AppendLog("Opened C:\\Persist.", LogKind.Info);
+            }
+            catch (Exception ex)
+            {
+                AppendLog("Could not open C:\\Persist: " + ex.Message, LogKind.Warn);
+            }
+        }
+
+        private void OpenDownloadsFolder()
+        {
+            try
+            {
+                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                Directory.CreateDirectory(path);
+                Process.Start("explorer.exe", path);
+                AppendLog("Opened the Downloads folder.", LogKind.Info);
+            }
+            catch (Exception ex)
+            {
+                AppendLog("Could not open Downloads: " + ex.Message, LogKind.Warn);
+            }
         }
 
         private void ApplyPerformanceBoost(object sender, EventArgs e)
@@ -3051,20 +3018,69 @@ namespace SailuoTools
                         Write-Host 'Google Chrome is ready to use.'
                     ");
                 }));
-            essentials.AddCard(Card("Discord, VLC and 7-Zip", "Communication, media playback and archive tools in one step.",
-                "\uE714", Theme.Violet, delegate
+            essentials.AddCard(Card("Install Discord", "Voice, video and text chat for your communities.",
+                "\uE8BD", Theme.Violet, delegate
                 {
-                    RunTask("Installing Discord, VLC and 7-Zip...", @"
-                        & winget install --id Discord.Discord --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-                        & winget install --id VideoLAN.VLC --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-                        & winget install --id 7zip.7zip --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-                        Write-Host 'Discord, VLC and 7-Zip are ready to use.'
+                    RunTask("Installing Discord...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'discord'
                     ");
                 }));
             page.Controls.Add(essentials);
 
+            CardGroup apps = new CardGroup("Apps", "Install one at a time", Theme.Cyan);
+            apps.AddCard(Card("Facebook", "Installs the Facebook app with its own window and desktop shortcut.",
+                "\uE8D4", Theme.Blue, delegate
+                {
+                    RunTask("Installing Facebook...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'facebook'
+                    ");
+                }));
+            apps.AddCard(Card("Instagram", "Installs the Instagram app from the Microsoft Store.",
+                "\uE722", Theme.Violet, delegate
+                {
+                    RunTask("Installing Instagram...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'instagram'
+                    ");
+                }));
+            apps.AddCard(Card("Apple Music", "Installs the Apple Music app for Windows.",
+                "\uE90B", Theme.Red, delegate
+                {
+                    RunTask("Installing Apple Music...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'apple-music'
+                    ");
+                }));
+            apps.AddCard(Card("Spotify", "Installs the Spotify desktop player.",
+                "\uE768", Theme.Green, delegate
+                {
+                    RunTask("Installing Spotify...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'spotify'
+                    ");
+                }));
+            apps.AddCard(Card("Visual Studio Code", "Installs the standalone VS Code editor.",
+                "\uE943", Theme.Blue, delegate
+                {
+                    RunTask("Installing Visual Studio Code...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'vscode'
+                    ");
+                }));
+            apps.AddCard(Card("Antigravity IDE", "Installs Google's standalone Antigravity IDE.",
+                "\uE945", Theme.Amber, delegate
+                {
+                    RunTask("Installing Antigravity IDE...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'antigravity'
+                    ");
+                }));
+            apps.AddCard(Card("OpenCode Desktop", "Installs the OpenCode desktop application.",
+                "\uE756", Theme.Cyan, delegate
+                {
+                    RunTask("Installing OpenCode Desktop...", @"
+                        & 'C:\Sailuo\scripts\install-app.ps1' -App 'opencode'
+                    ");
+                }));
+            page.Controls.Add(apps);
+
             CardGroup personalize = new CardGroup("Personalization", "Look and feel", Theme.Cyan);
-            personalize.AddCard(Card("Change desktop wallpaper", "Pick an image; it is applied now and restored with your next session.",
+            personalize.AddCard(Card("Change desktop wallpaper", "Pick an image and apply it to this desktop now.",
                 "\uE91B", Theme.Cyan, delegate { ChooseWallpaper(); }));
             page.Controls.Add(personalize);
 
@@ -3116,13 +3132,19 @@ namespace SailuoTools
                 }));
             page.Controls.Add(display);
 
-            CardGroup automation = new CardGroup("Automation", "Scheduling and sync", Theme.Green);
-            automation.AddCard(Card("Repair auto-save schedule", "Re-register the 4-minute cloud save task if it is missing or disabled.",
-                "\uE90F", Theme.Green, delegate
+            CardGroup automation = new CardGroup("Automation", "Taskbar and appearance", Theme.Green);
+            automation.AddCard(Card("Apply Liquid Glass taskbar", "Install or repair the Windhawk clear taskbar theme.",
+                "\uE790", Theme.Green, delegate
                 {
-                    RunTask("Repairing the auto-save schedule...", @"
-                        & 'C:\Sailuo\scripts\install-state-sync.ps1'
-                    ", delegate { ThreadPool.QueueUserWorkItem(delegate { EnsureSyncTask(); }); });
+                    RunTask("Applying the Liquid Glass taskbar theme...", @"
+                        $setup = 'C:\Sailuo\scripts\setup-taskbar.ps1'
+                        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+                        if ($isAdmin) {
+                            & $setup
+                        } else {
+                            Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File C:\Sailuo\scripts\setup-taskbar.ps1'
+                        }
+                    ", delegate { RefreshSystemInfo(); });
                 }));
             page.Controls.Add(automation);
 
@@ -3249,7 +3271,7 @@ namespace SailuoTools
 
             if (index == 0)
             {
-                _pageHeader.SetPage("Overview", "Cloud backup, workspace shortcuts and quick maintenance.");
+                _pageHeader.SetPage("Overview", "Session workspace, shortcuts and quick maintenance.");
             }
             else if (index == 1)
             {
@@ -3257,7 +3279,7 @@ namespace SailuoTools
             }
             else
             {
-                _pageHeader.SetPage("System", "Display tuning, scheduling repair and diagnostics.");
+                _pageHeader.SetPage("System", "Display tuning, taskbar theme and diagnostics.");
             }
 
             PageView active = ActivePage;
@@ -3278,12 +3300,10 @@ namespace SailuoTools
                 ApplyChrome();
                 e.SuppressKeyPress = true;
             }
-            else if (e.Control && e.KeyCode == Keys.S) { StartCheckpoint(true); e.SuppressKeyPress = true; }
-            else if (e.Control && e.KeyCode == Keys.R) { ConfirmRestore(); e.SuppressKeyPress = true; }
             else if (e.Control && e.KeyCode == Keys.D1) { ShowPage(0, true); e.SuppressKeyPress = true; }
             else if (e.Control && e.KeyCode == Keys.D2) { ShowPage(1, true); e.SuppressKeyPress = true; }
             else if (e.Control && e.KeyCode == Keys.D3) { ShowPage(2, true); e.SuppressKeyPress = true; }
-            else if (e.KeyCode == Keys.F5) { RefreshCloudStatus(true); RefreshSystemInfo(); if (_currentPage == 0) { LoadGitHubRunsOnce(); } e.SuppressKeyPress = true; }
+            else if (e.KeyCode == Keys.F5) { RefreshSystemInfo(); if (_currentPage == 0) { LoadGitHubRunsOnce(); } e.SuppressKeyPress = true; }
         }
 
         // ------------------------------------------------------------------
@@ -3454,325 +3474,17 @@ namespace SailuoTools
             {
                 control.Enabled = !busy;
             }
-            _hero.SaveButton.Enabled = !busy;
-            _hero.RestoreButton.Enabled = !busy;
             _footer.Progress.Visible = busy;
             _footer.Progress.Active = busy;
         }
 
         // ------------------------------------------------------------------
-        //  Clock / cloud status
+        //  Clock and system status
         // ------------------------------------------------------------------
         private void OnClock(object sender, EventArgs e)
         {
             _ticks++;
-            bool wasBusy = _syncBusy;
-            _syncBusy = SyncInProgress();
-            UpdateCountdown();
-            if (_syncBusy != wasBusy || _ticks % 15 == 0) { RefreshCloudStatus(false); }
             if (_ticks % 30 == 0) { RefreshSystemInfo(); }
-
-            if (_syncBusy != wasBusy && !_running)
-            {
-                if (_syncBusy)
-                {
-                    SetStatus("Saving", Theme.Blue, "A background cloud save is in progress.");
-                    _backgroundStatus = true;
-                }
-                else if (_backgroundStatus)
-                {
-                    _backgroundStatus = false;
-                    SetStatus("Ready", Theme.Green, "Choose an action below to get started.");
-                }
-            }
-
-            if (!_running && !_syncBusy && DateTime.UtcNow >= _nextCheckUtc)
-            {
-                _nextCheckUtc = DateTime.UtcNow.AddSeconds(30);
-                DateTime freshUtc = _lastSaveUtc > _lastCheckUtc ? _lastSaveUtc : _lastCheckUtc;
-                bool stale = freshUtc == DateTime.MinValue ||
-                             (DateTime.UtcNow - freshUtc).TotalMinutes >= (AutoSaveMinutes + 1.5);
-                if (stale) { StartCheckpoint(false); }
-            }
-        }
-
-        private bool SyncInProgress()
-        {
-            try
-            {
-                if (!File.Exists(SyncLockPath)) { return false; }
-                string raw = File.ReadAllText(SyncLockPath);
-
-                Match started = Regex.Match(raw, "\"started_utc\"\\s*:\\s*\"([^\"]+)\"");
-                DateTime startedUtc;
-                if (started.Success && DateTime.TryParse(started.Groups[1].Value, CultureInfo.InvariantCulture,
-                        DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out startedUtc))
-                {
-                    if ((DateTime.UtcNow - startedUtc).TotalMinutes > 10) { return false; }
-                }
-
-                Match pidMatch = Regex.Match(raw, "\"pid\"\\s*:\\s*(\\d+)");
-                if (pidMatch.Success)
-                {
-                    int pid;
-                    if (int.TryParse(pidMatch.Groups[1].Value, out pid))
-                    {
-                        try
-                        {
-                            using (Process process = Process.GetProcessById(pid)) { return !process.HasExited; }
-                        }
-                        catch { return false; }
-                    }
-                }
-                return true;
-            }
-            catch { return false; }
-        }
-
-        private void UpdateCountdown()
-        {
-            if (_running)
-            {
-                _footer.SetCountdown("Working...");
-                return;
-            }
-            if (_syncBusy)
-            {
-                _footer.SetCountdown("Saving session...");
-                return;
-            }
-            DateTime freshUtc = _lastSaveUtc > _lastCheckUtc ? _lastSaveUtc : _lastCheckUtc;
-            if (freshUtc == DateTime.MinValue)
-            {
-                _footer.SetCountdown("Auto-save pending");
-                return;
-            }
-            TimeSpan left = freshUtc.AddMinutes(AutoSaveMinutes) - DateTime.UtcNow;
-            if (left < TimeSpan.Zero) { left = TimeSpan.Zero; }
-            _footer.SetCountdown(left.TotalSeconds < 1
-                ? "Auto-save due"
-                : string.Format("Auto-save in {0:00}:{1:00}", (int)left.TotalMinutes, left.Seconds));
-        }
-
-        private void RefreshCloudStatus(bool announce)
-        {
-            Dictionary<string, object> meta = ReadJsonMap(CloudStatusPath);
-            bool busy = SyncInProgress();
-            string operation = JsonString(meta, "operation");
-            string status = JsonString(meta, "status");
-            string progress = JsonString(meta, "progress");
-            string error = JsonString(meta, "last_error");
-            string warning = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase)
-                ? JsonString(meta, "last_restore_warning")
-                : JsonString(meta, "last_warning");
-            string skipReason = JsonString(meta, "reason");
-            DateTime savedUtc = JsonUtc(meta, "last_saved_utc");
-            DateTime checkUtc = JsonUtc(meta, "last_check_utc");
-            DateTime restoredUtc = JsonUtc(meta, "last_restore_utc");
-            int fileCount = (int)JsonLong(meta, "file_count", 0);
-            double sizeMb = JsonDouble(meta, "size_mb", 0);
-            int restoreFiles = (int)JsonLong(meta, "last_restore_files", 0);
-            string restoreSource = JsonString(meta, "last_restore_source");
-
-            _lastSaveUtc = savedUtc;
-            _lastCheckUtc = checkUtc;
-            _lastSaveFiles = fileCount;
-            _lastSaveMb = sizeMb;
-
-            // The rail tile and sidebar card always describe the last verified
-            // save (or the last restore when no save metadata exists yet).
-            DateTime displayUtc = savedUtc != DateTime.MinValue ? savedUtc : restoredUtc;
-            string displayTime = displayUtc == DateTime.MinValue ? "--:--" : displayUtc.ToLocalTime().ToString("HH:mm");
-            string displayMeta = displayUtc == DateTime.MinValue
-                ? "No verified snapshot yet"
-                : savedUtc != DateTime.MinValue
-                    ? string.Format("{0} files \u00B7 {1:0.#} MB", fileCount, sizeMb)
-                    : string.Format("{0} files restored", restoreFiles);
-            _sidebar.SetLastSave(displayTime, displayMeta);
-            _stats.SetTile(2, "LAST SNAPSHOT", displayTime, displayMeta, -1f);
-
-            if (meta == null)
-            {
-                _hero.SetState("No snapshot yet", Theme.Amber);
-                _hero.SetMeta("Save once to create the first verified cloud snapshot for this account.");
-                _header.SetCloud(busy ? "Saving..." : "Cloud idle", busy ? Theme.Blue : Theme.Amber);
-                if (announce) { AppendLog("No verified cloud snapshot exists yet.", LogKind.Muted); }
-                return;
-            }
-
-            DateTime freshUtc = savedUtc > checkUtc ? savedUtc : checkUtc;
-            TimeSpan age = freshUtc == DateTime.MinValue ? TimeSpan.MaxValue : DateTime.UtcNow - freshUtc;
-            string ago = FormatAge(age, displayUtc);
-            bool fresh = freshUtc != DateTime.MinValue && age.TotalMinutes <= AutoSaveMinutes + 2;
-
-            if (busy && string.Equals(status, "running", StringComparison.OrdinalIgnoreCase))
-            {
-                string activity = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase)
-                    ? "Restoring snapshot..." : "Saving session...";
-                _hero.SetState(activity, Theme.Blue);
-                _hero.SetMeta(string.IsNullOrEmpty(progress)
-                    ? "The encrypted snapshot is being verified. This can take a minute."
-                    : progress);
-                _header.SetCloud(activity, Theme.Blue);
-                if (announce) { AppendLog(activity + " " + progress, LogKind.Info); }
-                return;
-            }
-
-            if (string.Equals(status, "running", StringComparison.OrdinalIgnoreCase))
-            {
-                _hero.SetState("Last operation was interrupted", Theme.Amber);
-                _hero.SetMeta("No process is running now. The previous verified snapshot is still safe; save again to renew it.");
-                _header.SetCloud("Cloud needs attention", Theme.Amber);
-                if (announce) { AppendLog("The last cloud operation did not finish.", LogKind.Warn); }
-            }
-            else if (string.Equals(status, "failure", StringComparison.OrdinalIgnoreCase))
-            {
-                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase);
-                _hero.SetState(restore ? "Restore failed" : "Save failed", Theme.Red);
-                _hero.SetMeta(ShortError(error, restore
-                    ? "The previous profile data was kept or rolled back."
-                    : "The previous verified snapshot was kept."));
-                _header.SetCloud("Cloud error", Theme.Red);
-                if (announce)
-                {
-                    AppendLog((restore ? "Restore" : "Save") + " failed: " + ShortError(error, "see the activity log."),
-                        LogKind.Error);
-                }
-            }
-            else if (string.Equals(status, "warning", StringComparison.OrdinalIgnoreCase))
-            {
-                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase);
-                _hero.SetState(restore ? "Restored with warnings" : "Saved with warnings", Theme.Amber);
-                _hero.SetMeta(ShortError(warning, restore
-                    ? "Content was verified, but a permission warning was reported."
-                    : "The snapshot was uploaded and verified with documented warnings."));
-                _header.SetCloud("Cloud warning", Theme.Amber);
-                if (announce) { AppendLog("Cloud operation finished with warnings: " + ShortError(warning, "see the activity log."), LogKind.Warn); }
-            }
-            else if (string.Equals(status, "skipped", StringComparison.OrdinalIgnoreCase))
-            {
-                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase);
-                _hero.SetState(restore ? "Restore skipped" : "Save skipped", Theme.Amber);
-                _hero.SetMeta(ShortError(skipReason, restore
-                    ? "No files were changed."
-                    : "No new upload was needed; the previous verified snapshot is still current."));
-                _header.SetCloud("Cloud ready", Theme.Amber);
-                if (announce) { AppendLog((restore ? "Restore" : "Save") + " skipped: " + ShortError(skipReason, "no changes."), LogKind.Info); }
-            }
-            else
-            {
-                bool restore = string.Equals(operation, "restore", StringComparison.OrdinalIgnoreCase)
-                              && restoredUtc != DateTime.MinValue;
-                if (restore)
-                {
-                    _hero.SetState(fresh ? "Restored just now" : "Restored " + FormatAge(DateTime.UtcNow - restoredUtc, restoredUtc),
-                        fresh ? Theme.Green : Theme.Amber);
-                    _hero.SetMeta(string.Format("Restored {0} files from {1} \u00B7 {2}",
-                        restoreFiles,
-                        string.IsNullOrEmpty(restoreSource) ? "the cloud" : restoreSource,
-                        FormatAge(DateTime.UtcNow - restoredUtc, restoredUtc)));
-                }
-                else if (savedUtc == DateTime.MinValue)
-                {
-                    _hero.SetState("No verified snapshot yet", Theme.Amber);
-                    _hero.SetMeta("Save once to create the first verified cloud snapshot for this account.");
-                }
-                else
-                {
-                    _hero.SetState(fresh ? "Up to date" : "Snapshot is " + ago, fresh ? Theme.Green : Theme.Amber);
-                    _hero.SetMeta(string.Format("Last save {0} \u00B7 {1} \u00B7 {2} files \u00B7 {3:0.#} MB",
-                        savedUtc.ToLocalTime().ToString("HH:mm"), ago, fileCount, sizeMb));
-                }
-                _header.SetCloud(fresh ? "Cloud up to date" : "Cloud stale", fresh ? Theme.Green : Theme.Amber);
-                if (announce)
-                {
-                    AppendLog(string.Format("Cloud snapshot: {0} \u00B7 {1} files \u00B7 {2:0.#} MB.",
-                        displayTime, fileCount, sizeMb), LogKind.Muted);
-                }
-            }
-        }
-
-        private static Dictionary<string, object> ReadJsonMap(string path)
-        {
-            try
-            {
-                if (!File.Exists(path)) { return null; }
-                JavaScriptSerializer serializer = new JavaScriptSerializer();
-                Dictionary<string, object> map =
-                    serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(path));
-                return map;
-            }
-            catch { return null; }
-        }
-
-        private static string JsonString(Dictionary<string, object> map, string key)
-        {
-            object value;
-            if (map == null || !map.TryGetValue(key, out value) || value == null) { return string.Empty; }
-            return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-        }
-
-        private static long JsonLong(Dictionary<string, object> map, string key, long fallback)
-        {
-            object value;
-            if (map == null || !map.TryGetValue(key, out value) || value == null) { return fallback; }
-            try
-            {
-                if (value is long) { return (long)value; }
-                if (value is int) { return (int)value; }
-                if (value is decimal) { return (long)(decimal)value; }
-                long parsed;
-                if (long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
-                        NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed)) { return parsed; }
-            }
-            catch { }
-            return fallback;
-        }
-
-        private static double JsonDouble(Dictionary<string, object> map, string key, double fallback)
-        {
-            object value;
-            if (map == null || !map.TryGetValue(key, out value) || value == null) { return fallback; }
-            try
-            {
-                if (value is double) { return (double)value; }
-                if (value is decimal) { return (double)(decimal)value; }
-                double parsed;
-                if (double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
-                        NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)) { return parsed; }
-            }
-            catch { }
-            return fallback;
-        }
-
-        private static DateTime JsonUtc(Dictionary<string, object> map, string key)
-        {
-            string text = JsonString(map, key);
-            if (string.IsNullOrEmpty(text)) { return DateTime.MinValue; }
-            DateTime parsed;
-            if (DateTime.TryParse(text, CultureInfo.InvariantCulture,
-                    DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out parsed))
-            {
-                return parsed;
-            }
-            return DateTime.MinValue;
-        }
-
-        private static string FormatAge(TimeSpan age, DateTime referenceUtc)
-        {
-            if (referenceUtc == DateTime.MinValue || age == TimeSpan.MaxValue) { return "unknown"; }
-            if (age.TotalMinutes < 1) { return "just now"; }
-            if (age.TotalMinutes < 60) { return string.Format("{0} min ago", (int)age.TotalMinutes); }
-            if (age.TotalHours < 24) { return string.Format("{0} h ago", (int)age.TotalHours); }
-            return referenceUtc.ToLocalTime().ToString("d MMM");
-        }
-
-        private static string ShortError(string text, string fallback)
-        {
-            if (string.IsNullOrEmpty(text)) { return fallback ?? string.Empty; }
-            string clean = text.Replace("\r", " ").Replace("\n", " ").Trim();
-            if (clean.Length > 180) { clean = clean.Substring(0, 177) + "..."; }
-            return clean;
         }
 
         private void RefreshSystemInfo()
@@ -3799,8 +3511,40 @@ namespace SailuoTools
                     ? string.Format("{0}d {1}h {2}m", (int)uptime.TotalDays, uptime.Hours, uptime.Minutes)
                     : string.Format("{0}h {1}m", uptime.Hours, uptime.Minutes);
                 _stats.SetTile(1, "SYSTEM UPTIME", uptimeValue, "Time since the last reboot", -1f);
+                RefreshTaskbarInfo();
             }
             catch { }
+        }
+
+        private void RefreshTaskbarInfo()
+        {
+            try
+            {
+                using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Windhawk\Engine\Mods\windows-11-taskbar-styler"))
+                {
+                    if (key == null)
+                    {
+                        _stats.SetTile(2, "TASKBAR THEME", "Not installed", "Apply it from the System page", -1f, Theme.Amber);
+                        return;
+                    }
+
+                    object disabled = key.GetValue("Disabled");
+                    bool off = disabled != null && Convert.ToInt32(disabled, CultureInfo.InvariantCulture) != 0;
+                    using (Microsoft.Win32.RegistryKey settings = key.OpenSubKey("Settings"))
+                    {
+                        string theme = settings == null ? string.Empty : (settings.GetValue("theme") as string) ?? string.Empty;
+                        bool clear = theme.IndexOf("ClearTaskbar", StringComparison.OrdinalIgnoreCase) >= 0;
+                        string value = clear ? "Liquid Glass" : (string.IsNullOrEmpty(theme) ? "Not configured" : theme);
+                        string meta = off ? "Mod is disabled" : (clear ? "Clear taskbar style" : "Theme applied");
+                        _stats.SetTile(2, "TASKBAR THEME", value, meta, -1f, off ? Theme.Amber : Theme.Green);
+                    }
+                }
+            }
+            catch
+            {
+                _stats.SetTile(2, "TASKBAR THEME", "Unknown", "Could not read the Windhawk configuration", -1f, Theme.Slate);
+            }
         }
 
         [DllImport("kernel32.dll")]
@@ -3809,32 +3553,6 @@ namespace SailuoTools
         // ------------------------------------------------------------------
         //  Actions
         // ------------------------------------------------------------------
-        private void StartCheckpoint(bool manual)
-        {
-            if (_running)
-            {
-                if (manual)
-                {
-                    AppendLog("A task is already running. Wait for it to finish, then save again.", LogKind.Warn);
-                    SetStatus("Busy", Theme.Amber, _runningLabel + " is still running.");
-                }
-                return;
-            }
-            _nextCheckUtc = DateTime.UtcNow.AddMinutes(1);
-            if (_syncBusy)
-            {
-                if (manual)
-                {
-                    AppendLog("A cloud save is already running in the background - it will finish in a moment.", LogKind.Info);
-                    SetStatus("Saving", Theme.Blue, "A background save is already running.");
-                }
-                return;
-            }
-            RunStateTask(manual ? "Saving session to the cloud..." : "Auto-saving session to the cloud...",
-                "save", @"C:\Sailuo\scripts\persist-state.ps1", "-Checkpoint",
-                delegate { RefreshCloudStatus(false); });
-        }
-
         private void ConfirmAction(string title, string message, string acceptText, Color accent, EventHandler action)
         {
             using (ConfirmDialog dialog = new ConfirmDialog(title, message, acceptText, accent))
@@ -3844,20 +3562,6 @@ namespace SailuoTools
                     if (action != null) { action(this, EventArgs.Empty); }
                 }
             }
-        }
-
-        private void ConfirmRestore()
-        {
-            ConfirmAction(
-                "Restore the latest cloud save?",
-                "Browser logins, Desktop, Documents, Downloads and C:\\Persist will be replaced with the newest snapshot. Files created after that snapshot are not kept.",
-                "Restore now", Theme.Violet,
-                delegate
-                {
-                    RunStateTask("Restoring the latest cloud save...",
-                        "restore", @"C:\Sailuo\scripts\restore-state.ps1", null,
-                        delegate { RefreshCloudStatus(true); });
-                });
         }
 
         private void ChooseWallpaper()
@@ -3899,54 +3603,6 @@ namespace SailuoTools
             catch { return string.Empty; }
         }
 
-        private void EnsureSyncTask()
-        {
-            try
-            {
-                ProcessStartInfo query = new ProcessStartInfo("schtasks.exe", "/Query /TN \"Sailuo Cloud Save\"");
-                query.UseShellExecute = false;
-                query.CreateNoWindow = true;
-                query.RedirectStandardOutput = true;
-                query.RedirectStandardError = true;
-                using (Process process = Process.Start(query))
-                {
-                    process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
-                    if (process.ExitCode == 0)
-                    {
-                        AppendLog("Cloud auto-save task is active (every 4 minutes).", LogKind.Muted);
-                        return;
-                    }
-                }
-
-                ProcessStartInfo install = new ProcessStartInfo("powershell.exe",
-                    "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"C:\\Sailuo\\scripts\\install-state-sync.ps1\" -Quiet");
-                install.UseShellExecute = false;
-                install.CreateNoWindow = true;
-                install.RedirectStandardOutput = true;
-                install.RedirectStandardError = true;
-                using (Process process = Process.Start(install))
-                {
-                    process.StandardOutput.ReadToEnd();
-                    process.StandardError.ReadToEnd();
-                    process.WaitForExit();
-                    if (process.ExitCode == 0)
-                    {
-                        AppendLog("Cloud auto-save task registered (every 4 minutes).", LogKind.Ok);
-                    }
-                    else
-                    {
-                        AppendLog("Could not register the auto-save task. Use System > Repair auto-save schedule.", LogKind.Warn);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog("Auto-save task check skipped: " + ex.Message, LogKind.Warn);
-            }
-        }
-
-        // ------------------------------------------------------------------
         //  GitHub Actions
         // ------------------------------------------------------------------
         private void RefreshGitHubRuns()
@@ -4217,175 +3873,9 @@ namespace SailuoTools
         //  Task runner
         // ------------------------------------------------------------------
         /// <summary>
-        /// Runs Save/Restore directly with -File so PowerShell returns the real
-        /// script exit code (a wrapper script would swallow it). The operation id
-        /// ties the UI to the exact result written by the script.
+        /// Runs a PowerShell snippet in the background, streams its output into
+        /// the activity log and reports the real process exit code.
         /// </summary>
-        private void RunStateTask(string label, string operation, string scriptPath, string extraArgs, Action onComplete)
-        {
-            if (_running)
-            {
-                AppendLog("A task is already running. Wait for it to finish, then try again.", LogKind.Warn);
-                SetStatus("Busy", Theme.Amber, _runningLabel + " is still running.");
-                return;
-            }
-            if (!File.Exists(scriptPath))
-            {
-                string missing = "The cloud helper is missing: " + scriptPath;
-                AppendLog(missing, LogKind.Error);
-                SetStatus("Cloud helper missing", Theme.Red, missing);
-                return;
-            }
-
-            _running = true;
-            _runningLabel = label;
-            SetStatus(label, Theme.Blue, "Working in the background...");
-            SetBusy(true);
-            AppendLog(label, LogKind.Info);
-            UpdateCountdown();
-
-            string operationId = Guid.NewGuid().ToString("N");
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                int exitCode = -1;
-                bool launched = false;
-                string launchError = string.Empty;
-                Dictionary<string, object> result = null;
-
-                try
-                {
-                    ProcessStartInfo info = new ProcessStartInfo();
-                    info.FileName = "powershell.exe";
-                    info.Arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \""
-                        + scriptPath + "\" -OperationId " + operationId
-                        + (string.IsNullOrEmpty(extraArgs) ? string.Empty : " " + extraArgs);
-                    info.UseShellExecute = false;
-                    info.RedirectStandardOutput = true;
-                    info.RedirectStandardError = true;
-                    info.CreateNoWindow = true;
-                    info.StandardOutputEncoding = Encoding.UTF8;
-                    info.StandardErrorEncoding = Encoding.UTF8;
-
-                    using (Process process = Process.Start(info))
-                    {
-                        process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs args)
-                        {
-                            if (!string.IsNullOrEmpty(args.Data)) { AppendOutput(args.Data, false); }
-                        };
-                        process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs args)
-                        {
-                            if (!string.IsNullOrEmpty(args.Data)) { AppendOutput(args.Data, true); }
-                        };
-                        process.BeginOutputReadLine();
-                        process.BeginErrorReadLine();
-                        process.WaitForExit();
-                        // Flush the asynchronous readers before taking the code.
-                        process.WaitForExit();
-                        exitCode = process.ExitCode;
-                        launched = true;
-                    }
-
-                    result = ReadOperationResult(operationId, operation, 12);
-                }
-                catch (Exception ex)
-                {
-                    launchError = ex.Message;
-                    AppendLog("Cloud task failed to start: " + ex.Message, LogKind.Error);
-                }
-
-                int contractCode = exitCode;
-                string contractStatus = string.Empty;
-                string message = string.Empty;
-                string errorText = string.Empty;
-                bool matched = result != null;
-                if (matched)
-                {
-                    long reported = JsonLong(result, "exit_code", exitCode);
-                    contractCode = (int)reported;
-                    contractStatus = JsonString(result, "status");
-                    message = JsonString(result, "message");
-                    errorText = JsonString(result, "error");
-                }
-
-                try
-                {
-                    Post(delegate
-                    {
-                        _running = false;
-                        _runningLabel = string.Empty;
-                        SetBusy(false);
-                        UpdateCountdown();
-
-                        if (!launched)
-                        {
-                            SetStatus("Cloud action failed", Theme.Red,
-                                ShortError(launchError, "The PowerShell helper could not be started."));
-                            AppendLog("Cloud action failed to start: " + ShortError(launchError, "unknown error"), LogKind.Error);
-                        }
-                        else if (contractCode == 0 && (contractStatus == "success" || contractStatus.Length == 0))
-                        {
-                            SetStatus("Ready", Theme.Green, string.IsNullOrEmpty(message)
-                                ? label.TrimEnd('.') + " completed."
-                                : ShortError(message, "Cloud action completed."));
-                            AppendLog(string.IsNullOrEmpty(message) ? "Done: " + label.TrimEnd('.') : message, LogKind.Ok);
-                        }
-                        else if (contractCode == 2 || contractStatus == "skipped")
-                        {
-                            string why = string.IsNullOrEmpty(message) ? "No changes were needed." : message;
-                            SetStatus("Nothing to do", Theme.Amber, ShortError(why, "The action was skipped."));
-                            AppendLog(why, LogKind.Info);
-                        }
-                        else if (contractCode == 3 || contractStatus == "warning")
-                        {
-                            string why = string.IsNullOrEmpty(errorText) ? message : errorText;
-                            SetStatus("Finished with warnings", Theme.Amber,
-                                ShortError(why, "Check the activity log for details."));
-                            AppendLog("Completed with warnings: " + ShortError(why, "see the activity log."), LogKind.Warn);
-                        }
-                        else
-                        {
-                            string why = !string.IsNullOrEmpty(errorText) ? errorText : message;
-                            SetStatus(operation == "restore" ? "Restore failed" : "Save failed", Theme.Red,
-                                ShortError(why, "Check the activity log for details."));
-                            AppendLog("Failed (exit " + contractCode + "): " + ShortError(why, "see the activity log."), LogKind.Error);
-                        }
-
-                        if (!matched)
-                        {
-                            AppendLog("The operation result could not be matched to this run (exit code "
-                                + exitCode + "); the status above uses the process exit code.", LogKind.Warn);
-                        }
-                        else if (contractCode != exitCode)
-                        {
-                            AppendLog("The result reports exit code " + contractCode + " but PowerShell returned "
-                                + exitCode + "; the script result is treated as authoritative.", LogKind.Warn);
-                        }
-
-                        if (onComplete != null) { onComplete(); }
-                        else { RefreshCloudStatus(true); }
-                    });
-                }
-                catch { }
-            });
-        }
-
-        private static Dictionary<string, object> ReadOperationResult(string operationId, string operation, int attempts)
-        {
-            for (int attempt = 0; attempt < attempts; attempt++)
-            {
-                Dictionary<string, object> result = ReadJsonMap(OperationStatusPath);
-                if (result != null &&
-                    string.Equals(JsonString(result, "operation_id"), operationId, StringComparison.OrdinalIgnoreCase) &&
-                    (string.IsNullOrEmpty(operation) ||
-                     string.Equals(JsonString(result, "operation"), operation, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return result;
-                }
-                Thread.Sleep(100);
-            }
-            return null;
-        }
-
         private void RunTask(string label, string psCommand)
         {
             RunTask(label, psCommand, null);
@@ -4405,7 +3895,6 @@ namespace SailuoTools
             SetStatus(label, Theme.Blue, "Working in the background...");
             SetBusy(true);
             AppendLog(label, LogKind.Info);
-            UpdateCountdown();
 
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -4455,7 +3944,6 @@ namespace SailuoTools
                             _running = false;
                             _runningLabel = string.Empty;
                             SetBusy(false);
-                            UpdateCountdown();
                             if (exitCode == 0)
                             {
                                 SetStatus("Ready", Theme.Green, label.TrimEnd('.') + " completed.");
@@ -4593,37 +4081,39 @@ try {
     Copy-Item -LiteralPath $exePath -Destination $legacyExePath -Force -ErrorAction SilentlyContinue
     Log "SailuoDashboard.exe compiled successfully at $exePath"
 
-    # Keep exactly one clean, uniquely branded shortcut per desktop.
-    foreach ($desk in @("C:\Users\$u\Desktop", "C:\Users\Public\Desktop", "C:\Users\Default\Desktop")) {
+    # Exactly one dashboard shortcut, on the shared Public desktop. Keeping a
+    # copy on both the user and Public desktops made Windows show it twice.
+    $publicDesk = 'C:\Users\Public\Desktop'
+    foreach ($desk in @("C:\Users\$u\Desktop", $publicDesk, 'C:\Users\Default\Desktop')) {
       if (-not (Test-Path $desk)) {
         New-Item -ItemType Directory -Path $desk -Force -ErrorAction SilentlyContinue | Out-Null
       }
       try {
         Remove-Item -LiteralPath (Join-Path $desk 'SailuoTools.exe') -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath (Join-Path $desk 'Sailuo Gaming & Tools Hub.lnk') -Force -ErrorAction SilentlyContinue
-        $wsh = New-Object -ComObject WScript.Shell
-        $lnk = $wsh.CreateShortcut((Join-Path $desk 'Sailuo Dashboard.lnk'))
-        $lnk.TargetPath = $exePath
-        $lnk.WorkingDirectory = $toolsDir
-        $lnk.Description = 'Sailuo Dashboard - cloud save, applications and system tools'
-        $lnk.IconLocation = "$exePath,0"
-        $lnk.Save()
+        Remove-Item -LiteralPath (Join-Path $desk 'SailuoRemote Dashboard.lnk') -Force -ErrorAction SilentlyContinue
+        if ($desk -ne $publicDesk) {
+          Remove-Item -LiteralPath (Join-Path $desk 'Sailuo Dashboard.lnk') -Force -ErrorAction SilentlyContinue
+        }
       } catch {}
     }
+    try {
+      $wsh = New-Object -ComObject WScript.Shell
+      $lnk = $wsh.CreateShortcut((Join-Path $publicDesk 'Sailuo Dashboard.lnk'))
+      $lnk.TargetPath = $exePath
+      $lnk.WorkingDirectory = $toolsDir
+      $lnk.Description = 'Sailuo Dashboard - applications and system tools'
+      $lnk.IconLocation = "$exePath,0"
+      $lnk.Save()
+    } catch {}
 
     # Open the dashboard automatically on the first RDP desktop sign-in.
     try {
       Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' 'SailuoDashboard' "`"$exePath`"" 'String' | Out-Null
       Set-RegBoth 'Software\Microsoft\Windows\CurrentVersion\Run' 'SailuoDashboard' "`"$exePath`"" 'String' | Out-Null
+      # The Run entry is enough; a Startup-folder shortcut would launch it twice.
       $commonStartup = 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp'
-      if (Test-Path $commonStartup) {
-        $wsh2 = New-Object -ComObject WScript.Shell
-        $sLnk = $wsh2.CreateShortcut((Join-Path $commonStartup 'Sailuo Dashboard.lnk'))
-        $sLnk.TargetPath = $exePath
-        $sLnk.WorkingDirectory = $toolsDir
-        if (Test-Path $dashIco) { $sLnk.IconLocation = "$dashIco,0" }
-        $sLnk.Save()
-      }
+      Remove-Item -LiteralPath (Join-Path $commonStartup 'Sailuo Dashboard.lnk') -Force -ErrorAction SilentlyContinue
       Log 'Sailuo Dashboard registered for auto-start on the next desktop sign-in.'
     } catch {}
 
@@ -4633,21 +4123,56 @@ try {
   Log "SailuoDashboard.exe compile warning: $($_.Exception.Message)"
 }
 
-# Register (or repair) the 4-minute cloud auto-save task. Done even when the
-# dashboard compile fails, because the save script is independent of the GUI.
-$syncInstaller = Join-Path $PSScriptRoot 'install-state-sync.ps1'
-if (Test-Path $syncInstaller) {
+# Remove shortcuts, scripts and the scheduled task left behind by the retired
+# save/restore session feature. This is best-effort and never blocks the setup.
+$retiredShortcuts = @(
+  'Save Session Data Now (Cloud Save).lnk',
+  'Permanent Folder (Anti-Reset).lnk',
+  'Save Session.lnk',
+  'Restore Session.lnk',
+  'Restore Session Data.lnk'
+)
+foreach ($desk in @("C:\Users\$u\Desktop", "C:\Users\Public\Desktop", 'C:\Users\Default\Desktop')) {
+  foreach ($shortcut in $retiredShortcuts) {
+    Remove-Item -LiteralPath (Join-Path $desk $shortcut) -Force -ErrorAction SilentlyContinue
+  }
+}
+foreach ($retiredScript in @('install-state-sync.ps1', 'persist-state.ps1', 'restore-state.ps1', 'save-snapshot.ps1')) {
+  Remove-Item -LiteralPath (Join-Path $scriptsDir $retiredScript) -Force -ErrorAction SilentlyContinue
+}
+Remove-Item -LiteralPath (Join-Path $toolsDir 'last-checkpoint-sig.txt') -Force -ErrorAction SilentlyContinue
+foreach ($workDir in @('restore-work', 'state-work')) {
+  Remove-Item -LiteralPath (Join-Path (Split-Path -Parent $toolsDir) $workDir) -Recurse -Force -ErrorAction SilentlyContinue
+}
+try { $null = & schtasks.exe /Delete /TN 'Sailuo Cloud Save' /F 2>&1 } catch {}
+try {
+  $statusPath = Get-StatusPath
+  if (Test-Path $statusPath) {
+    $status = Get-Content $statusPath -Raw | ConvertFrom-Json
+    $changed = $false
+    foreach ($retired in @('persist', 'state_sync')) {
+      if ($status.PSObject.Properties[$retired]) { $status.PSObject.Properties.Remove($retired); $changed = $true }
+    }
+    if ($changed) { ($status | ConvertTo-Json -Depth 8) | Set-Content -Path $statusPath -Encoding utf8 }
+  }
+} catch {}
+
+# Apply (or repair) the OS26 Liquid Glass clear taskbar theme. The helper is
+# idempotent and falls back to registry configuration when Windhawk is already
+# installed, so it is safe to run on every setup.
+$taskbarSetup = Join-Path $PSScriptRoot 'setup-taskbar.ps1'
+if (Test-Path $taskbarSetup) {
   try {
-    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $syncInstaller | Out-Null
+    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $taskbarSetup 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-      Log 'Cloud auto-save task is ready (every 4 minutes).'
+      Log 'Taskbar theme is ready (OS26 Liquid Glass, clear taskbar).'
     } else {
-      Log "Cloud auto-save task could not be registered (exit $LASTEXITCODE)."
+      Log "Taskbar theme setup finished with exit code $LASTEXITCODE."
     }
   } catch {
-    Log "Cloud auto-save task warning: $($_.Exception.Message)"
+    Log "Taskbar theme warning: $($_.Exception.Message)"
   }
 } else {
-  Log 'install-state-sync.ps1 not found - the 4-minute cloud save task was not registered.'
+  Log 'setup-taskbar.ps1 not found - the taskbar theme was not configured.'
 }
 exit 0

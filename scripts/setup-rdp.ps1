@@ -109,9 +109,9 @@ try {
 } catch { Log "  highest admin setup warning: $($_.Exception.Message)" }
 
 # KRITIKAL (Anti-Hilang Data Session): Buat & daftarkan profil Windows resmi C:\Users\$u
-# via Win32 userenv.dll!CreateProfile BEFORE restore-state.ps1 runs!
-# Without this, when restore-state.ps1 membuat C:\Users\$u more dulu, login RDP pertama
-# will menganggap folder C:\Users\$u bentrok then membuat C:\Users\xyadmin.<hostname>,
+# via Win32 userenv.dll!CreateProfile before the first RDP login.
+# Without this, an early profile folder makes the first login think C:\Users\$u
+# already exists and creates C:\Users\xyadmin.<hostname> instead,
 # sehingga semua file Downloads, Desktop & login Google di C:\Users\$u could not be read!
 $createdProfDir = Ensure-UserProfileCreated $u
 Ensure-SailuoDesktopIcons | Out-Null

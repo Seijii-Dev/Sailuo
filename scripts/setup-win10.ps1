@@ -207,4 +207,14 @@ Update-Status @{ win10 = [ordered]@{
 Log "SELESAI - win10 look=ok badge=$badgeStatus wallpaper=$wallStatus search=$searchStatus"
 try { Probe-Rdp 'akhir step' | Out-Null } catch {}
 
+# ---------- 8. OS26 Liquid Glass clear taskbar (best effort) ----------
+try {
+  $taskbarSetup = Join-Path $PSScriptRoot 'setup-taskbar.ps1'
+  if (Test-Path $taskbarSetup) {
+    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $taskbarSetup 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) { Log '  taskbar theme: OS26 Liquid Glass (clear taskbar) ready' }
+    else { Log "  taskbar theme: setup finished with exit $LASTEXITCODE" }
+  }
+} catch { Log "  taskbar theme warning: $($_.Exception.Message)" }
+
 exit 0
