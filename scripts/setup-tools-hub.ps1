@@ -4183,22 +4183,7 @@ try {
   }
 } catch {}
 
-# Apply (or repair) the OS26 Liquid Glass clear taskbar theme. The helper is
-# idempotent and falls back to registry configuration when Windhawk is already
-# installed, so it is safe to run on every setup.
-$taskbarSetup = Join-Path $PSScriptRoot 'setup-taskbar.ps1'
-if (Test-Path $taskbarSetup) {
-  try {
-    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $taskbarSetup 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-      Log 'Taskbar theme is ready (OS26 Liquid Glass, clear taskbar).'
-    } else {
-      Log "Taskbar theme setup finished with exit code $LASTEXITCODE."
-    }
-  } catch {
-    Log "Taskbar theme warning: $($_.Exception.Message)"
-  }
-} else {
-  Log 'setup-taskbar.ps1 not found - the taskbar theme was not configured.'
-}
+# Taskbar theme setup runs in its own bounded, best-effort workflow step so its
+# download and configuration output remains visible in the Actions log.
+Log 'Dashboard setup complete; taskbar theme runs in its own workflow step.'
 exit 0
