@@ -390,26 +390,7 @@ $adminTxt = $(if ($adminOk) { 'YES' } else { 'NO' })
 Log ("SELESAI - lightshot={0} wallpaper={1} admin={2}" -f $resLightshot, $resWall, $adminTxt)
 try { Probe-Rdp 'akhir step' | Out-Null } catch {}
 
-# ---------- 8. Build Sailuo Dashboard (control center + tools) ----------
-try {
-  $toolsHubScript = Join-Path $PSScriptRoot 'setup-tools-hub.ps1'
-  if (Test-Path $toolsHubScript) {
-    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $toolsHubScript 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) { Log '  Sailuo Dashboard build: ok' }
-    else { Log "  Sailuo Dashboard build: exit $LASTEXITCODE" }
-  }
-} catch {
-  Log "setup-tools-hub warning: $($_.Exception.Message)"
-}
-
-# ---------- 9. OS26 Liquid Glass clear taskbar (best effort) ----------
-try {
-  $taskbarSetup = Join-Path $PSScriptRoot 'setup-taskbar.ps1'
-  if (Test-Path $taskbarSetup) {
-    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $taskbarSetup 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) { Log '  taskbar theme: OS26 Liquid Glass (clear taskbar) ready' }
-    else { Log "  taskbar theme: setup finished with exit $LASTEXITCODE" }
-  }
-} catch { Log "  taskbar theme warning: $($_.Exception.Message)" }
+# Dashboard and taskbar setup run in their own workflow steps so their output
+# stays visible and slow best-effort work cannot block this extras step.
 
 exit 0
