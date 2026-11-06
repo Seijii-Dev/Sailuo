@@ -9,7 +9,7 @@
 #    2. Apps      - Chrome, Discord, Facebook, Instagram, Apple Music, Spotify,
 #                   VS Code, Antigravity IDE, OpenCode Desktop, Telegram Web,
 #                   TikTok Web, wallpaper, engine updates
-#    3. System    - display tuning, taskbar theme, diagnostics
+#    3. System    - display tuning, taskbar theme, screen/mic recording, diagnostics
 #
 #  It also registers the dashboard auto-start entry.
 # ============================================================================
@@ -3357,6 +3357,7 @@ private static readonly string SheetBase64 =
         private bool _chromeReady;
         private bool _dpiApplied;
         private bool _autoCollapseDone;
+        private string _lastRecorderUiState = string.Empty;
 
         public MainForm()
         {
@@ -3380,6 +3381,7 @@ private static readonly string SheetBase64 =
 
             RefreshSystemInfo();
             SetStatus("Ready", Theme.Green, "Choose an action below to get started.");
+            RefreshRecorderStatus();
             AppendLog("Dashboard started. Session tools and shortcuts are ready.", LogKind.Muted);
 
             KeyDown += OnFormKeyDown;
@@ -3824,6 +3826,19 @@ private static readonly string SheetBase64 =
                 }));
             page.Controls.Add(display);
 
+            CardGroup recording = new CardGroup("Screen recording", "Screen and RDP microphone - saved locally on this VM", Theme.Red);
+            recording.AddCard(Card("Start screen + mic recording", "Capture the VM screen and redirected Remote Audio microphone. Starts only on click.",
+                "\uE714", Theme.Red, delegate { StartScreenRecording(true); }));
+            recording.AddCard(Card("Start screen-only recording", "Capture the visible VM screen without audio.",
+                "\uE714", Theme.Blue, delegate { StartScreenRecording(false); }));
+            recording.AddCard(Card("Stop recording", "Finalize and save the active MP4 recording.",
+                "\uE71A", Theme.Amber, delegate { StopScreenRecording(); }));
+            recording.AddCard(Card("Check RDP microphone", "Check whether Windows can see the redirected Remote Audio input.",
+                "\uE720", Theme.Cyan, delegate { TestRdpMicrophone(); }));
+            recording.AddCard(Card("Open recordings folder", "Browse recordings stored in this VM. Nothing uploads automatically.",
+                "\uE8A7", Theme.Slate, delegate { OpenRecordingsFolder(); }));
+            page.Controls.Add(recording);
+
             CardGroup automation = new CardGroup("Automation", "Taskbar and appearance", Theme.Green);
             automation.AddCard(Card("Apply Liquid Glass taskbar", "From inside this VM, install or repair the Windhawk clear taskbar theme.",
                 "\uE790", Theme.Green, delegate
@@ -4183,6 +4198,7 @@ private static readonly string SheetBase64 =
         {
             _ticks++;
             if (_ticks % 30 == 0) { RefreshSystemInfo(); }
+            if (_ticks % 2 == 0) { RefreshRecorderStatus(); }
         }
 
         private void RefreshSystemInfo()
@@ -4251,6 +4267,94 @@ private static readonly string SheetBase64 =
         // ------------------------------------------------------------------
         //  Actions
         // ------------------------------------------------------------------
+        private void StartScreenRecording(bool includeMicrophone)
+        {
+            string mode = includeMicrophone ? "screen and microphone" : "screen-only";
+            string message = includeMicrophone
+                ? "This records the visible Windows VM screen and the microphone redirected by your RDP client."
+                : "This records the visible Windows VM screen without audio.";
+            message += "\r\n\r\nFiles stay in this VM's Videos\\SailuoRecordings folder and are not uploaded. Recording stops when the Sailuo Dashboard closes. Use only when everyone being recorded has agreed.";
+            ConfirmAction("Start " + mode + " recording?", message, "Start recording", Theme.Red, delegate
+            {
+                int ownerPid = Process.GetCurrentProcess().Id;
+                string command = "& 'C:\\Sailuo\\scripts\\record-screen.ps1' -Action Start -OwnerPid " + ownerPid.ToString(CultureInfo.InvariantCulture);
+                if (includeMicrophone) { command += " -IncludeMicrophone"; }
+                RunTask("Starting " + mode + " recording...", command, delegate { RefreshRecorderStatus(); });
+            });
+        }
+
+        private void StopScreenRecording()
+        {
+            RunTask("Stopping screen recording...", "& 'C:\\Sailuo\\scripts\\record-screen.ps1' -Action Stop", delegate { RefreshRecorderStatus(); });
+        }
+
+        private void TestRdpMicrophone()
+        {
+            RunTask("Checking the redirected RDP microphone...", "& 'C:\\Sailuo\\scripts\\record-screen.ps1' -Action TestMicrophone");
+        }
+
+        private void OpenRecordingsFolder()
+        {
+            try
+            {
+                string videos = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+                string folder = Path.Combine(videos, "SailuoRecordings");
+                Directory.CreateDirectory(folder);
+                Process.Start("explorer.exe", "\"" + folder + "\"");
+                AppendLog("Opened local recording folder: " + folder, LogKind.Info);
+            }
+            catch (Exception ex)
+            {
+                AppendLog("Could not open the recordings folder: " + ex.Message, LogKind.Error);
+            }
+        }
+
+        private void RefreshRecorderStatus()
+        {
+            if (_running || _footer == null) { return; }
+            try
+            {
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string statePath = Path.Combine(localAppData, "Sailuo", "Recorder", "state.json");
+                if (!File.Exists(statePath)) { return; }
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                Dictionary<string, object> state = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(statePath));
+                if (state == null || !state.ContainsKey("state")) { return; }
+                string stateName = Convert.ToString(state["state"], CultureInfo.InvariantCulture);
+                string mode = state.ContainsKey("mode") ? Convert.ToString(state["mode"], CultureInfo.InvariantCulture) : "screen";
+                string outputPath = state.ContainsKey("outputPath") ? Convert.ToString(state["outputPath"], CultureInfo.InvariantCulture) : string.Empty;
+                bool wasActive = _lastRecorderUiState == "starting" || _lastRecorderUiState == "recording" || _lastRecorderUiState == "stopping";
+
+                if (stateName == "starting")
+                {
+                    SetStatus("Starting recording", Theme.Amber, "Preparing the screen and microphone capture.");
+                }
+                else if (stateName == "recording")
+                {
+                    string label = mode == "screen+microphone" ? "Recording screen + mic" : "Recording screen";
+                    SetStatus(label, Theme.Red, "Active now. File: " + Path.GetFileName(outputPath));
+                }
+                else if (stateName == "stopping")
+                {
+                    SetStatus("Saving recording", Theme.Amber, "Finalizing the local MP4 file.");
+                }
+                else if (stateName == "stopped" && wasActive)
+                {
+                    string stopMessage = state.ContainsKey("message") ? Convert.ToString(state["message"], CultureInfo.InvariantCulture) : "Recording completed.";
+                    SetStatus("Recording saved", Theme.Green, stopMessage);
+                    AppendLog("Recording saved locally: " + outputPath + " - " + stopMessage, LogKind.Ok);
+                }
+                else if (stateName == "failed" && _lastRecorderUiState != "failed")
+                {
+                    string error = state.ContainsKey("message") ? Convert.ToString(state["message"], CultureInfo.InvariantCulture) : "Check the recorder log.";
+                    SetStatus("Recording stopped with warning", Theme.Amber, error);
+                    AppendLog("Recorder warning: " + error, LogKind.Warn);
+                }
+                _lastRecorderUiState = stateName;
+            }
+            catch { }
+        }
+
         private void ConfirmAction(string title, string message, string acceptText, Color accent, EventHandler action)
         {
             using (ConfirmDialog dialog = new ConfirmDialog(title, message, acceptText, accent))

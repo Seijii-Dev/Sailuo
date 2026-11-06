@@ -16,17 +16,31 @@ jobs:
       - name: Parse scripts without running setup or deleting files
         shell: pwsh
         run: |
-          foreach($file in @('diagnose-desktop','keepalive','setup-media','optimize-storage','lib-common')) {
+          foreach($file in @('diagnose-desktop','keepalive','setup-media','optimize-storage','lib-common','record-screen','setup-tools-hub')) {
             $tokens=$null; $errors=$null
             [System.Management.Automation.Language.Parser]::ParseFile("$pwd/scripts/$file.ps1",[ref]$tokens,[ref]$errors) | Out-Null
             if($errors.Count){throw ($errors | Out-String)}
           }
+      - name: Compile dashboard source without running setup
+        shell: pwsh
+        run: |
+          $lines=Get-Content scripts/setup-tools-hub.ps1
+          $start=[Array]::IndexOf($lines, "`$csharpSource = @'")
+          $end=[Array]::IndexOf($lines, "'@", $start + 1)
+          if($start -lt 0 -or $end -le $start){throw 'Could not locate embedded dashboard C# source'}
+          $sourcePath=Join-Path $env:RUNNER_TEMP 'SailuoDashboard-validation.cs'
+          $outputPath=Join-Path $env:RUNNER_TEMP 'SailuoDashboard-validation.exe'
+          $lines[($start + 1)..($end - 1)] | Set-Content -Path $sourcePath -Encoding ASCII
+          $csc=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          if(-not (Test-Path $csc)){throw 'The .NET Framework C# compiler was not found'}
+          & $csc /nologo /target:winexe "/out:$outputPath" /r:System.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll $sourcePath
+          if($LASTEXITCODE -ne 0){throw "Dashboard C# compilation failed with exit code $LASTEXITCODE"}
       - name: Verify protected paths with deletion mocked
         shell: pwsh
         run: |
           $tokens=$null; $errors=$null
           $ast=[System.Management.Automation.Language.Parser]::ParseFile("$pwd/scripts/optimize-storage.ps1",[ref]$tokens,[ref]$errors)
-          $fn=$ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefthistionAst] -and $n.Name -eq 'Remove-Tree'},$true)
+          $fn=$ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Remove-Tree'},$true)
           Invoke-Expression $fn.Extent.Text
           function Log($m){Write-Host $m}
           $script:deletions=0

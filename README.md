@@ -14,12 +14,13 @@ Windows RDP over **private Tailscale**, with a Next.js/Cloudflare dashboard and 
 
 `xyadmin` is the default username; `runneradmin` only when explicitly chosen. The workflow changes Windows policies, including UAC and the administrator account. Use a dedicated or disposable machine, **not your main work computer**. The maximum job duration is 360 minutes including setup; preparation time reduces what is left of the session. GitHub-hosted sessions are not a general-purpose PC service, and there is no guarantee they stay free of suspension.
 
-## Wallpaper and microphone
+## Wallpaper, microphone, and screen recording
 
 - **Wallpaper**: the original Sailuo anime wallpaper from assets/wallpaper.jpg is applied to the user profile at sign-in, not just to the runner's HKCU. The wallpaper turns on automatically, with no yes/no choice or replacement URL. The client must also enable the desktop wallpaper.
-- **Microphone**: the host allows the RDP audio capture channel; Sailuo must enable input and request the Android permission. Test it in Windows Settings > Sound > Input. A device named “Remote Audio” under **Input** is for recording, which is different from speaker output.
+- **Microphone**: the host allows the RDP audio-capture channel. The RDP client must enable microphone/input redirection and the Android client must have microphone permission. In the VM, check **Dashboard > System > Screen recording > Check RDP microphone** or Windows Settings > Sound > Input for **Remote Audio**.
+- **Screen recording**: start and stop it manually from **Dashboard > System > Screen recording**. The combined option records the visible VM desktop and the redirected RDP microphone; the screen-only option records no audio. FFmpeg 9.0.2 Essentials is downloaded on first use and SHA-256 verified. MP4 files are saved to the signed-in user's `Videos\SailuoRecordings` folder. Nothing is uploaded automatically, closing the Dashboard stops recording, and capture also stops before VM disk free space falls below 2 GB.
 
-Wallpaper and microphone support has not yet passed end-to-end testing on Windows plus an Android device.
+These microphone and recording paths still require end-to-end testing with a Windows VM and the actual RDP client. GitHub-hosted VMs are temporary; copy recordings off the VM before the session ends if you need to keep them.
 
 ## Updating an existing repository
 
@@ -38,5 +39,3 @@ Inputs now use `duration_minutes`, `access`, `windows10`, `extras`, `debloat`, a
 ## Validation
 
 PowerShell scripts are parsed with PowerShell 7; the parser is not a Windows installation test. Real App installation requires owner approval. Do not treat these results as certification of end-to-end audio or device compatibility.
-
-
