@@ -1,6 +1,6 @@
 {
   "active": true,
-  "hostname": "sailuo-47",
+  "hostname": "sailuo-48",
   "os": "Microsoft Windows Server 2025 Datacenter",
   "os_build": "10.0.26100",
   "os_style": "Native Windows",
@@ -13,23 +13,23 @@
   "rdp_user": "admin",
   "rdp_listen": ":::3389 (svchost) | 0.0.0.0:3389 (svchost) + handshake ok via 127.0.0.1",
   "rdp_denyts": true,
-  "started_at": "2026-11-06T23:54:26Z",
-  "expires_at": "2026-11-07T05:36:26Z",
+  "started_at": "2026-11-07T07:19:49Z",
+  "expires_at": "2026-11-07T13:01:49Z",
   "duration_menit": 342,
-  "run_id": "42314812223",
+  "run_id": "42350763039",
   "run_attempt": "1",
-  "run_number": "47",
-  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/42314812223",
+  "run_number": "48",
+  "run_url": "https://github.com/Seijii-Dev/Sailuo/actions/runs/42350763039",
   "mode": "bersih+win10",
   "media": {
     "microphone": "rdp_capture_enabled",
-    "audio_output": "rdp_playback_enabled",
     "wallpaper": "sailuo_configured_for_user_logon",
+    "audio_output": "rdp_playback_enabled",
     "verification": "Login ulang, aktifkan mic di Sailuo and izinkan Android. Uji Windows Settings > Sound > Input; kebijwill aktif bukan bukti capture end-to-end."
   },
   "tools_hub": {
-    "installed": true,
     "exe": "C:\\Sailuo\\tools\\SailuoDashboard.exe",
+    "installed": true,
     "auto_start": true
   },
   "sailuo": {
@@ -50,21 +50,21 @@
     "note": "Host ready for the Sailuo Remote client in RDP connection mode (Host+Port tunnel). The WinStations\\RDP-Tcp key is intentionally NOT written so listener 3389 does not die on the GitHub runner."
   },
   "access": {
+    "mode": "tailscale",
     "tunnel": {
+      "address": "100.64.180.22:3389",
       "outside": "tailscale",
-      "host": "100.103.82.98",
-      "address": "100.103.82.98:3389",
-      "status": "ok",
+      "host": "100.64.180.22",
       "port": 3389,
+      "status": "ok",
       "selftest": "ok"
     },
-    "mode": "tailscale",
     "tailscale": {
-      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL.",
-      "ip": "100.103.82.98",
-      "magicdns": "sailuo-47.tail4b745d.ts.net.",
-      "hostname": "sailuo-47",
-      "status": "ok"
+      "status": "ok",
+      "hostname": "sailuo-48",
+      "ip": "100.64.180.22",
+      "magicdns": "sailuo-48.tail4b745d.ts.net.",
+      "note": "The phone/PC must sign in to Tailscale on the same tailnet. TCP 3389 must be allowed in the ACL."
     }
   }
 }
