@@ -37,8 +37,10 @@ jobs:
           exit /b 1
           '@ | Set-Content -Path $fake -Encoding ASCII
           $ErrorActionPreference='Stop'
+          $global:LASTEXITCODE=0
           $devices=@(Get-DirectShowAudioDevices -Ffmpeg $fake)
           if($devices.Count -ne 1 -or $devices[0] -ne 'Microphone (Remote Audio)'){throw "Native stderr was not parsed: $($devices -join ', ')"}
+          if($LASTEXITCODE -ne 0){throw 'The helper did not restore the previous native exit code'}
           if($ErrorActionPreference -ne 'Stop'){throw 'The helper did not restore ErrorActionPreference'}
       - name: Compile dashboard source without running setup
         shell: pwsh

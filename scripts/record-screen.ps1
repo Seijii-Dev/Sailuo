@@ -108,13 +108,17 @@ function Install-RecorderFfmpeg {
 function Get-DirectShowAudioDevices {
   param([Parameter(Mandatory = $true)][string]$Ffmpeg)
   $previousErrorActionPreference = $ErrorActionPreference
+  $previousLastExitCode = $global:LASTEXITCODE
   try {
     # FFmpeg reports DirectShow devices on stderr and may exit nonzero after listing them.
     # Keep that diagnostic output parseable even though the rest of this script uses Stop.
     $ErrorActionPreference = 'Continue'
     $lines = @(& $Ffmpeg -hide_banner -list_devices true -f dshow -i dummy 2>&1 | ForEach-Object { $_.ToString() })
   }
-  finally { $ErrorActionPreference = $previousErrorActionPreference }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+    $global:LASTEXITCODE = $previousLastExitCode
+  }
   $text = $lines -join [Environment]::NewLine
   $marker = $text.IndexOf('DirectShow audio devices', [StringComparison]::OrdinalIgnoreCase)
   if ($marker -lt 0) { return @() }
